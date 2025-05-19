@@ -49,6 +49,19 @@ export default function BorderSettings({
       ),
     },
     // ... existing presets
+    {
+      id: "frame-1",
+      label: "Frame 1",
+      render: () => (
+        <Image
+          src="/frame-1.svg"
+          width={16}
+          height={16}
+          alt="Frame 1 Preview"
+          className="w-16 h-16 object-fit cursor-pointer"
+        />
+      ),
+    },
   ];
   const gradientValue =
     settings.gradientType === "linear"

@@ -1,29 +1,30 @@
 import React from "react";
-// Public URL for the SVG frame asset
-const frameUrl = "/frame-1.svg";
-// Promise that resolves to a Base64 data URL of the SVG
-const frameDataUrlPromise = fetch(frameUrl)
-  .then(res => res.text())
-  .then(svgText => {
-    // Remove XML declaration if present
-    let content = svgText.replace(/<\?xml.*?\?>\s*/g, "");
-    // Remove the unwanted empty <g> wrapper entirely
-    content = content.replace(
-      /<g\s+transform="translate\(0,0\)\s*scale\(0\.6666666666666666,0\.5\)">[\s\S]*?<\/g>/g,
-      ""
-    );
-    // Remove any existing style, width, height, and viewBox attributes to avoid duplication
-    content = content.replace(/\s(?:style|width|height|viewBox)="[^"]*"/g, "");
-    // Inject style and dimension attributes into the <svg> tag
-    content = content.replace(
-      /<svg([^>]*)>/,
-      `<svg$1 style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;" width="100%" height="100%" viewBox="0 0 384 512">`
-    );
-    return `data:image/svg+xml;base64,${btoa(content)}`;
-  });
-// src/qr/design/framePresets.ts
 import type { Options as QRCodeStylingOptions } from "qr-code-styling";
 import Image from "next/image";
+
+let frameDataUrlPromise: Promise<string> | null = null;
+if (typeof window !== "undefined") {
+  const frameUrl = "/frame-1.svg";
+  frameDataUrlPromise = fetch(frameUrl)
+    .then(res => res.text())
+    .then(svgText => {
+      // Remove XML declaration if present
+      let content = svgText.replace(/<\?xml.*?\?>\s*/g, "");
+      // Remove the unwanted empty <g> wrapper entirely
+      content = content.replace(
+        /<g\s+transform="translate\(0,0\)\s*scale\(0\.6666666666666666,0\.5\)">[\s\S]*?<\/g>/g,
+        ""
+      );
+      // Remove any existing style, width, height, and viewBox attributes to avoid duplication
+      content = content.replace(/\s(?:style|width|height|viewBox)="[^"]*"/g, "");
+      // Inject style and dimension attributes into the <svg> tag
+      content = content.replace(
+        /<svg([^>]*)>/,
+        `<svg$1 style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;" width="100%" height="100%" viewBox="0 0 384 512">`
+      );
+      return `data:image/svg+xml;base64,${btoa(content)}`;
+    });
+}
 
 export type FramePreset = {
   id: string;
@@ -204,9 +205,11 @@ export const framePresets: FramePreset[] = [
       const height = options.height ?? 0;
       const imgEl = document.createElementNS("http://www.w3.org/2000/svg", "image");
       // Once we have the Base64 data URL, apply it
-      frameDataUrlPromise.then(dataUrl => {
-        imgEl.setAttribute("href", dataUrl);
-      });
+      if (frameDataUrlPromise) {
+        frameDataUrlPromise.then(dataUrl => {
+          imgEl.setAttribute("href", dataUrl);
+        });
+      }
       imgEl.setAttribute("x", "0");
       imgEl.setAttribute("y", "0");
       imgEl.setAttribute("width", width.toString());
