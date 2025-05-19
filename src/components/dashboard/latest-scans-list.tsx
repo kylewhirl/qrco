@@ -23,7 +23,7 @@ export function LatestScansList({ scans }: LatestScansListProps) {
               <TableHead>Location</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="w-full overflow-x-auto">
             {scans.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center">
@@ -33,8 +33,8 @@ export function LatestScansList({ scans }: LatestScansListProps) {
             ) : (
               scans.map((scan) => (
                 <TableRow key={scan.id}>
-                  <TableCell className="font-medium">{scan.code}</TableCell>
-                  <TableCell>{formatDate(scan.scannedAt)}</TableCell>
+                  <TableCell className="font-medium">{scan.data?.name ? scan.data.name : scan.code}</TableCell>
+                  <TableCell >{formatDate(scan.scannedAt)}</TableCell>
                   <TableCell>{scan.location || "Unknown"}</TableCell>
                 </TableRow>
               ))

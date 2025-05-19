@@ -4,13 +4,14 @@ import Link from "next/link"
 import { Button } from "./ui/button"
 import { UserButton, useUser } from "@stackframe/stack"
 import { QrCode } from "lucide-react"
+import { ThemeToggle } from "./ui/theme-toggle"
 
 
 export default function Header() {
   const session = useUser();
   console.log(session);
 
-  const isLoggedIn = !!session
+  const isLoggedIn = !!session;
 
   return (
         <header className="border-b bg-background">
@@ -35,6 +36,7 @@ export default function Header() {
                 </Link>
             </div>
             <nav className="ml-auto flex items-center gap-4">
+                <ThemeToggle/>
                 {isLoggedIn ? (
                 <>
                 <Link href="/dashboard" passHref>

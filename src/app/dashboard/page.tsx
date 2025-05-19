@@ -68,7 +68,7 @@ export default async function DashboardPage() {
               lastScanned: qr.lastScanned ?? null, // Ensure lastScanned is included
             }))} />
           </div>
-          <div className="grid gap-4 md:col-span-2 lg:col-span-3">
+          <div className="gap-4 md:col-span-2 lg:col-span-3 w-full flex flex-col">
             <TopLocationsList locations={topLocations} />
             <LatestScansList scans={latestScans} />
           </div>

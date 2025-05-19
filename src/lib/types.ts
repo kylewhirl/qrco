@@ -46,6 +46,7 @@ export interface LatestScan {
   code: string
   scannedAt: Date
   location: string | null
+  data: QRData
 }
 
 

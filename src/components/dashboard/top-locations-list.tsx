@@ -22,7 +22,7 @@ export function TopLocationsList({ locations }: TopLocationsListProps) {
               <TableHead className="text-right">Scans</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="w-full overflow-x-auto">
             {locations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center">

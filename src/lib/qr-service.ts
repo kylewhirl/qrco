@@ -155,7 +155,7 @@ export async function getTopLocations(limit = 5): Promise<TopLocation[]> {
 // Get latest scans
 export async function getLatestScans(limit = 10): Promise<LatestScan[]> {
   return await query<LatestScan[]>(
-    `SELECT s.id, q.code, s."scannedAt", s.location
+    `SELECT s.id, q.code, q.data, s."scannedAt", s.location
     FROM "Scan" s
     JOIN "QR" q ON s."qrId" = q.id
     ORDER BY s."scannedAt" DESC

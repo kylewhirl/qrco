@@ -38,7 +38,7 @@ export default function RootLayout({
       <body
         className={`${montserrat.variable} ${geistMono.variable} ${orbitron.variable} bg-sidebar antialiased`}
       ><StackProvider app={stackServerApp}><StackTheme>
-        <ThemeProvider attribute="class" enableSystem defaultTheme="light">
+        <ThemeProvider attribute="class" enableSystem defaultTheme="system">
           {children}
           <Toaster richColors/>
         </ThemeProvider>
