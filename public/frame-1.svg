@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 384 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g>
+        <path d="M79.937,111.042C58.389,111.042 40.895,128.536 40.895,150.084L40.895,451.916C40.895,473.464 58.389,490.958 79.937,490.958L304.063,490.958C325.611,490.958 343.105,473.464 343.105,451.916L343.105,150.084C343.105,128.536 325.611,111.042 304.063,111.042L79.937,111.042ZM320,157.109C320,141.043 306.957,128 290.891,128L93.109,128C77.043,128 64,141.043 64,157.109L64,354.891C64,370.957 77.043,384 93.109,384L290.891,384C306.957,384 320,370.957 320,354.891L320,157.109Z"/>
+    </g>
+    <g transform="matrix(0.412014,1.00914e-16,-1.00914e-16,0.412014,2.45238,330.253)">
+        <text x="155.337px" y="316px" style="font-family:'MontserratRoman-Bold', 'Montserrat';font-weight:100;font-size:188.466px;fill:white;">MENU</text>
+    </g>
+</svg>

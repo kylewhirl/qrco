@@ -1,0 +1,36 @@
+[
+	{
+		"title": ".ENV",
+		"hex": "ECD53F",
+		"source": "https://github.com/motdotla/dotenv/blob/40e75440337d1de2345dc8326d6108331f583fd8/dotenv.svg",
+		"aliases": {
+			"aka": [
+				"Dotenv"
+			]
+		}
+	},
+	{
+		"title": ".NET",
+		"hex": "512BD4",
+		"source": "https://github.com/dotnet/brand/blob/c7d0f51b8ec59531332d05fb27a5b758a7a3d689/logo/dotnet-logo.svg",
+		"guidelines": "https://github.com/dotnet/brand/blob/c7d0f51b8ec59531332d05fb27a5b758a7a3d689/dotnet-styleGuide-2024.pdf",
+		"license": {
+			"type": "CC0-1.0"
+		}
+	},
+	{
+		"title": "/e/",
+		"hex": "000000",
+		"source": "https://doc.e.foundation"
+	},
+	{
+		"title": "1.1.1.1",
+		"hex": "221E68",
+		"source": "https://one.one.one.one"
+	},
+    {
+		"title": "ABB RobotStudio",
+		"hex": "FF9E0F",
+		"source": "https://new.abb.com/products/robotics/en/robotstudio/downloads"
+	}
+]
