@@ -17,7 +17,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1"
 
   // Log the scan asynchronously (don't wait for it to complete)
-  logScan(qr.id, ip.split(",")[0]).catch(console.error)
+  try {
+    await logScan(qr.id, ip)
+  } catch (err) {
+    console.error("logScan failed:", err)
+  }
 
   // Determine action based on QR type
   switch (qr.data.type) {

@@ -78,7 +78,7 @@ export async function getLocationFromIP(ip: string): Promise<string | null> {
     // In a real application, you would use a geolocation API service
     // For example: ipinfo.io, ipapi.co, or ipstack
     // This is a simplified version for demonstration
-      const response = await fetch(`https://ip-api.com/json/${ip}`)
+      const response = await fetch(`http://ip-api.com/json/${ip}`)
       const data = await response.json()
       const city = data.city;
       const country = data.country_name;
