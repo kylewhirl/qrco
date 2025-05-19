@@ -67,10 +67,7 @@ export async function deleteQR(id: string): Promise<boolean> {
 export async function logScan(qrId: string, ip: string): Promise<void> {
   const location = await getLocationFromIP(ip)
 
-  const whoami = await queryNoAuth<{ current_user: string }>(
-    'SELECT current_user'
-  );
-  console.log("logScan running as role:", whoami);
+  console.log("Logging scan for QR id:", qrId);
 
   // Insert scan record
   await queryNoAuth<void>('INSERT INTO "Scan" ("qrId", ip, location) VALUES ($1, $2, $3)', [qrId, ip, location])

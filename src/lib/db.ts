@@ -39,6 +39,7 @@ export async function query<T>(queryString: string, params: unknown[] = []): Pro
 export async function queryNoAuth<T>(queryString: string, params: unknown[] = []): Promise<T> {
   try {
     const result = await neon(process.env.DATABASE_URL!).query(queryString, params)
+    console.log("QR update result: ", result);
     return result as T
   } catch (error) {
     console.error("Database query error:", error)
