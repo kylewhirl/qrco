@@ -23,6 +23,7 @@ const frameDataUrlPromise = fetch(frameUrl)
   });
 // src/qr/design/framePresets.ts
 import type { Options as QRCodeStylingOptions } from "qr-code-styling";
+import Image from "next/image";
 
 export type FramePreset = {
   id: string;
@@ -192,7 +193,7 @@ export const framePresets: FramePreset[] = [
     id: "custom-svg",
     name: "Custom SVG",
     preview: ({ color }) => (
-      <img
+      <Image
         src="/frame-1.svg"
         alt="Custom SVG frame preview"
         style={{ width: 256, height: 256, objectFit: "contain", filter: `drop-shadow(0 0 0 ${color})` }}
