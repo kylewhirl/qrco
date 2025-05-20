@@ -15,10 +15,12 @@ import {
   Dialog,
   DialogTrigger,
   DialogContent,
+  DialogTitle,
+  DialogOverlay
 } from "@/components/ui/dialog";
 import AICreateQr from "@/components/ai-create-qr";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { WandSparkles } from "lucide-react";
+import { QrCode, WandSparkles } from "lucide-react";
+import QrCodeCreator from "@/components/qr-code-creator";
 
 export function NavMain({
   items,
@@ -35,13 +37,27 @@ export function NavMain({
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Quick Create"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
-            >
-              <IconCirclePlusFilled />
-              <span>Create QR Code</span>
-            </SidebarMenuButton>
+            <Dialog>
+              <DialogTrigger asChild>
+                <SidebarMenuButton
+                  tooltip="Quick Create"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
+                >
+                  <IconCirclePlusFilled />
+                  <span>Create QR Code</span>
+                </SidebarMenuButton>
+              </DialogTrigger>
+              <DialogOverlay className="backdrop-blur bg-background/30">
+              <DialogContent className="!max-w-5xl max-h-screen overflow-auto">
+                <DialogTitle>
+                  <div className="flex flex-row items-center">
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Create QR Code</div>
+                </DialogTitle>
+                <QrCodeCreator />
+              </DialogContent>
+              </DialogOverlay>
+            </Dialog>
             <Dialog>
               <DialogTrigger asChild>
                 <ShimmerButton

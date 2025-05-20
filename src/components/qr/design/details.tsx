@@ -8,13 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function DetailsSettings() {
+export default function DetailsSettings({
+  className,
+}: {
+  className?: string;
+}) {
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [image, setImage] = useState<File | null>(null);
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       <h3 className="text-lg font-medium">Details</h3>
       <div className="flex flex-col space-y-1">
         <Label htmlFor="qr-name">Name</Label>

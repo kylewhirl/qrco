@@ -28,11 +28,13 @@ export interface BorderSettingsProps {
     textStyle?: string;
   };
   onChange: Dispatch<SetStateAction<BorderSettingsProps["settings"]>>;
+  className?: string;
 }
 
 export default function BorderSettings({
   settings,
   onChange,
+  className,
 }: BorderSettingsProps) {
   const presets = [
     {
@@ -73,7 +75,7 @@ export default function BorderSettings({
           .join(", ")})`;
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       <h3 className="text-lg font-medium">Border Settings</h3>
       <div className="flex flex-wrap gap-2">
         {presets.map(({ id, render }) => (

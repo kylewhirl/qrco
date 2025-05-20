@@ -44,9 +44,10 @@ export interface StyleSettingsProps {
     bgRotation?: number;
   };
   onChange: Dispatch<SetStateAction<StyleSettingsProps["settings"]>>;
+  className?: string;
 }
 
-export default function StyleSettings({ settings, onChange }: StyleSettingsProps) {
+export default function StyleSettings({ settings, onChange, className }: StyleSettingsProps) {
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   // Compute display value for color pickers: solid or CSS gradient
@@ -102,7 +103,8 @@ export default function StyleSettings({ settings, onChange }: StyleSettingsProps
   );
 
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${className ? ` ${className}` : ""}`}>
+      
       <h3 className="text-lg font-medium">Style Settings</h3>
 
       

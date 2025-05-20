@@ -15,11 +15,12 @@ export interface EyeSettingsProps {
     innerEyeColor: string;
   };
   onChange: Dispatch<SetStateAction<EyeSettingsProps["settings"]>>;
+  className?: string;
 }
 
-export default function EyeSettings({ settings, onChange }: EyeSettingsProps) {
+export default function EyeSettings({ settings, onChange, className }: EyeSettingsProps) {
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       <h3 className="text-lg font-medium">Eye Settings</h3>
 
       {/* Eye style */}

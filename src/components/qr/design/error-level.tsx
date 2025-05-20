@@ -9,14 +9,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 export interface ErrorLevelSettingsProps {
   value: "L" | "M" | "Q" | "H";
   onChange: Dispatch<SetStateAction<ErrorLevelSettingsProps["value"]>>;
+  className?: string;
 }
 
 export default function ErrorLevelSettings({
   value,
   onChange,
+  className,
 }: ErrorLevelSettingsProps) {
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       <h3 className="text-lg font-medium">Error Correction Level</h3>
       <div className="flex flex-col space-y-1">
         <Label htmlFor="error-level-select">Select Level</Label>

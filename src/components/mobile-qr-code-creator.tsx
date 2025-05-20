@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,7 +26,7 @@ import DetailsSettings    from "./qr/design/details";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { GlobeIcon, TypeIcon, MailIcon, UserIcon, PhoneIcon, MessageSquareIcon, WifiIcon, FileIcon, Loader2Icon, } from "lucide-react";
+import { GlobeIcon, TypeIcon, MailIcon, UserIcon, PhoneIcon, MessageSquareIcon, WifiIcon, FileIcon, Loader2Icon } from "lucide-react";
 import Scanability from "@/components/ui/scanability";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import Link from "next/link";
@@ -40,6 +39,9 @@ import type { URLData } from "@/lib/types";
 import type { EmailData } from "@/lib/types";
 import type { PhoneData, SMSData } from "@/lib/types";
 import { useUser } from "@stackframe/stack";
+
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "./ui/drawer";
+
 
 
 export default function QrCodeCreator() {
@@ -170,225 +172,236 @@ const handleDownloadSvg = async () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="mt-4 space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="content-type" className="">Content Type</Label>
+                <Select value={contentTab} onValueChange={value => setContentTab(value as typeof contentTab)}>
+                  <SelectTrigger id="content-type" className="w-full">
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="website">
+                      <div className="flex items-center">
+                        <GlobeIcon className="mr-2 h-4 w-4" />
+                        Website
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="text">
+                      <div className="flex items-center">
+                        <TypeIcon className="mr-2 h-4 w-4" />
+                        Text
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="email">
+                      <div className="flex items-center">
+                        <MailIcon className="mr-2 h-4 w-4" />
+                        Email
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="contact">
+                      <div className="flex items-center">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        Contact
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="phone">
+                      <div className="flex items-center">
+                        <PhoneIcon className="mr-2 h-4 w-4" />
+                        Phone
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="sms">
+                      <div className="flex items-center">
+                        <MessageSquareIcon className="mr-2 h-4 w-4" />
+                        SMS
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="wifi">
+                      <div className="flex items-center">
+                        <WifiIcon className="mr-2 h-4 w-4" />
+                        WiFi
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="file" disabled={!user}>
+                      <div className="flex items-center">
+                      <FileIcon className="mr-2 h-4 w-4" />
+                        File
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+
+              {/* Content‐type Inputs */}
+              {contentTab === "website" && (
+                <WebsiteInput
+                  value={scanTracking ? (originalData as URLData) : (contentData as URLData)}
+                  onChange={(data: URLData) => {
+                    setOriginalData(data);
+                    if (!scanTracking) {
+                      setContentData(data);
+                      setQrString(serialize(data));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "text" && (
+                <TextInput
+                  value={scanTracking ? serialize(originalData) : qrString}
+                  onChange={(text: string) => {
+                    const updated = { ...contentData, text };
+                    setOriginalData(updated);
+                    if (!scanTracking) {
+                      setContentData(updated);
+                      setQrString(serialize(updated));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "email" && (
+                <EmailInput
+                  value={scanTracking ? (originalData as EmailData) : (contentData as EmailData)}
+                  onChange={(data: EmailData) => {
+                    setOriginalData(data);
+                    if (!scanTracking) {
+                      setContentData(data);
+                      setQrString(serialize(data));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "contact" && (
+                <ContactInput
+                  value={scanTracking ? serialize(originalData) : qrString}
+                  onChange={(contact: string) => {
+                    const updated = { ...contentData, contact };
+                    setOriginalData(updated);
+                    if (!scanTracking) {
+                      setContentData(updated);
+                      setQrString(serialize(updated));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "phone" && (
+                <PhoneInput
+                  value={scanTracking ? (originalData as PhoneData) : (contentData as PhoneData)}
+                  onChange={(data: PhoneData) => {
+                    setOriginalData(data);
+                    if (!scanTracking) {
+                      setContentData(data);
+                      setQrString(serialize(data));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "sms" && (
+                <SmsInput
+                  value={scanTracking ? (originalData as SMSData) : (contentData as SMSData)}
+                  onChange={(data: SMSData) => {
+                    setOriginalData(data);
+                    if (!scanTracking) {
+                      setContentData(data);
+                      setQrString(serialize(data));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "wifi" && (
+                <WifiInput
+                  value={scanTracking ? (originalData as WiFiData) : (contentData as WiFiData)}
+                  onChange={({ ssid, authenticationType, password }: { ssid: string; authenticationType: string; password?: string }) => {
+                    const updated = { type: "wifi" as const, ssid, authenticationType, password };
+                    setOriginalData(updated);
+                    if (!scanTracking) {
+                      setContentData(updated);
+                      setQrString(serialize(updated));
+                    }
+                  }}
+                />
+              )}
+              {contentTab === "file" && (
+                <FileInput
+                  onChange={(file) => {
+                    setSelectedFile(file);
+                    if (file) {
+                      const updated: QRData = { type: "file", key: file.name };
+                      setOriginalData(updated);
+                      if (!scanTracking) {
+                        setContentData(updated);
+                        setQrString(serialize(updated));
+                      }
+                    } else {
+                      // cleared selection
+                      setOriginalData({ type: "file", key: "" });
+                      if (!scanTracking) {
+                        setContentData({ type: "file", key: "" });
+                        setQrString(serialize({ type: "file", key: "" }));
+                      }
+                    }
+                  }}
+                />
+              )}
+            </div>
       {/* Left: Content + Design Tabs */}
-      <Card className="p-8 flex flex-col gap-4">
-        {/* Content‐type Select */}
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="content-type" className="">Content Type</Label>
-            <Select value={contentTab} onValueChange={value => setContentTab(value as typeof contentTab)}>
-              <SelectTrigger id="content-type" className="w-full">
-                <SelectValue placeholder="Select content type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="website">
-                  <div className="flex items-center">
-                    <GlobeIcon className="mr-2 h-4 w-4" />
-                    Website
-                  </div>
-                </SelectItem>
-                <SelectItem value="text">
-                  <div className="flex items-center">
-                    <TypeIcon className="mr-2 h-4 w-4" />
-                    Text
-                  </div>
-                </SelectItem>
-                <SelectItem value="email">
-                  <div className="flex items-center">
-                    <MailIcon className="mr-2 h-4 w-4" />
-                    Email
-                  </div>
-                </SelectItem>
-                <SelectItem value="contact">
-                  <div className="flex items-center">
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    Contact
-                  </div>
-                </SelectItem>
-                <SelectItem value="phone">
-                  <div className="flex items-center">
-                    <PhoneIcon className="mr-2 h-4 w-4" />
-                    Phone
-                  </div>
-                </SelectItem>
-                <SelectItem value="sms">
-                  <div className="flex items-center">
-                    <MessageSquareIcon className="mr-2 h-4 w-4" />
-                    SMS
-                  </div>
-                </SelectItem>
-                <SelectItem value="wifi">
-                  <div className="flex items-center">
-                    <WifiIcon className="mr-2 h-4 w-4" />
-                    WiFi
-                  </div>
-                </SelectItem>
-                <SelectItem value="file" disabled={!user}>
-                  <div className="flex items-center">
-                  <FileIcon className="mr-2 h-4 w-4" />
-                    File
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <Drawer modal={false} >
+        <DrawerTrigger>
+          Design
+        </DrawerTrigger>
+        
+        <DrawerContent>
           
+          <div className="p-8 flex flex-col gap-4">
+            {/* Content‐type Select */}
+            <DrawerTitle><h2 className="text-2xl font-bold">Design</h2></DrawerTitle>
 
-          {/* Content‐type Inputs */}
-          {contentTab === "website" && (
-            <WebsiteInput
-              value={scanTracking ? (originalData as URLData) : (contentData as URLData)}
-              onChange={(data: URLData) => {
-                setOriginalData(data);
-                if (!scanTracking) {
-                  setContentData(data);
-                  setQrString(serialize(data));
-                }
-              }}
-            />
-          )}
-          {contentTab === "text" && (
-            <TextInput
-              value={scanTracking ? serialize(originalData) : qrString}
-              onChange={(text: string) => {
-                const updated = { ...contentData, text };
-                setOriginalData(updated);
-                if (!scanTracking) {
-                  setContentData(updated);
-                  setQrString(serialize(updated));
-                }
-              }}
-            />
-          )}
-          {contentTab === "email" && (
-            <EmailInput
-              value={scanTracking ? (originalData as EmailData) : (contentData as EmailData)}
-              onChange={(data: EmailData) => {
-                setOriginalData(data);
-                if (!scanTracking) {
-                  setContentData(data);
-                  setQrString(serialize(data));
-                }
-              }}
-            />
-          )}
-          {contentTab === "contact" && (
-            <ContactInput
-              value={scanTracking ? serialize(originalData) : qrString}
-              onChange={(contact: string) => {
-                const updated = { ...contentData, contact };
-                setOriginalData(updated);
-                if (!scanTracking) {
-                  setContentData(updated);
-                  setQrString(serialize(updated));
-                }
-              }}
-            />
-          )}
-          {contentTab === "phone" && (
-            <PhoneInput
-              value={scanTracking ? (originalData as PhoneData) : (contentData as PhoneData)}
-              onChange={(data: PhoneData) => {
-                setOriginalData(data);
-                if (!scanTracking) {
-                  setContentData(data);
-                  setQrString(serialize(data));
-                }
-              }}
-            />
-          )}
-          {contentTab === "sms" && (
-            <SmsInput
-              value={scanTracking ? (originalData as SMSData) : (contentData as SMSData)}
-              onChange={(data: SMSData) => {
-                setOriginalData(data);
-                if (!scanTracking) {
-                  setContentData(data);
-                  setQrString(serialize(data));
-                }
-              }}
-            />
-          )}
-          {contentTab === "wifi" && (
-            <WifiInput
-              value={scanTracking ? (originalData as WiFiData) : (contentData as WiFiData)}
-              onChange={({ ssid, authenticationType, password }: { ssid: string; authenticationType: string; password?: string }) => {
-                const updated = { type: "wifi" as const, ssid, authenticationType, password };
-                setOriginalData(updated);
-                if (!scanTracking) {
-                  setContentData(updated);
-                  setQrString(serialize(updated));
-                }
-              }}
-            />
-          )}
-          {contentTab === "file" && (
-            <FileInput
-              onChange={(file) => {
-                setSelectedFile(file);
-                if (file) {
-                  const updated: QRData = { type: "file", key: file.name };
-                  setOriginalData(updated);
-                  if (!scanTracking) {
-                    setContentData(updated);
-                    setQrString(serialize(updated));
-                  }
-                } else {
-                  // cleared selection
-                  setOriginalData({ type: "file", key: "" });
-                  if (!scanTracking) {
-                    setContentData({ type: "file", key: "" });
-                    setQrString(serialize({ type: "file", key: "" }));
-                  }
-                }
-              }}
-            />
-          )}
-        </div>
-
-        {/* Design‐type Tabs */}
-        <Tabs value={designTab} onValueChange={value => setDesignTab(value as typeof designTab)}>
-          <div className="relative w-full flex overflow-x-auto w-full">
-            <TabsList>
-              {["style","border","logo","error-level","details"].map(tab => (
-                <TabsTrigger key={tab} value={tab} className="capitalize">
-                  {tab.replace("-", " ")}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            {/* Design‐type Tabs */}
+            <Tabs value={designTab} onValueChange={value => setDesignTab(value as typeof designTab)}>
+              <div className="relative w-full flex overflow-x-auto w-full">
+                <TabsList>
+                  {["style","border","logo","error-level","details"].map(tab => (
+                    <TabsTrigger key={tab} value={tab} className="capitalize">
+                      {tab.replace("-", " ")}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+              <TabsContent value="style" className="h-[350px] overflow-y-auto">      <StyleSettings settings={styleSettings} onChange={setStyleSettings} className="h-[350px] overflow-y-auto"/></TabsContent>
+              <TabsContent value="border" className="h-[350px] overflow-y-auto">
+                <BorderSettings
+                  settings={borderSettings}
+                  onChange={(newSettings) => {
+                    console.log("BackgroundSettings changed:", newSettings);
+                    setBorderSettings(newSettings);
+                  }}
+                  className="h-[350px] overflow-auto"
+                />
+              </TabsContent>
+              <TabsContent value="logo" className="h-[350px] overflow-y-auto">
+                <LogoSettings
+                  settings={logoSettings}
+                  onChange={(logo) => {
+                    if (!logo) {
+                      setLogoSettings(undefined);
+                    } else {
+                      setLogoSettings({
+                        src: logo.src || "",
+                        size: logo.size,
+                        margin: logo.margin,
+                        hideBackgroundDots: logo.hideBackgroundDots,
+                      });
+                    }
+                  }}
+                  className="h-[350px] overflow-y-auto"
+                />
+              </TabsContent>
+              <TabsContent value="error-level" className="h-[350px] overflow-y-auto"><ErrorLevelSettings value={errorLevel} onChange={setErrorLevel} className="h-[350px] overflow-y-auto"/></TabsContent>
+              <TabsContent value="details" className="h-[350px] overflow-y-auto">    <DetailsSettings className="h-[350px] overflow-y-auto"/></TabsContent>
+            </Tabs>
           </div>
-          <TabsContent value="style">      <StyleSettings settings={styleSettings} onChange={setStyleSettings} /></TabsContent>
-          <TabsContent value="border">
-            <BorderSettings
-              settings={borderSettings}
-              onChange={(newSettings) => {
-                console.log("BackgroundSettings changed:", newSettings);
-                setBorderSettings(newSettings);
-              }}
-            />
-          </TabsContent>
-          <TabsContent value="logo">
-            <LogoSettings
-              settings={logoSettings}
-              onChange={(logo) => {
-                if (!logo) {
-                  setLogoSettings(undefined);
-                } else {
-                  setLogoSettings({
-                    src: logo.src || "",
-                    size: logo.size,
-                    margin: logo.margin,
-                    hideBackgroundDots: logo.hideBackgroundDots,
-                  });
-                }
-              }}
-            />
-          </TabsContent>
-          <TabsContent value="error-level"><ErrorLevelSettings value={errorLevel} onChange={setErrorLevel} /></TabsContent>
-          <TabsContent value="details">    <DetailsSettings    /></TabsContent>
-        </Tabs>
-      </Card>
+        </DrawerContent>
+      </Drawer>
 
       {/* Right: Live Preview + Download */}
       <div className="flex flex-col items-start space-y-4 md:w-auto w-full order-first lg:order-last">

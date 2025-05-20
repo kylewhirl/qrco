@@ -211,7 +211,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Create QR Code
+              Quick Create
             </Button>
           </DialogTrigger>
           <DialogContent>

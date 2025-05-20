@@ -14,9 +14,11 @@ import { Slider } from "@/components/ui/slider";
 export default function LogoSettings({
   settings,
   onChange,
+  className,
 }: {
   settings?: { src: string; size: number; margin?: number; hideBackgroundDots?: boolean; color?: string; strokeWidth?: number };
   onChange?: (logo: { src?: string; size: number; margin?: number; hideBackgroundDots?: boolean; color?: string; strokeWidth?: number } | undefined) => void;
+  className?: string;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [logoSettings, setLogoSettings] = useState<{
@@ -65,7 +67,7 @@ export default function LogoSettings({
   };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       {/* Hidden container to render and capture SVG */}
       <div ref={svgCaptureRef} style={{ position: "absolute", visibility: "hidden", pointerEvents: "none" }}>
         {selectedIconName && (

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Phone } from "lucide-react"
 
 
 export default function Footer() {
@@ -10,14 +11,17 @@ export default function Footer() {
             © {new Date().getFullYear()} <span className="font-brand font-bold">the qr code co.</span> All rights reserved.
         </p>
           <nav className="flex gap-4 text-sm text-gray-500">
-            <Link href="#" className="hover:underline">
+            <Link href="/terms" className="hover:underline">
               Terms
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/privacy" className="hover:underline">
               Privacy
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/contact" className="hover:underline">
               Contact
+            </Link>
+             <Link href="tel:+17753910058" className="hover:underline flex flex-col justify-center">
+                <Phone className="w-3.5 h-3.5 hover:underline"/>
             </Link>
           </nav>
         </div>

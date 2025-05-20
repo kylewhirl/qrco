@@ -13,11 +13,12 @@ export interface ShapeSettingsProps {
     dotColor: string;
   };
   onChange: Dispatch<SetStateAction<ShapeSettingsProps["settings"]>>;
+  className?: string;
 }
 
-export default function ShapeSettings({ settings, onChange }: ShapeSettingsProps) {
+export default function ShapeSettings({ settings, onChange, className }: ShapeSettingsProps) {
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4${className ? ` ${className}` : ""}`}>
       <h3 className="text-lg font-medium">Shape Settings</h3>
 
       {/* Dot Style */}
