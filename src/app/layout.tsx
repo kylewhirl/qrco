@@ -5,6 +5,7 @@ import { Montserrat, Geist_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -41,6 +42,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" enableSystem defaultTheme="system">
           {children}
           <Toaster richColors/>
+          <SpeedInsights/>
         </ThemeProvider>
       </StackTheme></StackProvider></body>
     </html>
