@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -43,6 +44,7 @@ export default function RootLayout({
           {children}
           <Toaster richColors/>
           <SpeedInsights/>
+          <Analytics/>
         </ThemeProvider>
       </StackTheme></StackProvider></body>
     </html>
