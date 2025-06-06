@@ -3,7 +3,16 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { QrCode, BarChart, Settings } from "lucide-react"
-import QrCodeCreator from "@/components/qr-code-creator"
+import dynamic from "next/dynamic"
+
+const QrCodeCreator = dynamic(() => import("@/components/qr-code-creator"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-[600px] flex items-center justify-center">
+      Loading QR UI...
+    </div>
+  ),
+})
 
 import Header from "@/components/header";
 import Footer from "@/components/footer";
