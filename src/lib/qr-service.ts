@@ -9,7 +9,7 @@ const stackServerApp = new StackServerApp({
 })
 
 // Create a new QR code
-export async function createQRCode(data: QRData): Promise<QR> {
+export async function createQRCode(data: QRData, domainId: string | null = null): Promise<QR> {
   const user = await stackServerApp.getUser();
   if (!user) {
     throw new Error("Unauthorized");
@@ -29,16 +29,27 @@ export async function createQRCode(data: QRData): Promise<QR> {
   }
 
   const result = await query<QR[]>(
-    'INSERT INTO "QR" (code, data, user_id) VALUES ($1, $2::jsonb, $3) RETURNING *',
-    [code, data, user.id]
+    'INSERT INTO "QR" (code, data, user_id, domain_id) VALUES ($1, $2::jsonb, $3, $4) RETURNING *',
+    [code, data, user.id, domainId]
   )
 
   return result[0]
 }
 
 // Get QR code by code
-export async function getQRByCode(code: string): Promise<QR | null> {
-  const result = await queryNoAuth<QR[]>('SELECT * FROM "QR" WHERE code = $1', [code])
+export async function getQRByCode(code: string, domainId: string): Promise<QR | null> {
+  let result: QR[] = []
+  if (domainId) {
+    result = await queryNoAuth<QR[]>(
+      'SELECT * FROM "QR" WHERE code = $1 AND domain_id = $2',
+      [code, domainId]
+    )
+  } else {
+    result = await queryNoAuth<QR[]>(
+      'SELECT * FROM "QR" WHERE code = $1 AND domain_id IS NULL',
+      [code]
+    )
+  }
   return result.length > 0 ? result[0] : null
 }
 
