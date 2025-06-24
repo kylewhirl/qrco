@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const data = await request.json() as QRData;
+    const body = await request.json() as QRData & { domain_id?: string };
+    const { domain_id, ...data } = body;
 
     if (data.type !== "url") {
       return NextResponse.json({ error: "Invalid payload type" }, { status: 400 });
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create QR code
-    const qr = await createQRCode(data);
+    const qr = await createQRCode(data, domain_id ?? null);
     return NextResponse.json(qr);
   } catch (error) {
     console.error("Error creating QR code:", error);
