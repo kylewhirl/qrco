@@ -1,9 +1,14 @@
 import { buildSignedUrl } from "@/lib/storage"; // or wherever you generate file URLs
 import { type NextRequest, NextResponse } from "next/server"
 import { getQRByCode, logScan } from "@/lib/qr-service"
+import { getTenantByDomain } from "@/lib/domain-service"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
+
+  const host = request.headers.get('host') || ''
+  const tenant = await getTenantByDomain(host)
+  console.log('Incoming host:', host, 'tenant:', tenant)
 
   // Get the QR code from the database
   const qr = await getQRByCode(code)

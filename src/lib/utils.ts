@@ -370,3 +370,10 @@ export function contrastRatio(hex1: string, hex2: string) {
   return (bright + 0.05) / (dark + 0.05);
 }
 
+export function isApexDomain(domain: string): boolean {
+  return domain.split('.').length <= 2;
+}
+
+export function isSubdomain(domain: string): boolean {
+  return !isApexDomain(domain);
+}
