@@ -16,7 +16,8 @@ import {
   IconUsers,
   IconQrcode,
   IconCreditCard,
-  IconBrush
+  IconBrush,
+  IconGlobe
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -67,6 +68,11 @@ export const data = {
       title: "Billing",
       url: "/dashboard/billing",
       icon: IconCreditCard,
+    },
+    {
+      title: "Domains",
+      url: "/dashboard/domains",
+      icon: IconGlobe,
     },
   ],
   navClouds: [
