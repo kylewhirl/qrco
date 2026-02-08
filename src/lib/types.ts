@@ -3,6 +3,7 @@ export interface QR {
   id: string
   code: string
   data: QRData
+  domain_id: string | null
   createdAt: Date
   totalScans: number
   lastScanned: Date | null
@@ -105,4 +106,12 @@ export interface WiFiData {
   authenticationType: "WEP" | "WPA" | "nopass" | string;
   password?: string;
   hidden?: boolean;
+}
+
+export interface Domain {
+  id: string
+  user_id: string
+  domain: string
+  verified: boolean
+  verificationToken: string
 }
