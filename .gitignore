@@ -22,7 +22,10 @@
 
 # misc
 .DS_Store
+.secrets/
 *.pem
+/domain-connect/
+/docs/domain-connect/
 
 # debug
 npm-debug.log*

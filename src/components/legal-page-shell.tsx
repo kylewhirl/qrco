@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { FileText, Mail, ShieldCheck } from "lucide-react";
 
