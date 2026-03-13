@@ -200,38 +200,14 @@ export async function ensureCustomDomainSchema() {
         DO $$
         BEGIN
           EXECUTE 'ALTER TABLE "CustomDomain" ENABLE ROW LEVEL SECURITY';
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'CustomDomain' AND policyname = 'custom_domain_select_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY custom_domain_select_own ON "CustomDomain" FOR SELECT TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'CustomDomain' AND policyname = 'custom_domain_insert_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY custom_domain_insert_own ON "CustomDomain" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'CustomDomain' AND policyname = 'custom_domain_update_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY custom_domain_update_own ON "CustomDomain" FOR UPDATE TO authenticated USING (auth.user_id() = "userId") WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'CustomDomain' AND policyname = 'custom_domain_delete_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY custom_domain_delete_own ON "CustomDomain" FOR DELETE TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
+          EXECUTE 'DROP POLICY IF EXISTS custom_domain_select_own ON "CustomDomain"';
+          EXECUTE 'DROP POLICY IF EXISTS custom_domain_insert_own ON "CustomDomain"';
+          EXECUTE 'DROP POLICY IF EXISTS custom_domain_update_own ON "CustomDomain"';
+          EXECUTE 'DROP POLICY IF EXISTS custom_domain_delete_own ON "CustomDomain"';
+          EXECUTE 'CREATE POLICY custom_domain_select_own ON "CustomDomain" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY custom_domain_insert_own ON "CustomDomain" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY custom_domain_update_own ON "CustomDomain" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY custom_domain_delete_own ON "CustomDomain" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
         END
         $$;
       `);

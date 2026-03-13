@@ -94,62 +94,20 @@ export async function ensureBrandStylesSchema() {
         BEGIN
           EXECUTE 'ALTER TABLE "BrandProfile" ENABLE ROW LEVEL SECURITY';
           EXECUTE 'ALTER TABLE "StylePreset" ENABLE ROW LEVEL SECURITY';
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'BrandProfile' AND policyname = 'brand_profile_select_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY brand_profile_select_own ON "BrandProfile" FOR SELECT TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'BrandProfile' AND policyname = 'brand_profile_insert_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY brand_profile_insert_own ON "BrandProfile" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'BrandProfile' AND policyname = 'brand_profile_update_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY brand_profile_update_own ON "BrandProfile" FOR UPDATE TO authenticated USING (auth.user_id() = "userId") WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'StylePreset' AND policyname = 'style_preset_select_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY style_preset_select_own ON "StylePreset" FOR SELECT TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'StylePreset' AND policyname = 'style_preset_insert_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY style_preset_insert_own ON "StylePreset" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'StylePreset' AND policyname = 'style_preset_update_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY style_preset_update_own ON "StylePreset" FOR UPDATE TO authenticated USING (auth.user_id() = "userId") WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'StylePreset' AND policyname = 'style_preset_delete_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY style_preset_delete_own ON "StylePreset" FOR DELETE TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
+          EXECUTE 'DROP POLICY IF EXISTS brand_profile_select_own ON "BrandProfile"';
+          EXECUTE 'DROP POLICY IF EXISTS brand_profile_insert_own ON "BrandProfile"';
+          EXECUTE 'DROP POLICY IF EXISTS brand_profile_update_own ON "BrandProfile"';
+          EXECUTE 'DROP POLICY IF EXISTS style_preset_select_own ON "StylePreset"';
+          EXECUTE 'DROP POLICY IF EXISTS style_preset_insert_own ON "StylePreset"';
+          EXECUTE 'DROP POLICY IF EXISTS style_preset_update_own ON "StylePreset"';
+          EXECUTE 'DROP POLICY IF EXISTS style_preset_delete_own ON "StylePreset"';
+          EXECUTE 'CREATE POLICY brand_profile_select_own ON "BrandProfile" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY brand_profile_insert_own ON "BrandProfile" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY brand_profile_update_own ON "BrandProfile" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY style_preset_select_own ON "StylePreset" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY style_preset_insert_own ON "StylePreset" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY style_preset_update_own ON "StylePreset" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY style_preset_delete_own ON "StylePreset" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
         END
         $$;
       `);

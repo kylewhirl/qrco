@@ -72,8 +72,8 @@ export function NavMain({
                   <span className="sr-only">AI Create</span>
                 </ShimmerButton>
               </DialogTrigger>
-              <DialogContent>
-                <DialogTitle>
+              <DialogContent className="max-h-[min(92vh,900px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
+                <DialogTitle className="sr-only">
                   <div className="flex flex-row items-center">
                   <WandSparkles className="mr-2 h-4 w-4" />
                   AI Create QR Code</div>

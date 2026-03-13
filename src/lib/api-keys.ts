@@ -41,38 +41,14 @@ async function ensureApiKeyTable() {
         DO $$
         BEGIN
           EXECUTE 'ALTER TABLE "ApiKey" ENABLE ROW LEVEL SECURITY';
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'ApiKey' AND policyname = 'api_key_select_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY api_key_select_own ON "ApiKey" FOR SELECT TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'ApiKey' AND policyname = 'api_key_insert_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY api_key_insert_own ON "ApiKey" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'ApiKey' AND policyname = 'api_key_update_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY api_key_update_own ON "ApiKey" FOR UPDATE TO authenticated USING (auth.user_id() = "userId") WITH CHECK (auth.user_id() = "userId")';
-          END IF;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM pg_policies
-            WHERE schemaname = 'public' AND tablename = 'ApiKey' AND policyname = 'api_key_delete_own'
-          ) THEN
-            EXECUTE 'CREATE POLICY api_key_delete_own ON "ApiKey" FOR DELETE TO authenticated USING (auth.user_id() = "userId")';
-          END IF;
+          EXECUTE 'DROP POLICY IF EXISTS api_key_select_own ON "ApiKey"';
+          EXECUTE 'DROP POLICY IF EXISTS api_key_insert_own ON "ApiKey"';
+          EXECUTE 'DROP POLICY IF EXISTS api_key_update_own ON "ApiKey"';
+          EXECUTE 'DROP POLICY IF EXISTS api_key_delete_own ON "ApiKey"';
+          EXECUTE 'CREATE POLICY api_key_select_own ON "ApiKey" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY api_key_insert_own ON "ApiKey" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY api_key_update_own ON "ApiKey" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
+          EXECUTE 'CREATE POLICY api_key_delete_own ON "ApiKey" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
         END
         $$;
       `);

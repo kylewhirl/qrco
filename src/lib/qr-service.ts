@@ -23,60 +23,24 @@ async function ensureQrAccess() {
           IF to_regclass('public."QR"') IS NOT NULL THEN
             EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "QR" TO authenticated';
             EXECUTE 'ALTER TABLE "QR" ENABLE ROW LEVEL SECURITY';
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_select_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY qr_select_own ON "QR" FOR SELECT TO authenticated USING (auth.user_id() = user_id)';
-            END IF;
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_insert_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY qr_insert_own ON "QR" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = user_id)';
-            END IF;
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_update_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY qr_update_own ON "QR" FOR UPDATE TO authenticated USING (auth.user_id() = user_id) WITH CHECK (auth.user_id() = user_id)';
-            END IF;
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_delete_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY qr_delete_own ON "QR" FOR DELETE TO authenticated USING (auth.user_id() = user_id)';
-            END IF;
+            EXECUTE 'DROP POLICY IF EXISTS qr_select_own ON "QR"';
+            EXECUTE 'DROP POLICY IF EXISTS qr_insert_own ON "QR"';
+            EXECUTE 'DROP POLICY IF EXISTS qr_update_own ON "QR"';
+            EXECUTE 'DROP POLICY IF EXISTS qr_delete_own ON "QR"';
+            EXECUTE 'CREATE POLICY qr_select_own ON "QR" FOR SELECT TO authenticated USING (auth.user_id()::text = user_id::text)';
+            EXECUTE 'CREATE POLICY qr_insert_own ON "QR" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = user_id::text)';
+            EXECUTE 'CREATE POLICY qr_update_own ON "QR" FOR UPDATE TO authenticated USING (auth.user_id()::text = user_id::text) WITH CHECK (auth.user_id()::text = user_id::text)';
+            EXECUTE 'CREATE POLICY qr_delete_own ON "QR" FOR DELETE TO authenticated USING (auth.user_id()::text = user_id::text)';
           END IF;
 
           IF to_regclass('public."Scan"') IS NOT NULL THEN
             EXECUTE 'GRANT SELECT, INSERT ON TABLE "Scan" TO authenticated';
             EXECUTE 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated';
             EXECUTE 'ALTER TABLE "Scan" ENABLE ROW LEVEL SECURITY';
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'Scan' AND policyname = 'scan_select_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY scan_select_own ON "Scan" FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id = auth.user_id()))';
-            END IF;
-
-            IF NOT EXISTS (
-              SELECT 1
-              FROM pg_policies
-              WHERE schemaname = 'public' AND tablename = 'Scan' AND policyname = 'scan_insert_own'
-            ) THEN
-              EXECUTE 'CREATE POLICY scan_insert_own ON "Scan" FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id = auth.user_id()))';
-            END IF;
+            EXECUTE 'DROP POLICY IF EXISTS scan_select_own ON "Scan"';
+            EXECUTE 'DROP POLICY IF EXISTS scan_insert_own ON "Scan"';
+            EXECUTE 'CREATE POLICY scan_select_own ON "Scan" FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id::text = auth.user_id()::text))';
+            EXECUTE 'CREATE POLICY scan_insert_own ON "Scan" FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id::text = auth.user_id()::text))';
           END IF;
         END
         $$;

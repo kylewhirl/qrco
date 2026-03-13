@@ -52,12 +52,6 @@ export function NavDocuments({
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <div className="mb-2 flex items-center justify-between">
         <SidebarGroupLabel>Recent QR Codes</SidebarGroupLabel>
-        <Link
-          href="/dashboard/qr-codes"
-          className="px-2 text-[11px] font-medium uppercase tracking-[0.22em] text-sidebar-foreground/60 transition hover:text-sidebar-foreground"
-        >
-          View all
-        </Link>
       </div>
 
       <SidebarMenu>

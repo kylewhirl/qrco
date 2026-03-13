@@ -19,7 +19,7 @@ const helpLinks = [
   {
     title: "Account settings",
     description: "Open your Stack account view for identity and session controls.",
-    href: "/account",
+    href: "/dashboard/account",
     icon: KeyRound,
   },
   {

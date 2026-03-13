@@ -1,10 +1,5 @@
-import { AccountSettings } from '@stackframe/stack';
+import { redirect } from "next/navigation";
 
-
-export default function MyAccountPage() {
-  return (
-    <AccountSettings
-      fullPage={true}
-    />
-  );
+export default function LegacyAccountPage() {
+  redirect("/dashboard/account");
 }

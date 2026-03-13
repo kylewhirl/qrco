@@ -119,7 +119,7 @@ export default function DashboardSettingsPage() {
                   Update your authentication details and account information in the dedicated account view.
                 </p>
                 <Button asChild className="mt-4" variant="outline">
-                  <Link href="/account">
+                  <Link href="/dashboard/account">
                     Open account settings
                     <ArrowUpRight className="ml-2 h-4 w-4" />
                   </Link>
