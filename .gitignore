@@ -26,6 +26,7 @@
 *.pem
 /domain-connect/
 /docs/domain-connect/
+security_best_practices_report.md
 
 # debug
 npm-debug.log*
