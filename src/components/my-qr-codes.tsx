@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { QR } from "@/lib/types"
-import { formatDate, isValidURL, isValidEmail, isValidPhone } from "@/lib/utils"
+import type { CustomDomain, QR } from "@/lib/types"
+import { formatDate, isValidURL, isValidEmail, isValidPhone, truncateText } from "@/lib/utils"
 import { Edit, Trash2, Plus, PaintbrushVertical, QrCode } from "lucide-react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
@@ -47,18 +47,28 @@ import FileInput from "./qr/inputs/file";
 import { QRData } from "@/lib/types"
 import QrPreview from "./qr-preview"
 import { serialize } from "@/lib/utils"
+import { buildPublicQrUrl } from "@/lib/qr-url"
+
+interface QRMutationInput {
+  data: QRData
+  customDomainId: string | null
+}
 
 interface QRCodeListProps {
   qrCodes: QR[]
-  onCreateQR: (data: { type: "url"; url: string }) => Promise<void>
-  onUpdateQR: (id: string, data: QRData) => Promise<void>
+  onCreateQR: (payload: QRMutationInput) => Promise<void>
+  onUpdateQR: (id: string, payload: QRMutationInput) => Promise<void>
   onDeleteQR: (id: string) => Promise<void>
 }
 
 export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCodeListProps) {
   const [newUrl, setNewUrl] = useState("")
+  const [newCustomDomainId, setNewCustomDomainId] = useState<string | null>(null)
   const [editingQR, setEditingQR] = useState<QR | null>(null)
   const [editData, setEditData] = useState<QRData | null>(null)
+  const [editCustomDomainId, setEditCustomDomainId] = useState<string | null>(null)
+  const [domains, setDomains] = useState<CustomDomain[]>([])
+  const [domainsLoading, setDomainsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -68,7 +78,27 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  console.log("QR Codes:", editData)
+  useEffect(() => {
+    void loadDomains()
+  }, [])
+
+  async function loadDomains() {
+    setDomainsLoading(true)
+    try {
+      const response = await fetch("/api/dashboard/domains")
+      if (!response.ok) {
+        throw new Error("Failed to load domains")
+      }
+
+      const data = await response.json() as { domains?: CustomDomain[] }
+      setDomains((data.domains ?? []).filter((domain) => domain.status === "ready"))
+    } catch (error) {
+      console.error("Failed to load domains:", error)
+      toast.error("Failed to load custom domains")
+    } finally {
+      setDomainsLoading(false)
+    }
+  }
 
   function ClientFormattedDate({ date }: { date: string | Date | null }) {
     const [formatted, setFormatted] = useState("")
@@ -97,8 +127,12 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
 
     setIsCreating(true)
     try {
-      await onCreateQR({ type: "url", url: newUrl })
+      await onCreateQR({
+        data: { type: "url", url: newUrl },
+        customDomainId: newCustomDomainId,
+      })
       setNewUrl("")
+      setNewCustomDomainId(null)
       setCreateDialogOpen(false)
       toast.success("QR code created successfully")
     } catch (error) {
@@ -168,9 +202,13 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
 
     setIsUpdating(true);
     try {
-      await onUpdateQR(editingQR.id, editData);
+      await onUpdateQR(editingQR.id, {
+        data: editData,
+        customDomainId: editCustomDomainId,
+      });
       setEditingQR(null);
       setEditData(null);
+      setEditCustomDomainId(null);
       setEditDialogOpen(false);
       toast.success("QR code updated successfully");
     } catch (error) {
@@ -197,6 +235,8 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
       setIsDeleting(false)
     }
   }
+
+  const getPublicUrl = (qr: QR) => qr.publicUrl || buildPublicQrUrl(qr.code, qr.customHostname ?? null)
 
 
   
@@ -229,6 +269,26 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                   onChange={(e) => setNewUrl(e.target.value)}
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="custom-domain">Custom domain</Label>
+                <Select
+                  value={newCustomDomainId ?? "default"}
+                  onValueChange={(value) => setNewCustomDomainId(value === "default" ? null : value)}
+                  disabled={domainsLoading}
+                >
+                  <SelectTrigger id="custom-domain" className="w-full">
+                    <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Use default domain</SelectItem>
+                    {domains.map((domain) => (
+                      <SelectItem key={domain.id} value={domain.id}>
+                        {domain.hostname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -246,6 +306,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
           <TableHeader>
             <TableRow>
               <TableHead>Code</TableHead>
+              <TableHead>Public URL</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Total Scans</TableHead>
               <TableHead>Last Scanned</TableHead>
@@ -256,7 +317,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
           <TableBody>
             {qrCodes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   No QR codes found
                 </TableCell>
               </TableRow>
@@ -264,7 +325,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
               qrCodes.map((qr) => (
                 <TableRow key={qr.id}>
                   <TableCell className="font-medium">{qr.data?.name ? qr.data.name : qr.code}</TableCell>
-                    <TableCell>
+                  <TableCell className="max-w-[240px] font-mono text-xs text-muted-foreground">
+                    {truncateText(getPublicUrl(qr), 42)}
+                  </TableCell>
+                  <TableCell>
                     {qr.data.type === "url"
                       ? "Website"
                       : qr.data.type === "sms"
@@ -280,7 +344,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                         open={viewDialogOpen && editingQR?.id === qr.id}
                         onOpenChange={(open) => {
                           setViewDialogOpen(open)
-                          if (!open) setViewDialogOpen(false)
+                          if (!open) {
+                            setViewDialogOpen(false)
+                            setEditCustomDomainId(null)
+                          }
                         }}
                         
                       >
@@ -290,8 +357,8 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                             size="icon"
                             onClick={() => {
                               setEditingQR(qr)
-                              console.log("Editing QR:", qr)
                               setEditData(qr.data)
+                              setEditCustomDomainId(qr.customDomainId ?? null)
                               setViewDialogOpen(true)
                             }}
                           >
@@ -303,7 +370,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                           <DialogHeader>
                             <DialogTitle>View QR Code</DialogTitle>
                             <DialogDescription>
-                              {editingQR?.code}
+                              {editingQR ? getPublicUrl(editingQR) : ""}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="flex items-center flex-col">
@@ -325,7 +392,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                         open={designDialogOpen && editingQR?.id === qr.id}
                         onOpenChange={(open) => {
                           setDesignDialogOpen(open)
-                          if (!open) setEditingQR(null)
+                          if (!open) {
+                            setEditingQR(null)
+                            setEditCustomDomainId(null)
+                          }
                         }}
                       >
                         <DialogTrigger asChild>
@@ -334,8 +404,8 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                             size="icon"
                             onClick={() => {
                               setEditingQR(qr)
-                              console.log("Editing QR:", qr)
                               setEditData(qr.data)
+                              setEditCustomDomainId(qr.customDomainId ?? null)
                               setDesignDialogOpen(true)
                             }}
                           >
@@ -351,6 +421,26 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                             </DialogDescription>
                           </DialogHeader>
                           <div className="mt-4 space-y-4">
+                            <div className="space-y-1">
+                              <Label htmlFor="edit-custom-domain">Public domain</Label>
+                              <Select
+                                value={editCustomDomainId ?? "default"}
+                                onValueChange={(value) => setEditCustomDomainId(value === "default" ? null : value)}
+                                disabled={domainsLoading}
+                              >
+                                <SelectTrigger id="edit-custom-domain" className="w-full">
+                                  <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="default">Use default domain</SelectItem>
+                                  {domains.map((domain) => (
+                                    <SelectItem key={domain.id} value={domain.id}>
+                                      {domain.hostname}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             <div className="space-y-1">
                               <Label htmlFor="content-type">Content</Label>
                               <Select
@@ -485,7 +575,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                         open={editDialogOpen && editingQR?.id === qr.id}
                         onOpenChange={(open) => {
                           setEditDialogOpen(open)
-                          if (!open) setEditingQR(null)
+                          if (!open) {
+                            setEditingQR(null)
+                            setEditCustomDomainId(null)
+                          }
                         }}
                       >
                         <DialogTrigger asChild>
@@ -494,8 +587,8 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                             size="icon"
                             onClick={() => {
                               setEditingQR(qr)
-                              console.log("Editing QR:", qr)
                               setEditData(qr.data)
+                              setEditCustomDomainId(qr.customDomainId ?? null)
                               setEditDialogOpen(true)
                             }}
                           >
@@ -511,6 +604,34 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                             </DialogDescription>
                           </DialogHeader>
                           <div className="mt-4 space-y-4">
+                            <div className="space-y-1">
+                              <Label htmlFor="qr-public-url">Public URL</Label>
+                              <Input
+                                id="qr-public-url"
+                                readOnly
+                                value={editingQR ? buildPublicQrUrl(editingQR.code, domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null) : ""}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="edit-custom-domain-full">Public domain</Label>
+                              <Select
+                                value={editCustomDomainId ?? "default"}
+                                onValueChange={(value) => setEditCustomDomainId(value === "default" ? null : value)}
+                                disabled={domainsLoading}
+                              >
+                                <SelectTrigger id="edit-custom-domain-full" className="w-full">
+                                  <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="default">Use default domain</SelectItem>
+                                  {domains.map((domain) => (
+                                    <SelectItem key={domain.id} value={domain.id}>
+                                      {domain.hostname}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             <div className="space-y-1">
                               <Label htmlFor="name">Name</Label>
                               <Input
@@ -681,7 +802,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                         open={deleteDialogOpen && editingQR?.id === qr.id}
                         onOpenChange={(open) => {
                           setDeleteDialogOpen(open)
-                          if (!open) setEditingQR(null)
+                          if (!open) {
+                            setEditingQR(null)
+                            setEditCustomDomainId(null)
+                          }
                         }}
                       >
                         <DialogTrigger asChild>

@@ -1,0 +1,68 @@
+---
+title: API Overview
+description: Authenticate with an API key and work with QR codes, analytics, brand defaults, and style presets.
+---
+
+The tqrco API is a versioned REST surface for managing QR codes and the data around them.
+
+## Base URL
+
+During local development:
+
+```bash
+http://localhost:3002
+```
+
+In production today:
+
+```bash
+https://tqrco.de
+```
+
+All endpoints are versioned under `/api/v1`.
+
+## Authentication
+
+Use a bearer API key generated from the dashboard settings page.
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+Every API key is scoped to the Stack user that created it. The API never hands the key direct database access. Each request resolves the key to a user id and then applies ownership filters in the query layer.
+
+## Available resources
+
+- [Authentication](/docs/authentication)
+- [QR Codes](/docs/qr-codes)
+- [Analytics](/docs/analytics)
+- [Styling and Brand](/docs/styling-and-brand)
+
+## Response envelope
+
+Most successful JSON endpoints return a `data` object or array:
+
+```json
+{
+  "data": []
+}
+```
+
+Mutation-style delete endpoints may return:
+
+```json
+{
+  "success": true
+}
+```
+
+## Image rendering
+
+Saved QR codes can be rendered directly as SVG or PNG:
+
+```bash
+curl -L \
+  -H "Authorization: Bearer tqr_live_..." \
+  "https://tqrco.de/api/v1/qr-codes/QR_ID/render?format=svg"
+```

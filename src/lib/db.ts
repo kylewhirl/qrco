@@ -1,50 +1,66 @@
-import { neon } from "@neondatabase/serverless"
-import { StackServerApp } from "@stackframe/stack"
+import "server-only";
 
-const stackServerApp = new StackServerApp({
-  tokenStore: "nextjs-cookie",
-  urls: {
-    signIn: '/login',
-  },
-})
+import { neon } from "@neondatabase/serverless";
+import { stackServerApp } from "@/stack";
 
-
-// Helper to get an authenticated Neon client
-function getSql() {
+function getAuthenticatedSql(authToken: string) {
   return neon(process.env.DATABASE_AUTHENTICATED_URL!, {
-    authToken: async () => {
-      const user = await stackServerApp.getUser();
-      if (!user) throw new Error('Unauthorized');
-      const { accessToken } = await user.getAuthJson();
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      return accessToken;
-    },
+    authToken,
   });
 }
 
-// Export a type-safe query function
+function getAdminSql() {
+  return neon(process.env.DATABASE_URL!);
+}
+
+async function getCurrentAuthToken(): Promise<string | null> {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    return null;
+  }
+
+  const { accessToken } = await user.getAuthJson();
+  return accessToken ?? null;
+}
+
 export async function query<T>(queryString: string, params: unknown[] = []): Promise<T> {
+  const authToken = await getCurrentAuthToken();
+  if (!authToken) {
+    throw new Error("Authenticated database access requires a signed-in user");
+  }
+
   try {
-    const result = await getSql().query(queryString, params)
-    return result as T
+    const result = await getAuthenticatedSql(authToken).query(queryString, params);
+    return result as T;
   } catch (error) {
-    console.error("Database query error:", error)
-    throw error
+    console.error("Database query error:", error);
+    throw error;
   }
 }
 
-// Export a type-safe query function
+export async function queryAdmin<T>(queryString: string, params: unknown[] = []): Promise<T> {
+  try {
+    const result = await getAdminSql().query(queryString, params);
+    return result as T;
+  } catch (error) {
+    console.error("Database query error:", error);
+    throw error;
+  }
+}
+
+// Prefer the authenticated Neon connection when a Stack session is present.
+// This keeps dashboard traffic inside DB-enforced auth/RLS while preserving
+// explicit service-role access for API-key and public request flows.
 export async function queryNoAuth<T>(queryString: string, params: unknown[] = []): Promise<T> {
+  const authToken = await getCurrentAuthToken();
+
   try {
-    const result = await neon(process.env.DATABASE_URL!).query(queryString, params)
-    console.log("QR update result: ", result);
-    return result as T
+    const sql = authToken ? getAuthenticatedSql(authToken) : getAdminSql();
+    const result = await sql.query(queryString, params);
+    return result as T;
   } catch (error) {
-    console.error("Database query error:", error)
-    throw error
+    console.error("Database query error:", error);
+    throw error;
   }
 }
-
 

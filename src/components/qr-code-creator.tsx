@@ -34,6 +34,7 @@ import Link from "next/link";
 
 import { flattenAndDownloadSvg } from "@/lib/flatten-svg";
 import { serialize } from "@/lib/utils";
+import { buildPublicQrUrl } from "@/lib/qr-url";
 import { QRData } from "@/lib/types";
 import type { WiFiData } from "@/lib/types";
 import type { URLData } from "@/lib/types";
@@ -406,7 +407,7 @@ const handleDownloadSvg = async () => {
                   // Start rotating random preview data
                   intervalRef.current = window.setInterval(() => {
                     const randomCode = Math.random().toString(36).substr(2, 6);
-                    setQrString(`https://tqrco.de/${randomCode}`);
+                    setQrString(buildPublicQrUrl(randomCode));
                   }, 500);
                   try {
                     const res = await fetch('/api/qr', {
@@ -418,7 +419,7 @@ const handleDownloadSvg = async () => {
                       throw new Error(`HTTP ${res.status}`);
                     }
                     const { code } = await res.json();
-                    setQrString(`https://tqrco.de/${code}`);
+                    setQrString(buildPublicQrUrl(code));
                     // Upload file if present
                     if (selectedFile) {
                       try {

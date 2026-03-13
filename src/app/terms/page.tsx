@@ -1,115 +1,99 @@
+import LegalPageShell from "@/components/legal-page-shell";
 
-
-"use client";
-
-import Footer from "@/components/footer";
-import Header from "@/components/header";
-import React from "react";
+const sections = [
+  {
+    id: "acceptance",
+    title: "1. Acceptance of these Terms",
+    paragraphs: [
+      "These Terms of Use govern your access to and use of the tqrco website, dashboard, APIs, and related services for creating, managing, and tracking QR codes.",
+      "By accessing or using the service, you agree to be bound by these terms. If you do not agree, do not use the service.",
+    ],
+  },
+  {
+    id: "accounts",
+    title: "2. Accounts and access",
+    paragraphs: [
+      "You may need to create an account to use certain features. You are responsible for keeping your login credentials secure and for activity that occurs under your account.",
+      "You agree to provide accurate information when registering and to keep your account details reasonably current.",
+    ],
+  },
+  {
+    id: "acceptable-use",
+    title: "3. Acceptable use",
+    paragraphs: [
+      "You may use the service only for lawful purposes and in a way that does not harm the platform, other users, or third parties.",
+    ],
+    bullets: [
+      "Do not use QR codes generated through the service for unlawful, deceptive, abusive, or infringing content.",
+      "Do not attempt to interfere with platform security, reverse engineer restricted systems, or abuse rate limits.",
+      "Do not use the service to distribute malware, spam, or content designed to mislead scan recipients.",
+    ],
+  },
+  {
+    id: "your-content",
+    title: "4. Your content and QR destinations",
+    paragraphs: [
+      "You remain responsible for the URLs, files, text, and other content you connect to your QR codes. You represent that you have the rights needed to use that content and destination material.",
+      "We do not assume responsibility for content hosted on third-party destinations that your QR codes point to.",
+    ],
+  },
+  {
+    id: "availability",
+    title: "5. Service availability",
+    paragraphs: [
+      "We work to keep the service available and accurate, but we do not guarantee uninterrupted availability, error-free operation, or that every QR code will remain reachable at all times.",
+      "Features may change, be improved, or be removed as the product evolves.",
+    ],
+  },
+  {
+    id: "termination",
+    title: "6. Suspension and termination",
+    paragraphs: [
+      "We may suspend or terminate access to the service if we reasonably believe you have violated these terms, created risk for other users, or used the platform in a way that could expose us to legal or operational harm.",
+      "You may stop using the service at any time.",
+    ],
+  },
+  {
+    id: "intellectual-property",
+    title: "7. Intellectual property",
+    paragraphs: [
+      "The service, including its software, branding, and original content, is owned by tqrco or its licensors and is protected by applicable intellectual property laws.",
+      "These terms do not give you ownership of the service itself, only a limited right to use it in accordance with these terms.",
+    ],
+  },
+  {
+    id: "disclaimers",
+    title: "8. Disclaimers and limits of liability",
+    paragraphs: [
+      "The service is provided on an as-is and as-available basis to the maximum extent permitted by law.",
+      "To the maximum extent permitted by law, tqrco will not be liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenues, data, or business opportunities arising from your use of the service.",
+    ],
+  },
+  {
+    id: "changes",
+    title: "9. Changes to these terms",
+    paragraphs: [
+      "We may update these Terms of Use from time to time. When we do, we will post the revised version on this page and update the effective date below.",
+      "Your continued use of the service after a revision becomes effective means you accept the updated terms.",
+    ],
+  },
+  {
+    id: "contact",
+    title: "10. Contact",
+    paragraphs: [
+      "Questions about these Terms of Use can be sent to hello@tqrco.de.",
+    ],
+  },
+];
 
 export default function TermsPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-     <Header/>
-    <main className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">1. Overview</h2>
-        <p>
-          <span className="font-brand font-semibold">The qr code co.</span> (“the Service”) allows users to create, customize, 
-          and track QR codes. By using the Service, you agree to the terms 
-          outlined in this document.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">2. Account Creation</h2>
-        <p>
-          To use the Service, you must create an account through Google or 
-          via an email magic link (passwordless authentication). By creating 
-          an account, you agree to provide accurate information, including 
-          your name, email, and, if applicable, a profile photo from your 
-          Google account.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">3. Acceptable Use</h2>
-        <p>
-          You agree to use <span className="font-brand font-semibold">the qr code co.</span> in compliance with all applicable 
-          laws. Any use of the Service for illegal activities, spamming, or 
-          harmful behavior may result in suspension or termination of your 
-          account or the deactivation of specific QR codes.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">4. User Responsibilities</h2>
-        <p>
-          You are solely responsible for the content encoded in the QR codes 
-          you create. This includes ensuring that the content is lawful and 
-          non-harmful. <span className="font-brand font-semibold">the qr code co.</span> is not responsible for any consequences 
-          arising from the use of QR codes created through the Service.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">5. Service Limitations and Liability</h2>
-        <p>
-          The Service is provided “as is,” and we do not guarantee that the 
-          QR codes generated will always function or remain accessible. We are 
-          not liable for:
-        </p>
-        <ul className="list-disc list-inside ml-4">
-          <li>QR codes that lead to harmful, offensive, or inappropriate content.</li>
-          <li>Broken or non-functional QR codes due to technical issues or expired links.</li>
-        </ul>
-        <p>
-          You agree that <span className="font-brand font-semibold">the qr code co.</span> is not responsible for any damages 
-          arising from your use of the Service or from QR codes failing to 
-          work as intended.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">6. Data Collection and Privacy</h2>
-        <p>
-          When you use the Service, we collect your name, email address, and, 
-          if applicable, your profile photo from your Google account. This 
-          information is used to manage your account and provide the Service. 
-          We do not share QR code analytics or any other user data with third 
-          parties. For more details, please refer to our Privacy Policy.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">7. Termination and Suspension</h2>
-        <p>
-          <span className="font-brand font-semibold">The qr code co.</span> reserves the right to suspend or terminate your 
-          account or disable any QR codes if we determine that you have 
-          violated these Terms of Service, including but not limited to:
-        </p>
-        <ul className="list-disc list-inside ml-4">
-          <li>Engaging in spam, illegal activities, or abusive behavior.</li>
-          <li>Using the Service in a manner that may harm other users or 
-              violate applicable laws.</li>
-        </ul>
-        <p>
-          You are not able to terminate your own account.
-        </p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">8. Changes to the Terms of Service</h2>
-        <p>
-          We reserve the right to modify or update these Terms of Service at 
-          any time. If any changes are made, we will notify you via email. 
-          Your continued use of the Service after changes are posted 
-          constitutes acceptance of the new terms.
-        </p>
-      </section>
-    </main>
-    <Footer/>
-    </div>
+    <LegalPageShell
+      eyebrow="Legal"
+      title="Terms of Use"
+      summary="These terms describe the rules for using tqrco, including account access, acceptable use, service limits, and how changes to the product and terms are handled."
+      lastUpdated="March 13, 2026"
+      sections={sections}
+    />
   );
 }

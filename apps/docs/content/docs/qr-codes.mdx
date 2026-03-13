@@ -1,0 +1,101 @@
+---
+title: QR Codes
+description: Create, read, update, delete, and render saved QR codes.
+---
+
+## List QR codes
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+Returns all QR codes owned by the authenticated user.
+
+## Create a QR code
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes \
+  -X POST \
+  -H "Authorization: Bearer tqr_live_..." \
+  -H "Content-Type: application/json" \
+  --data '{
+    "type": "url",
+    "url": "https://example.com",
+    "name": "Homepage"
+  }'
+```
+
+Supported payload types match the product model:
+
+- `url`
+- `text`
+- `email`
+- `phone`
+- `sms`
+- `wifi`
+- `file`
+
+## Fetch a single QR code
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes/QR_ID \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+## Update a QR code
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes/QR_ID \
+  -X PATCH \
+  -H "Authorization: Bearer tqr_live_..." \
+  -H "Content-Type: application/json" \
+  --data '{
+    "type": "url",
+    "url": "https://example.com/pricing",
+    "name": "Pricing"
+  }'
+```
+
+## Delete a QR code
+
+```bash
+curl https://tqrco.de/api/v1/qr-codes/QR_ID \
+  -X DELETE \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+## Render a saved QR code
+
+Render output is generated from the stored QR record and the user’s render configuration.
+
+### SVG
+
+```bash
+curl -L \
+  -H "Authorization: Bearer tqr_live_..." \
+  "https://tqrco.de/api/v1/qr-codes/QR_ID/render?format=svg"
+```
+
+### PNG
+
+```bash
+curl -L \
+  -H "Authorization: Bearer tqr_live_..." \
+  "https://tqrco.de/api/v1/qr-codes/QR_ID/render?format=png"
+```
+
+### Render with a saved style preset
+
+```bash
+curl -L \
+  -H "Authorization: Bearer tqr_live_..." \
+  "https://tqrco.de/api/v1/qr-codes/QR_ID/render?format=png&presetId=STYLE_ID"
+```
+
+### Optional query parameters
+
+- `format`: `svg` or `png`
+- `presetId`: apply a saved style preset
+- `width`: integer between `128` and `2048`
+- `height`: integer between `128` and `2048`

@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createQRCode, getAllQRCodes } from "@/lib/qr-service"
+import { createQRCode, getAllQRCodes, getRecentQRCodes } from "@/lib/qr-service"
 import { isValidURL } from "@/lib/utils"
 import { StackServerApp } from "@stackframe/stack";
-import type { QRData } from "@/lib/types";
+import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const data = await request.json() as QRData;
+    const parsed = qrMutationRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const { data, customDomainId } = parsed.data;
 
     if (data.type !== "url") {
       return NextResponse.json({ error: "Invalid payload type" }, { status: 400 });
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create QR code
-    const qr = await createQRCode(data);
+    const qr = await createQRCode(data, customDomainId);
     return NextResponse.json(qr);
   } catch (error) {
     console.error("Error creating QR code:", error);
@@ -43,7 +48,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Get all QR codes
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Check authentication with Stack Auth
   const user = await stackServerApp.getUser();
   if (!user) {
@@ -51,7 +56,11 @@ export async function GET() {
   }
 
   try {
-    const qrCodes = await getAllQRCodes();
+    const limitParam = request.nextUrl.searchParams.get("limit");
+    const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : null;
+    const qrCodes = parsedLimit && parsedLimit > 0
+      ? await getRecentQRCodes(parsedLimit)
+      : await getAllQRCodes();
     return NextResponse.json(qrCodes);
   } catch (error) {
     console.error("Error fetching QR codes:", error);

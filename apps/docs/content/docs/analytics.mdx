@@ -1,0 +1,65 @@
+---
+title: Analytics
+description: Query per-user scan metrics and scan event feeds.
+---
+
+## Summary endpoint
+
+```bash
+curl https://tqrco.de/api/v1/analytics/summary \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+Returns:
+
+- `metrics`
+- `dailyScans`
+- `topLocations`
+
+Example response:
+
+```json
+{
+  "data": {
+    "metrics": {
+      "totalScansLast7Days": 12,
+      "activeQRCodesCount": 4,
+      "topLocation": {
+        "location": "Berlin",
+        "count": 7
+      },
+      "mostActiveQR": {
+        "code": "Ab12Cd",
+        "data": {
+          "type": "url",
+          "url": "https://example.com"
+        },
+        "scans": 18
+      }
+    },
+    "dailyScans": [],
+    "topLocations": []
+  }
+}
+```
+
+## Latest scan feed
+
+```bash
+curl "https://tqrco.de/api/v1/analytics/scans?limit=100" \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+Optional query parameters:
+
+- `limit`: defaults to `100`, max `500`
+- `qrId`: filter to a specific QR code
+
+Example:
+
+```bash
+curl "https://tqrco.de/api/v1/analytics/scans?qrId=QR_ID&limit=25" \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+Only scans associated with QR codes owned by the authenticated user are returned.

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { StackServerApp } from "@stackframe/stack";
 import { deleteQR, getQRById, updateQRData } from "@/lib/qr-service"
-import type { QRData } from "@/lib/types"
+import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
@@ -22,10 +22,12 @@ export async function PATCH(
   }
 
   try {
-    // Parse incoming data object
-    const payload = await request.json() as QRData & { name?: string; description?: string }
+    const parsed = qrMutationRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
 
-    // (Optionally validate data.type / payload here)
+    const { data, customDomainId } = parsed.data;
 
     // Check if QR code exists
     const qr = await getQRById(id)
@@ -34,7 +36,7 @@ export async function PATCH(
     }
 
     // Update QR code
-    const updatedQR = await updateQRData(id, payload)
+    const updatedQR = await updateQRData(id, data, customDomainId)
     return NextResponse.json(updatedQR)
   } catch (error) {
     console.error("Error updating QR code:", error)

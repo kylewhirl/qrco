@@ -2,7 +2,12 @@
 
 import { useState } from "react"
 import type { QR, QRData } from "@/lib/types"
-import { QRCodeList } from "@/components/dashboard/qr-code-list"
+import { QRCodeList } from "@/components/my-qr-codes"
+
+interface QRMutationInput {
+  data: QRData
+  customDomainId: string | null
+}
 
 interface DashboardClientProps {
   initialQRCodes: QR[]
@@ -11,14 +16,14 @@ interface DashboardClientProps {
 export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
   const [qrCodes, setQRCodes] = useState<QR[]>(initialQRCodes)
 
-  const handleCreateQR = async (data: { type: "url"; url: string }) => {
+  const handleCreateQR = async ({ data, customDomainId }: QRMutationInput) => {
     try {
       const response = await fetch("/api/qr", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data, customDomainId }),
       })
 
       if (!response.ok) {
@@ -34,14 +39,14 @@ export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
     }
   }
 
-  const handleUpdateQR = async (id: string, data: QRData,) => {
+  const handleUpdateQR = async (id: string, { data, customDomainId }: QRMutationInput) => {
     try {
       const response = await fetch(`/api/qr/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data, customDomainId }),
       })
 
       if (!response.ok) {

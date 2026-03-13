@@ -1,0 +1,155 @@
+---
+title: Styling and Brand
+description: Store brand defaults and reusable style presets for QR rendering.
+---
+
+Brand and style resources power the dashboard styles page and the render API.
+
+## Brand profile
+
+The brand profile stores one default visual identity per user:
+
+- brand name
+- logo URL
+- primary color
+- accent color
+- background color
+- default render config
+
+### Fetch brand profile
+
+```bash
+curl https://tqrco.de/api/v1/brand \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+### Update brand profile
+
+```bash
+curl https://tqrco.de/api/v1/brand \
+  -X PUT \
+  -H "Authorization: Bearer tqr_live_..." \
+  -H "Content-Type: application/json" \
+  --data '{
+    "brandName": "Acme",
+    "logoUrl": "https://cdn.example.com/logo.png",
+    "primaryColor": "#111827",
+    "accentColor": "#0f766e",
+    "backgroundColor": "#ffffff",
+    "defaultConfig": {
+      "errorLevel": "M",
+      "width": 512,
+      "height": 512,
+      "margin": 4,
+      "styleSettings": {
+        "dotStyle": "rounded",
+        "dotColorType": "solid",
+        "dotColors": ["#111827"],
+        "eyeStyle": "rounded",
+        "eyeColorType": "solid",
+        "eyeColors": ["#111827"],
+        "innerEyeStyle": "square",
+        "innerEyeColorType": "solid",
+        "innerEyeColors": ["#0f766e"],
+        "bgColorType": "solid",
+        "bgColors": ["#ffffff"]
+      },
+      "logoSettings": {
+        "src": "https://cdn.example.com/logo.png",
+        "size": 0.24,
+        "margin": 4,
+        "hideBackgroundDots": true
+      },
+      "borderSettings": {
+        "shape": "square",
+        "colorType": "solid",
+        "colors": ["#ffffff"],
+        "gradientType": "linear",
+        "rotation": 0,
+        "preset": "classic",
+        "text": "Scan me"
+      }
+    }
+  }'
+```
+
+## Style presets
+
+Style presets let you save multiple named render configurations.
+
+### List presets
+
+```bash
+curl https://tqrco.de/api/v1/styles \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+### Create a preset
+
+```bash
+curl https://tqrco.de/api/v1/styles \
+  -X POST \
+  -H "Authorization: Bearer tqr_live_..." \
+  -H "Content-Type: application/json" \
+  --data '{
+    "name": "Summer campaign",
+    "description": "Rounded emerald campaign look",
+    "isDefault": false,
+    "config": {
+      "errorLevel": "Q",
+      "styleSettings": {
+        "dotStyle": "rounded",
+        "dotColorType": "solid",
+        "dotColors": ["#0f766e"],
+        "bgColorType": "solid",
+        "bgColors": ["#ffffff"]
+      },
+      "borderSettings": {
+        "shape": "square",
+        "colorType": "solid",
+        "colors": ["#ffffff"],
+        "gradientType": "linear",
+        "rotation": 0,
+        "preset": "rounded",
+        "text": "Summer"
+      }
+    }
+  }'
+```
+
+### Fetch one preset
+
+```bash
+curl https://tqrco.de/api/v1/styles/STYLE_ID \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+### Update a preset
+
+```bash
+curl https://tqrco.de/api/v1/styles/STYLE_ID \
+  -X PATCH \
+  -H "Authorization: Bearer tqr_live_..." \
+  -H "Content-Type: application/json" \
+  --data '{
+    "isDefault": true
+  }'
+```
+
+### Delete a preset
+
+```bash
+curl https://tqrco.de/api/v1/styles/STYLE_ID \
+  -X DELETE \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+## Render behavior
+
+When you render a QR code:
+
+1. The API starts with a built-in default render config.
+2. It overlays the user’s brand default config.
+3. If `presetId` is provided, it overlays the saved style preset.
+
+That gives you a stable default look while still allowing endpoint-level style selection.

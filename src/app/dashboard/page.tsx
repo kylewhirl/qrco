@@ -63,6 +63,9 @@ export default async function DashboardPage() {
               id: qr.id,
               code: qr.code,
               data: qr.data,
+              customDomainId: qr.customDomainId ?? null,
+              customHostname: qr.customHostname ?? null,
+              publicUrl: qr.publicUrl,
               createdAt: qr.createdAt,
               totalScans: qr.totalScans,
               lastScanned: qr.lastScanned ?? null, // Ensure lastScanned is included
@@ -73,6 +76,7 @@ export default async function DashboardPage() {
             <LatestScansList scans={latestScans} />
           </div>
         </div>
+
       </div>
     )
   } catch (error) {

@@ -1,7 +1,8 @@
 "use client"
 
 import { IconCirclePlusFilled, IconSparkles, type Icon } from "@tabler/icons-react"
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   SidebarGroup,
@@ -21,6 +22,7 @@ import {
 import AICreateQr from "@/components/ai-create-qr";
 import { QrCode, WandSparkles } from "lucide-react";
 import QrCodeCreator from "@/components/qr-code-creator";
+import { cn } from "@/lib/utils";
 
 export function NavMain({
   items,
@@ -31,7 +33,8 @@ export function NavMain({
     icon?: Icon
   }[]
 }) {
-  const router = useRouter();
+  const pathname = usePathname();
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -83,9 +86,16 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} onClick={() => router.push(item.url)}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                isActive={pathname === item.url}
+                className={cn(pathname === item.url && "bg-sidebar-accent text-sidebar-accent-foreground")}
+              >
+                <Link href={item.url}>
+                  {item.icon && <item.icon />}
+                  <span>{item.title}</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

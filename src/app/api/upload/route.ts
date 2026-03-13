@@ -1,16 +1,36 @@
 export const runtime = 'nodejs';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { NextResponse } from "next/server";
+import { stackServerApp } from "@/stack";
+import { attachUploadedFileToQrForUser, getQRByCodeForUser } from "@/lib/qr-service";
+import { buildUploadObjectKey, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage";
 
 export async function POST(request: Request) {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
   const code = formData.get("code");
 
   if (!(file instanceof File) || typeof code !== "string") {
-    return new Response("Invalid form data", { status: 400 });
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
 
-  // Initialize the S3 client for Cloudflare R2
+  if (file.size <= 0 || file.size > MAX_UPLOAD_SIZE_BYTES) {
+    return NextResponse.json(
+      { error: `File must be between 1 byte and ${MAX_UPLOAD_SIZE_BYTES} bytes` },
+      { status: 413 },
+    );
+  }
+
+  const qr = await getQRByCodeForUser(user.id, code);
+  if (!qr) {
+    return NextResponse.json({ error: "QR code not found" }, { status: 404 });
+  }
+
   const s3 = new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -21,12 +41,9 @@ export async function POST(request: Request) {
     forcePathStyle: false,
   });
 
-  // Prepare upload parameters
-  const extension = file.name.split(".").pop() || "";
-  const key = `${code}.${extension}`;
+  const key = buildUploadObjectKey(user.id, qr.id, file.name);
   const body = Buffer.from(await file.arrayBuffer());
 
-  // Upload to R2 bucket
   await s3.send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -36,9 +53,11 @@ export async function POST(request: Request) {
     })
   );
 
-  // Return the uploaded file key
-  return new Response(JSON.stringify({ key }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
+  const updatedQr = await attachUploadedFileToQrForUser(user.id, code, key);
+
+  return NextResponse.json({
+    key,
+    qrId: qr.id,
+    updated: Boolean(updatedQr),
   });
 }

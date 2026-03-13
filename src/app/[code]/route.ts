@@ -1,12 +1,13 @@
 import { buildSignedUrl } from "@/lib/storage"; // or wherever you generate file URLs
 import { type NextRequest, NextResponse } from "next/server"
-import { getQRByCode, logScan } from "@/lib/qr-service"
+import { getQRByHostAndCode, logScan } from "@/lib/qr-service"
+import { normalizeHostname } from "@/lib/qr-url"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
 
   // Get the QR code from the database
-  const qr = await getQRByCode(code)
+  const qr = await getQRByHostAndCode(normalizeHostname(request.headers.get("host")), code)
 
   // If QR code not found, return 404
   if (!qr) {

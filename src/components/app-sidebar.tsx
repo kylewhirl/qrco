@@ -2,15 +2,9 @@
 
 import * as React from "react"
 import {
-  IconCamera,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
   IconFolder,
   IconHelp,
-  IconReport,
   IconSearch,
   IconSettings,
   IconUsers,
@@ -19,7 +13,7 @@ import {
   IconBrush
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
+import { NavDocuments, type RecentQRCodeNavItem } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -69,91 +63,63 @@ export const data = {
       icon: IconCreditCard,
     },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: IconSettings,
     },
     {
       title: "Get Help",
-      url: "#",
+      url: "/dashboard/help",
       icon: IconHelp,
     },
     {
       title: "Search",
-      url: "#",
+      url: "/dashboard/search",
       icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [recentQRCodes, setRecentQRCodes] = React.useState<RecentQRCodeNavItem[]>([])
+  const [isLoadingRecentQRCodes, setIsLoadingRecentQRCodes] = React.useState(true)
+
+  React.useEffect(() => {
+    let ignore = false
+
+    async function loadRecentQRCodes() {
+      try {
+        setIsLoadingRecentQRCodes(true)
+        const response = await fetch("/api/qr?limit=5")
+        if (!response.ok) {
+          throw new Error("Failed to load recent QR codes")
+        }
+
+        const items = await response.json() as RecentQRCodeNavItem[]
+        if (!ignore) {
+          setRecentQRCodes(items)
+        }
+      } catch (error) {
+        console.error("Failed to load recent QR codes:", error)
+        if (!ignore) {
+          setRecentQRCodes([])
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingRecentQRCodes(false)
+        }
+      }
+    }
+
+    void loadRecentQRCodes()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -187,7 +153,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        <NavDocuments items={recentQRCodes} loading={isLoadingRecentQRCodes} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

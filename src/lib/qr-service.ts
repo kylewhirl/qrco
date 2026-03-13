@@ -1,165 +1,511 @@
-import { query, queryNoAuth } from "./db"
+import { queryAdmin, queryNoAuth } from "./db"
 import type { DailyScanCount, DashboardMetrics, LatestScan, QR, TopLocation, QRData } from "./types"
 import { generateQRCode, getLocationFromIP } from "./utils"
 import { StackServerApp } from "@stackframe/stack";
+import { buildPublicQrUrl, isPrimaryAppHost, normalizeHostname } from "./qr-url";
+import { ensureCustomDomainOwnedByUser, ensureCustomDomainSchema } from "./custom-domains";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
   urls: { signIn: "/login" },
 })
 
-// Create a new QR code
-export async function createQRCode(data: QRData): Promise<QR> {
+let ensureQrAccessPromise: Promise<void> | null = null;
+
+async function ensureQrAccess() {
+  if (!ensureQrAccessPromise) {
+    ensureQrAccessPromise = (async () => {
+      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS pg_session_jwt`);
+      await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
+      await queryAdmin(`
+        DO $$
+        BEGIN
+          IF to_regclass('public."QR"') IS NOT NULL THEN
+            EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "QR" TO authenticated';
+            EXECUTE 'ALTER TABLE "QR" ENABLE ROW LEVEL SECURITY';
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_select_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY qr_select_own ON "QR" FOR SELECT TO authenticated USING (auth.user_id() = user_id)';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_insert_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY qr_insert_own ON "QR" FOR INSERT TO authenticated WITH CHECK (auth.user_id() = user_id)';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_update_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY qr_update_own ON "QR" FOR UPDATE TO authenticated USING (auth.user_id() = user_id) WITH CHECK (auth.user_id() = user_id)';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'QR' AND policyname = 'qr_delete_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY qr_delete_own ON "QR" FOR DELETE TO authenticated USING (auth.user_id() = user_id)';
+            END IF;
+          END IF;
+
+          IF to_regclass('public."Scan"') IS NOT NULL THEN
+            EXECUTE 'GRANT SELECT, INSERT ON TABLE "Scan" TO authenticated';
+            EXECUTE 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated';
+            EXECUTE 'ALTER TABLE "Scan" ENABLE ROW LEVEL SECURITY';
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'Scan' AND policyname = 'scan_select_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY scan_select_own ON "Scan" FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id = auth.user_id()))';
+            END IF;
+
+            IF NOT EXISTS (
+              SELECT 1
+              FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'Scan' AND policyname = 'scan_insert_own'
+            ) THEN
+              EXECUTE 'CREATE POLICY scan_insert_own ON "Scan" FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM "QR" q WHERE q.id = "qrId" AND q.user_id = auth.user_id()))';
+            END IF;
+          END IF;
+        END
+        $$;
+      `);
+    })().catch((error) => {
+      ensureQrAccessPromise = null;
+      throw error;
+    });
+  }
+
+  await ensureQrAccessPromise;
+}
+
+async function ensureQrDataAccess() {
+  await Promise.all([ensureCustomDomainSchema(), ensureQrAccess()]);
+}
+
+async function requireCurrentUserId() {
   const user = await stackServerApp.getUser();
   if (!user) {
     throw new Error("Unauthorized");
   }
-  // Generate a unique code
-  let code = generateQRCode()
-  let isUnique = false
 
-  // Ensure the code is unique
-  while (!isUnique) {
-    const existingCode = await query<QR[]>('SELECT * FROM "QR" WHERE code = $1', [code])
+  return user.id;
+}
+
+async function generateUniqueCode() {
+  await ensureQrDataAccess();
+  let code = generateQRCode();
+
+  while (true) {
+    const existingCode = await queryNoAuth<QR[]>('SELECT id FROM "QR" WHERE code = $1 LIMIT 1', [code]);
     if (existingCode.length === 0) {
-      isUnique = true
-    } else {
-      code = generateQRCode()
+      return code;
     }
+
+    code = generateQRCode();
+  }
+}
+
+type QRRow = QR & { customHostname?: string | null };
+
+function mapQR(record: QRRow): QR {
+  return {
+    ...record,
+    customDomainId: record.customDomainId ?? null,
+    customHostname: record.customHostname ?? null,
+    publicUrl: buildPublicQrUrl(record.code, record.customHostname ?? null),
+  };
+}
+
+async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null> {
+  await ensureQrDataAccess();
+  const params: unknown[] = [id];
+  let where = 'q.id = $1';
+
+  if (userId) {
+    params.push(userId);
+    where += ` AND q.user_id = $${params.length}`;
   }
 
-  const result = await query<QR[]>(
-    'INSERT INTO "QR" (code, data, user_id) VALUES ($1, $2::jsonb, $3) RETURNING *',
-    [code, data, user.id]
-  )
+  const result = await queryNoAuth<QRRow[]>(
+    `SELECT q.*, d.hostname AS "customHostname"
+     FROM "QR" q
+     LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
+     WHERE ${where}
+     LIMIT 1`,
+    params,
+  );
 
-  return result[0]
+  return result[0] ? mapQR(result[0]) : null;
 }
 
-// Get QR code by code
-export async function getQRByCode(code: string): Promise<QR | null> {
-  const result = await queryNoAuth<QR[]>('SELECT * FROM "QR" WHERE code = $1', [code])
-  return result.length > 0 ? result[0] : null
+export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null): Promise<QR> {
+  const code = await generateUniqueCode();
+  const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
+  const result = await queryNoAuth<{ id: string }[]>(
+    'INSERT INTO "QR" (code, data, user_id, "customDomainId") VALUES ($1, $2::jsonb, $3, $4) RETURNING id',
+    [code, JSON.stringify(data), userId, resolvedCustomDomainId],
+  );
+
+  const qr = await getQRByIdInternal(result[0].id);
+  if (!qr) {
+    throw new Error("Failed to load created QR code");
+  }
+
+  return qr;
 }
 
-// Get QR code by ID
+export async function createQRCode(data: QRData, customDomainId?: string | null): Promise<QR> {
+  const userId = await requireCurrentUserId();
+  return createQRCodeForUser(userId, data, customDomainId);
+}
+
+export async function getQRByHostAndCode(hostname: string, code: string): Promise<QR | null> {
+  await ensureQrDataAccess();
+  const normalizedHost = normalizeHostname(hostname);
+
+  const result = isPrimaryAppHost(normalizedHost)
+    ? await queryNoAuth<QRRow[]>(
+        `SELECT q.*, d.hostname AS "customHostname"
+         FROM "QR" q
+         LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
+         WHERE q.code = $1
+         LIMIT 1`,
+        [code],
+      )
+    : await queryNoAuth<QRRow[]>(
+        `SELECT q.*, d.hostname AS "customHostname"
+         FROM "QR" q
+         JOIN "CustomDomain" d ON d.id = q."customDomainId"
+         WHERE q.code = $1
+           AND d.hostname = $2
+           AND d.status = 'ready'
+         LIMIT 1`,
+        [code, normalizedHost],
+      );
+
+  return result[0] ? mapQR(result[0]) : null;
+}
+
+export async function getQRByIdForUser(userId: string, id: string): Promise<QR | null> {
+  return getQRByIdInternal(id, userId);
+}
+
 export async function getQRById(id: string): Promise<QR | null> {
-  const result = await query<QR[]>('SELECT * FROM "QR" WHERE id = $1', [id])
-  return result.length > 0 ? result[0] : null
+  const userId = await requireCurrentUserId();
+  return getQRByIdForUser(userId, id);
 }
 
-// Update QR code data
-export async function updateQRData(id: string, data: QRData): Promise<QR | null> {
-  const result = await query<QR[]>(
-    'UPDATE "QR" SET data = $1 WHERE id = $2 RETURNING *',
-    [JSON.stringify(data), id]
-  )
-  return result.length > 0 ? result[0] : null
+export async function updateQRDataForUser(userId: string, id: string, data: QRData, customDomainId?: string | null): Promise<QR | null> {
+  const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
+  const result = await queryNoAuth<{ id: string }[]>(
+    'UPDATE "QR" SET data = $1::jsonb, "customDomainId" = $2 WHERE id = $3 AND user_id = $4 RETURNING id',
+    [JSON.stringify(data), resolvedCustomDomainId, id, userId],
+  );
+
+  return result[0] ? getQRByIdInternal(result[0].id, userId) : null;
 }
 
-// Delete QR code
+export async function updateQRData(id: string, data: QRData, customDomainId?: string | null): Promise<QR | null> {
+  const userId = await requireCurrentUserId();
+  return updateQRDataForUser(userId, id, data, customDomainId);
+}
+
+export async function deleteQRForUser(userId: string, id: string): Promise<boolean> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<{ id: string }[]>(
+    'DELETE FROM "QR" WHERE id = $1 AND user_id = $2 RETURNING id',
+    [id, userId],
+  );
+
+  return result.length > 0;
+}
+
 export async function deleteQR(id: string): Promise<boolean> {
-  const result = await query<{ id: string }[]>('DELETE FROM "QR" WHERE id = $1 RETURNING id', [id])
-  return result.length > 0
+  const userId = await requireCurrentUserId();
+  return deleteQRForUser(userId, id);
 }
 
-// Log a scan
 export async function logScan(qrId: string, ip: string): Promise<void> {
-  const location = await getLocationFromIP(ip)
+  await ensureQrDataAccess();
+  const location = await getLocationFromIP(ip);
 
-  console.log("Logging scan for QR id:", qrId);
-
-  // Insert scan record
-  await queryNoAuth<void>('INSERT INTO "Scan" ("qrId", ip, location) VALUES ($1, $2, $3)', [qrId, ip, location])
-
-  // Update QR code stats
-  await queryNoAuth<void>('UPDATE "QR" SET "totalScans" = "totalScans" + 1, "lastScanned" = CURRENT_TIMESTAMP WHERE id = $1', [qrId])
+  await queryNoAuth<void>('INSERT INTO "Scan" ("qrId", ip, location) VALUES ($1, $2, $3)', [qrId, ip, location]);
+  await queryNoAuth<void>('UPDATE "QR" SET "totalScans" = "totalScans" + 1, "lastScanned" = CURRENT_TIMESTAMP WHERE id = $1', [qrId]);
 }
 
-// Get all QR codes
-export async function getAllQRCodes(): Promise<QR[]> {  
-  return await query<QR[]>('SELECT * FROM "QR" ORDER BY "createdAt" DESC')
+export async function getAllQRCodesForUser(userId: string): Promise<QR[]> {
+  await ensureQrDataAccess();
+  const rows = await queryNoAuth<QRRow[]>(
+    `SELECT q.*, d.hostname AS "customHostname"
+     FROM "QR" q
+     LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
+     WHERE q.user_id = $1
+     ORDER BY q."createdAt" DESC`,
+    [userId],
+  );
+
+  return rows.map(mapQR);
 }
 
-// Get recent QR codes
+export async function getAllQRCodes(): Promise<QR[]> {
+  const userId = await requireCurrentUserId();
+  return getAllQRCodesForUser(userId);
+}
+
+export async function getRecentQRCodesForUser(userId: string, limit = 10): Promise<QR[]> {
+  await ensureQrDataAccess();
+  const rows = await queryNoAuth<QRRow[]>(
+    `SELECT
+       q.id,
+       q.code,
+       q.data,
+       q."customDomainId",
+       q."createdAt",
+       q."totalScans",
+       q."lastScanned",
+       d.hostname AS "customHostname"
+     FROM "QR" q
+     LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
+     WHERE q.user_id = $1
+     ORDER BY q."createdAt" DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+
+  return rows.map(mapQR);
+}
+
 export async function getRecentQRCodes(limit = 10): Promise<QR[]> {
-  console.log("Fetching recent QR codes")
-  return await query<QR[]>(
-    'SELECT id, code, data, "createdAt", "totalScans" FROM "QR" ORDER BY "createdAt" DESC LIMIT $1',
-    [limit],
-  )
+  const userId = await requireCurrentUserId();
+  return getRecentQRCodesForUser(userId, limit);
 }
 
-// Get dashboard metrics
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  // Total scans in the last 7 days
-  const totalScansResult = await query<{ count: string }[]>(
-    'SELECT COUNT(*) as count FROM "Scan" WHERE "scannedAt" > NOW() - INTERVAL \'7 days\'',
-    [],
-  )
-  const totalScansLast7Days = Number.parseInt(totalScansResult[0]?.count || "0")
+export async function getDashboardMetricsForUser(userId: string): Promise<DashboardMetrics> {
+  await ensureQrDataAccess();
+  const totalScansResult = await queryNoAuth<{ count: string }[]>(
+    `SELECT COUNT(*)::text as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND s."scannedAt" > NOW() - INTERVAL '7 days'`,
+    [userId],
+  );
+  const totalScansLast7Days = Number.parseInt(totalScansResult[0]?.count || "0");
 
-  // Active QR codes count
-  const activeQRCodesResult = await query<{ count: string }[]>('SELECT COUNT(*) as count FROM "QR"', [])
-  const activeQRCodesCount = Number.parseInt(activeQRCodesResult[0]?.count || "0")
+  const activeQRCodesResult = await queryNoAuth<{ count: string }[]>(
+    'SELECT COUNT(*)::text as count FROM "QR" WHERE user_id = $1',
+    [userId],
+  );
+  const activeQRCodesCount = Number.parseInt(activeQRCodesResult[0]?.count || "0");
 
-  // Top location by scan count
-  const topLocationResult = await query<TopLocation[]>(
-    'SELECT location, COUNT(*) as count FROM "Scan" WHERE location IS NOT NULL GROUP BY location ORDER BY count DESC LIMIT 1',
-    [],
-  )
-  const topLocation = topLocationResult.length > 0 ? topLocationResult[0] : null
+  const topLocationResult = await queryNoAuth<TopLocation[]>(
+    `SELECT s.location, COUNT(*)::int as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND s.location IS NOT NULL
+     GROUP BY s.location
+     ORDER BY count DESC
+     LIMIT 1`,
+    [userId],
+  );
+  const topLocation = topLocationResult[0] ?? null;
 
-  // Most active QR code
-  const mostActiveQRResult = await query<{ code: string; data: QRData; scans: number }[]>(
-    'SELECT q.code, q.data, q."totalScans" as scans FROM "QR" q ORDER BY q."totalScans" DESC LIMIT 1',
-    [],
-  )
-  const mostActiveQR = mostActiveQRResult.length > 0 ? mostActiveQRResult[0] : null
+  const mostActiveQRResult = await queryNoAuth<{ code: string; data: QRData; scans: number }[]>(
+    `SELECT q.code, q.data, q."totalScans" as scans
+     FROM "QR" q
+     WHERE q.user_id = $1
+     ORDER BY q."totalScans" DESC, q."createdAt" DESC
+     LIMIT 1`,
+    [userId],
+  );
+  const mostActiveQR = mostActiveQRResult[0] ?? null;
 
   return {
     totalScansLast7Days,
     activeQRCodesCount,
     topLocation,
     mostActiveQR,
-  }
+  };
 }
 
-// Get daily scan counts for the past 30 days
-export async function getDailyScanCounts(): Promise<DailyScanCount[]> {
-  const result = await query<{ date: string; count: string }[]>(
-    `SELECT 
-      TO_CHAR("scannedAt"::date, 'YYYY-MM-DD') as date,
-      COUNT(*) as count
-    FROM "Scan"
-    WHERE "scannedAt" > NOW() - INTERVAL '30 days'
-    GROUP BY date
-    ORDER BY date ASC`,
-    [],
-  )
+export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+  const userId = await requireCurrentUserId();
+  return getDashboardMetricsForUser(userId);
+}
+
+export async function getDailyScanCountsForUser(userId: string): Promise<DailyScanCount[]> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<{ date: string; count: string }[]>(
+    `SELECT
+       TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+       COUNT(*)::text as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND s."scannedAt" > NOW() - INTERVAL '30 days'
+     GROUP BY date
+     ORDER BY date ASC`,
+    [userId],
+  );
 
   return result.map((item) => ({
     date: item.date,
     count: Number.parseInt(item.count),
-  }))
+  }));
 }
 
-// Get top locations
+export async function getDailyScanCounts(): Promise<DailyScanCount[]> {
+  const userId = await requireCurrentUserId();
+  return getDailyScanCountsForUser(userId);
+}
+
+export async function getDailyScanCountsByQRCodeForUser(userId: string, qrId: string): Promise<DailyScanCount[]> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<{ date: string; count: string }[]>(
+    `SELECT
+       TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+       COUNT(*)::text as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND q.id = $2
+       AND s."scannedAt" > NOW() - INTERVAL '30 days'
+     GROUP BY date
+     ORDER BY date ASC`,
+    [userId, qrId],
+  );
+
+  return result.map((item) => ({
+    date: item.date,
+    count: Number.parseInt(item.count),
+  }));
+}
+
+export async function getDailyScanCountsByQRCode(qrId: string): Promise<DailyScanCount[]> {
+  const userId = await requireCurrentUserId();
+  return getDailyScanCountsByQRCodeForUser(userId, qrId);
+}
+
+export async function getTopLocationsForUser(userId: string, limit = 5): Promise<TopLocation[]> {
+  await ensureQrDataAccess();
+  return queryNoAuth<TopLocation[]>(
+    `SELECT s.location, COUNT(*)::int as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND s.location IS NOT NULL
+     GROUP BY s.location
+     ORDER BY count DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+}
+
 export async function getTopLocations(limit = 5): Promise<TopLocation[]> {
-  return await query<TopLocation[]>(
-    'SELECT location, COUNT(*) as count FROM "Scan" WHERE location IS NOT NULL GROUP BY location ORDER BY count DESC LIMIT $1',
-    [limit],
-  )
+  const userId = await requireCurrentUserId();
+  return getTopLocationsForUser(userId, limit);
 }
 
-// Get latest scans
-export async function getLatestScans(limit = 10): Promise<LatestScan[]> {
-  return await query<LatestScan[]>(
+export async function getTopLocationsByQRCodeForUser(userId: string, qrId: string, limit = 5): Promise<TopLocation[]> {
+  await ensureQrDataAccess();
+  return queryNoAuth<TopLocation[]>(
+    `SELECT s.location, COUNT(*)::int as count
+     FROM "Scan" s
+     JOIN "QR" q ON q.id = s."qrId"
+     WHERE q.user_id = $1
+       AND q.id = $2
+       AND s.location IS NOT NULL
+     GROUP BY s.location
+     ORDER BY count DESC
+     LIMIT $3`,
+    [userId, qrId, limit],
+  );
+}
+
+export async function getTopLocationsByQRCode(qrId: string, limit = 5): Promise<TopLocation[]> {
+  const userId = await requireCurrentUserId();
+  return getTopLocationsByQRCodeForUser(userId, qrId, limit);
+}
+
+export async function getLatestScansForUser(userId: string, limit = 10): Promise<LatestScan[]> {
+  await ensureQrDataAccess();
+  return queryNoAuth<LatestScan[]>(
     `SELECT s.id, q.code, q.data, s."scannedAt", s.location
-    FROM "Scan" s
-    JOIN "QR" q ON s."qrId" = q.id
-    ORDER BY s."scannedAt" DESC
-    LIMIT $1`,
-    [limit],
-  )
+     FROM "Scan" s
+     JOIN "QR" q ON s."qrId" = q.id
+     WHERE q.user_id = $1
+     ORDER BY s."scannedAt" DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+}
+
+export async function getLatestScans(limit = 10): Promise<LatestScan[]> {
+  const userId = await requireCurrentUserId();
+  return getLatestScansForUser(userId, limit);
+}
+
+export async function getLatestScansByQRCodeForUser(userId: string, qrId?: string, limit = 100): Promise<LatestScan[]> {
+  await ensureQrDataAccess();
+  if (qrId) {
+    return queryNoAuth<LatestScan[]>(
+      `SELECT s.id, q.code, q.data, s."scannedAt", s.location
+       FROM "Scan" s
+       JOIN "QR" q ON s."qrId" = q.id
+       WHERE q.user_id = $1
+         AND q.id = $2
+       ORDER BY s."scannedAt" DESC
+       LIMIT $3`,
+      [userId, qrId, limit],
+    );
+  }
+
+  return getLatestScansForUser(userId, limit);
+}
+
+export async function getLatestScansByQRCode(qrId?: string, limit = 100): Promise<LatestScan[]> {
+  const userId = await requireCurrentUserId();
+  return getLatestScansByQRCodeForUser(userId, qrId, limit);
+}
+
+export async function getQRByCodeForUser(userId: string, code: string): Promise<QR | null> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<QRRow[]>(
+    `SELECT q.*, d.hostname AS "customHostname"
+     FROM "QR" q
+     LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
+     WHERE q.code = $1 AND q.user_id = $2
+     LIMIT 1`,
+    [code, userId],
+  );
+
+  return result[0] ? mapQR(result[0]) : null;
+}
+
+export async function attachUploadedFileToQrForUser(userId: string, code: string, key: string): Promise<QR | null> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<{ id: string }[]>(
+    `UPDATE "QR"
+     SET data = jsonb_set(data, '{key}', to_jsonb($3::text), true)
+     WHERE code = $1
+       AND user_id = $2
+       AND data->>'type' = 'file'
+     RETURNING id`,
+    [code, userId, key],
+  );
+
+  return result[0] ? getQRByIdInternal(result[0].id, userId) : null;
 }

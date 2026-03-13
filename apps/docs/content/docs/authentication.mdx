@@ -1,0 +1,38 @@
+---
+title: Authentication
+description: Use bearer API keys to access the tqrco REST API.
+---
+
+## Generate a key
+
+Go to the dashboard settings page:
+
+```text
+/dashboard/settings
+```
+
+Create an API key and copy the secret immediately. The raw key is only shown once.
+
+## Send the key
+
+Pass the key in the `Authorization` header:
+
+```bash
+curl https://tqrco.de/api/v1/brand \
+  -H "Authorization: Bearer tqr_live_..."
+```
+
+If the key is missing, malformed, or revoked, the API returns `401 Unauthorized`.
+
+## Security model
+
+- API keys are hashed before storage.
+- Keys are linked to the user who created them.
+- Brand, style, QR, and analytics queries are filtered to that user id.
+- Revoking a key immediately blocks future requests.
+
+## Recommendations
+
+- Use a separate key per integration.
+- Rotate keys if a system or teammate no longer needs access.
+- Do not embed the key in client-side browser code.
