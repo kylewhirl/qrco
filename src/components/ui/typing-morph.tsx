@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { motion, MotionProps } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface Op {
   type: "move" | "insert" | "delete";
@@ -33,7 +33,12 @@ export function TypingMorph({
   hideCursor = false,
   ...props
 }: TypingMorphProps) {
-  const MotionComponent = motion.create(Component, { forwardMotionProps: true });
+  const MotionComponent = useMemo(
+    () => motion.create(Component, { forwardMotionProps: true }),
+    [Component]
+  );
+  const opsKey = JSON.stringify(ops);
+  const normalizedOps = useMemo<Op[]>(() => JSON.parse(opsKey) as Op[], [opsKey]);
   const [text, setText] = useState(initialText);
   const [cursor, setCursor] = useState(initialText.length);
   const ref = useRef<HTMLElement | null>(null);
@@ -86,7 +91,7 @@ export function TypingMorph({
     async function run() {
       // initial delay
       await delayMs(delay);
-      for (const op of ops) {
+      for (const op of normalizedOps) {
         if (cancelled) break;
 
         if (op.type === "move") {
@@ -134,7 +139,7 @@ export function TypingMorph({
 
     run();
     return () => { cancelled = true; };
-  }, [delay, ops, started, initialText]);
+  }, [delay, started, initialText, normalizedOps]);
 
   return (
     <MotionComponent
