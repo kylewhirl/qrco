@@ -20,6 +20,7 @@ export function CustomDomainsManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadDomains();
@@ -148,6 +149,17 @@ export function CustomDomainsManager() {
     }
   }
 
+  function handleDomainConnect(domain: CustomDomain) {
+    const connectUrl = domain.domainConnect?.connectUrl;
+    if (!connectUrl) {
+      toast.error(domain.domainConnect?.reason || "Cloudflare one-click setup is not available yet");
+      return;
+    }
+
+    setConnectingId(domain.id);
+    window.location.assign(connectUrl);
+  }
+
   return (
     <Card id="domains" className="scroll-mt-24">
       <CardHeader>
@@ -227,6 +239,31 @@ export function CustomDomainsManager() {
                       </div>
                     </div>
                   ) : null}
+                  {domain.domainConnect?.provider === "cloudflare" && domain.status !== "ready" ? (
+                    <div className="rounded-lg border border-sky-300 bg-sky-50 p-3 text-xs text-sky-950">
+                      <p className="font-medium">Configure automatically</p>
+                      <p className="mt-1 text-sky-900">
+                        {domain.domainConnect.enabled
+                          ? "Cloudflare was detected for this zone. Use Domain Connect to apply the required DNS records automatically."
+                          : "Cloudflare was detected for this zone, but automatic configuration is not available for this domain yet."}
+                      </p>
+                      {domain.domainConnect.enabled ? (
+                        <Button
+                          className="mt-3"
+                          size="sm"
+                          onClick={() => handleDomainConnect(domain)}
+                          disabled={connectingId === domain.id}
+                        >
+                          {connectingId === domain.id ? "Redirecting..." : "Configure automatically"}
+                        </Button>
+                      ) : null}
+                      {domain.domainConnect.reason ? (
+                        <p className="mt-2 text-[11px] text-sky-900">
+                          {domain.domainConnect.reason}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {domain.configuration?.misconfigured ? (
                     <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
                       <p className="font-medium">DNS configuration required</p>
@@ -255,19 +292,6 @@ export function CustomDomainsManager() {
                               <span className="font-mono break-all">{typeof record.value === "string" ? record.value : JSON.stringify(record.value)}</span>
                             </div>
                           ))}
-                        </div>
-                      ) : null}
-                      {domain.domainConnect?.provider === "cloudflare" ? (
-                        <div className="mt-3 rounded-lg border border-amber-200 bg-white/70 p-3">
-                          <p className="font-medium">One-click setup</p>
-                          <p className="mt-1 text-amber-900">
-                            Cloudflare was detected for this zone. Domain Connect onboarding is being prepared, so the one-click button is hidden for now.
-                          </p>
-                          {domain.domainConnect.reason ? (
-                            <p className="mt-2 text-[11px] text-amber-900">
-                              {domain.domainConnect.reason}
-                            </p>
-                          ) : null}
                         </div>
                       ) : null}
                     </div>

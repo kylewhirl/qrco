@@ -42,7 +42,7 @@ function getCloudflareDomainConnectConfig() {
 
   return {
     providerId: process.env.DOMAIN_CONNECT_CLOUDFLARE_PROVIDER_ID,
-    syncUxUrl: process.env.DOMAIN_CONNECT_CLOUDFLARE_SYNC_UX_URL,
+    syncUxUrl: process.env.DOMAIN_CONNECT_CLOUDFLARE_SYNC_UX_URL || "https://dash.cloudflare.com/domainconnect",
     syncKeyHost: process.env.DOMAIN_CONNECT_CLOUDFLARE_SYNC_PUBKEY_HOST,
     syncPrivateKey: privateKeyFile ? readFileSync(privateKeyFile, "utf8") : inlinePrivateKey,
     serviceIdA: process.env.DOMAIN_CONNECT_CLOUDFLARE_SERVICE_ID_A,
@@ -71,18 +71,22 @@ function buildCloudflareConnectUrl(domain: CustomDomain): { connectUrl: string |
 
   const recommendedA = domain.configuration?.recommendedIPv4?.[0]?.value;
   const recommendedCNAME = domain.configuration?.recommendedCNAME?.[0]?.value;
-
-  const recordValue = Array.isArray(recommendedA)
+  const aValue = Array.isArray(recommendedA)
     ? recommendedA[0]
     : typeof recommendedA === "string"
       ? recommendedA
-      : typeof recommendedCNAME === "string"
-        ? recommendedCNAME
-        : null;
+      : null;
+  const cnameValue = Array.isArray(recommendedCNAME)
+    ? recommendedCNAME[0]
+    : typeof recommendedCNAME === "string"
+      ? recommendedCNAME
+      : null;
 
-  const serviceId = Array.isArray(recommendedA) && recommendedA.length > 0
+  const recordValue = aValue || cnameValue;
+
+  const serviceId = aValue
     ? config.serviceIdA
-    : recommendedCNAME
+    : cnameValue
       ? config.serviceIdCNAME
       : null;
 
