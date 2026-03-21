@@ -31,6 +31,7 @@ import {
   GlobeIcon,
   TypeIcon,
   MailIcon,
+  UserIcon,
   PhoneIcon,
   MessageSquareIcon,
   WifiIcon,
@@ -40,10 +41,12 @@ import {
 import WebsiteInput from "./qr/inputs/website";
 import TextInput from "./qr/inputs/text";
 import EmailInput from "./qr/inputs/email";
+import ContactInput from "./qr/inputs/contact";
 import PhoneInput from "./qr/inputs/phone";
 import SmsInput from "./qr/inputs/sms";
 import WifiInput from "./qr/inputs/wifi";
 import FileInput from "./qr/inputs/file";
+import { QRImageSquare } from "./qr-image-square";
 import { QRData } from "@/lib/types"
 import QrPreview from "./qr-preview"
 import { serialize } from "@/lib/utils"
@@ -59,9 +62,10 @@ interface QRCodeListProps {
   onCreateQR: (payload: QRMutationInput) => Promise<void>
   onUpdateQR: (id: string, payload: QRMutationInput) => Promise<void>
   onDeleteQR: (id: string) => Promise<void>
+  onImageUploaded: (qr: QR) => void
 }
 
-export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCodeListProps) {
+export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImageUploaded }: QRCodeListProps) {
   const [newUrl, setNewUrl] = useState("")
   const [newCustomDomainId, setNewCustomDomainId] = useState<string | null>(null)
   const [editingQR, setEditingQR] = useState<QR | null>(null)
@@ -174,6 +178,26 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
       case "phone":
         if (!editData.number || !isValidPhone(editData.number)) {
           toast.error("Please enter a valid phone number");
+          return;
+        }
+        break;
+      case "contact":
+        if (
+          editData.source === "fields" &&
+          !editData.firstName &&
+          !editData.lastName &&
+          !editData.organization &&
+          !editData.phone &&
+          !editData.email &&
+          !editData.website &&
+          !editData.address &&
+          !editData.note
+        ) {
+          toast.error("Please enter at least one contact field");
+          return;
+        }
+        if (editData.source === "vcard" && !editData.vcard.trim()) {
+          toast.error("Please upload or paste a valid VCF payload");
           return;
         }
         break;
@@ -305,6 +329,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Public URL</TableHead>
               <TableHead>Type</TableHead>
@@ -317,13 +342,21 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
           <TableBody>
             {qrCodes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   No QR codes found
                 </TableCell>
               </TableRow>
             ) : (
               qrCodes.map((qr) => (
                 <TableRow key={qr.id}>
+                  <TableCell>
+                    <QRImageSquare
+                      qr={qr}
+                      editable
+                      className="h-12 w-12"
+                      onUploaded={onImageUploaded}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{qr.data?.name ? qr.data.name : qr.code}</TableCell>
                   <TableCell className="max-w-[240px] font-mono text-xs text-muted-foreground">
                     {truncateText(getPublicUrl(qr), 42)}
@@ -373,7 +406,18 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                               {editingQR ? getPublicUrl(editingQR) : ""}
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="flex items-center flex-col">
+                          <div className="flex items-center flex-col gap-4">
+                            {editingQR ? (
+                              <QRImageSquare
+                                qr={editingQR}
+                                editable
+                                className="h-24 w-24"
+                                onUploaded={(updatedQr) => {
+                                  onImageUploaded(updatedQr)
+                                  setEditingQR(updatedQr)
+                                }}
+                              />
+                            ) : null}
                             <QrPreview
                               data={editingQR?.data ? serialize(editingQR.data) : ""}
                               errorLevel="M"
@@ -457,6 +501,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                                     case "email":
                                       setEditData({ type: "email", to: "", subject: "", body: "" });
                                       break;
+                                    case "contact":
+                                      setEditData({ type: "contact", source: "fields" });
+                                      break;
                                     case "phone":
                                       setEditData({ type: "phone", number: "" });
                                       break;
@@ -494,6 +541,12 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                                     <div className="flex items-center">
                                       <MailIcon className="mr-2 h-4 w-4" />
                                       Email
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="contact">
+                                    <div className="flex items-center">
+                                      <UserIcon className="mr-2 h-4 w-4" />
+                                      Contact
                                     </div>
                                   </SelectItem>
                                   <SelectItem value="phone">
@@ -535,6 +588,18 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                               <EmailInput
                                 value={editData}
                                 onChange={handleUpdate}
+                              />
+                            )}
+                            {editData?.type === "contact" && (
+                              <ContactInput
+                                value={editData}
+                                onChange={v =>
+                                  setEditData({
+                                    ...v,
+                                    name: editData.name,
+                                    description: editData.description,
+                                  })
+                                }
                               />
                             )}
                             {editData?.type === "phone" && (
@@ -672,6 +737,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                                     case "email":
                                       setEditData({ type: "email", to: "", subject: "", body: "" });
                                       break;
+                                    case "contact":
+                                      setEditData({ type: "contact", source: "fields" });
+                                      break;
                                     case "phone":
                                       setEditData({ type: "phone", number: "" });
                                       break;
@@ -709,6 +777,12 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                                     <div className="flex items-center">
                                       <MailIcon className="mr-2 h-4 w-4" />
                                       Email
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="contact">
+                                    <div className="flex items-center">
+                                      <UserIcon className="mr-2 h-4 w-4" />
+                                      Contact
                                     </div>
                                   </SelectItem>
                                   <SelectItem value="phone">
@@ -756,6 +830,18 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR }: QRCo
                               <EmailInput
                                 value={editData}
                                 onChange={v => setEditData({ ...editData, ...v })}
+                              />
+                            )}
+                            {editData?.type === "contact" && (
+                              <ContactInput
+                                value={editData}
+                                onChange={v =>
+                                  setEditData({
+                                    ...v,
+                                    name: editData.name,
+                                    description: editData.description,
+                                  })
+                                }
                               />
                             )}
                             {editData?.type === "phone" && (

@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createQRCode, getAllQRCodes, getRecentQRCodes } from "@/lib/qr-service"
-import { isValidURL } from "@/lib/utils"
 import { StackServerApp } from "@stackframe/stack";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
@@ -26,17 +25,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, customDomainId } = parsed.data;
-
-    if (data.type !== "url") {
-      return NextResponse.json({ error: "Invalid payload type" }, { status: 400 });
-    }
-
-    const { url } = data;
-
-    // Validate url
-    if (!url || !isValidURL(url)) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
 
     // Create QR code
     const qr = await createQRCode(data, customDomainId);

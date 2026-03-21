@@ -6,8 +6,10 @@ import { ArrowUpRight, Globe, Link2, MapPin, QrCode, Save, ScanLine } from "luci
 import { toast } from "sonner";
 
 import { LatestScansList } from "@/components/dashboard/latest-scans-list";
+import { QRImageSquare } from "@/components/qr-image-square";
 import { ScanActivityChart } from "@/components/dashboard/scan-activity-chart";
 import { TopLocationsList } from "@/components/dashboard/top-locations-list";
+import ContactInput from "@/components/qr/inputs/contact";
 import QrPreview from "@/components/qr-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +33,7 @@ const QR_TYPE_OPTIONS: Array<{ value: QRData["type"]; label: string }> = [
   { value: "url", label: "Website" },
   { value: "text", label: "Text" },
   { value: "email", label: "Email" },
+  { value: "contact", label: "Contact" },
   { value: "phone", label: "Phone" },
   { value: "sms", label: "SMS" },
   { value: "wifi", label: "WiFi" },
@@ -50,6 +53,8 @@ function createEmptyData(type: QRData["type"], current: QRData): QRData {
       return { type, text: "", ...meta };
     case "email":
       return { type, to: "", subject: "", body: "", ...meta };
+    case "contact":
+      return { type, source: "fields", ...meta };
     case "phone":
       return { type, number: "", ...meta };
     case "sms":
@@ -163,15 +168,23 @@ export function QRDetailClient({
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
       <section className="rounded-[28px] border border-border/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-6 shadow-sm md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">QR Workspace</p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                {draftData.name?.trim() || qr.code}
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                Edit the QR payload, update its public domain, and review scan performance for this specific code.
-              </p>
+          <div className="flex items-start gap-5">
+            <QRImageSquare
+              qr={qr}
+              editable
+              className="h-24 w-24 shrink-0 md:h-28 md:w-28"
+              onUploaded={(updatedQr) => setQr(updatedQr)}
+            />
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">QR Workspace</p>
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+                  {draftData.name?.trim() || qr.code}
+                </h1>
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+                  Edit the QR payload, update its image and public domain, and review scan performance for this specific code.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -383,6 +396,22 @@ export function QRDetailClient({
                   onChange={(value) => setDraftData({ ...draftData, number: value })}
                   defaultCountry="US"
                   placeholder="Enter a phone number"
+                />
+              </div>
+            )}
+
+            {draftData.type === "contact" && (
+              <div className="space-y-2">
+                <Label>Contact details</Label>
+                <ContactInput
+                  value={draftData}
+                  onChange={(value) =>
+                    setDraftData((current) => ({
+                      ...value,
+                      name: current.name ?? null,
+                      description: current.description ?? null,
+                    }))
+                  }
                 />
               </div>
             )}

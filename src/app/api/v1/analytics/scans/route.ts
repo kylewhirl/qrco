@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKeyRequest } from "@/lib/api-request-auth";
+import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
 import { getLatestScansByQRCodeForUser } from "@/lib/qr-service";
 
 function getLimit(request: NextRequest) {
@@ -17,19 +17,26 @@ function getLimit(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await authenticateApiKeyRequest(request);
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await authorizeApiRequest(request, ["analytics:read"]);
+  if (!authorization.ok) {
+    return authorization.response;
   }
 
   try {
     const qrId = request.nextUrl.searchParams.get("qrId") ?? undefined;
     const limit = getLimit(request);
-    const scans = await getLatestScansByQRCodeForUser(auth.userId, qrId, limit);
+    const scans = await getLatestScansByQRCodeForUser(authorization.value.auth.userId, qrId, limit);
 
-    return NextResponse.json({ data: scans });
+    return NextResponse.json({ data: scans }, { headers: authorization.value.corsHeaders });
   } catch (error) {
     console.error("Failed to fetch scans:", error);
-    return NextResponse.json({ error: "Failed to fetch scans" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch scans" }, {
+      status: 500,
+      headers: authorization.value.corsHeaders,
+    });
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return buildApiPreflightResponse(request);
 }

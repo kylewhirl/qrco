@@ -1,0 +1,115 @@
+---
+title: SDK
+description: Install the tqrco package and use the typed client, React hooks, and QRCode component.
+---
+
+## Install
+
+```bash
+npm install tqrco
+```
+
+Exports:
+
+- `tqrco`
+- `tqrco/react`
+- `tqrco/components`
+
+Default API origin:
+
+```bash
+https://tqrco.de
+```
+
+Marketing domain:
+
+```bash
+https://theqrcode.co
+```
+
+## Core client
+
+```ts
+import { createTqrcoClient } from "tqrco";
+
+const client = createTqrcoClient({
+  token: process.env.TQRCO_API_KEY!,
+});
+
+const qrCodes = await client.qr.list();
+const summary = await client.analytics.getSummary();
+```
+
+Override the API origin for local development:
+
+```ts
+const client = createTqrcoClient({
+  token: process.env.TQRCO_API_KEY!,
+  baseUrl: "http://localhost:3002",
+});
+```
+
+## React hooks
+
+```tsx
+import { TqrcoProvider, useAnalyticsSummary, useQRCodes } from "tqrco/react";
+
+function Dashboard() {
+  const { data: qrCodes } = useQRCodes();
+  const { data: summary } = useAnalyticsSummary();
+
+  return (
+    <div>
+      <div>{qrCodes?.length ?? 0} QR codes</div>
+      <div>{summary?.metrics.totalScansLast7Days ?? 0} scans in the last 7 days</div>
+    </div>
+  );
+}
+```
+
+Available hooks:
+
+- `useQRCodes`, `useQRCode`
+- `useCreateQRCode`, `useUpdateQRCode`, `useDeleteQRCode`
+- `useAnalyticsSummary`, `useScans`
+- `useBrand`, `useUpdateBrand`
+- `useStylePresets`, `useStylePreset`
+- `useCreateStylePreset`, `useUpdateStylePreset`, `useDeleteStylePreset`
+
+## QRCode component
+
+Render a saved QR code:
+
+```tsx
+import { QRCode } from "tqrco/components";
+
+<QRCode qrId="QR_ID" />
+```
+
+Render from inline data:
+
+```tsx
+import { QRCode } from "tqrco/components";
+
+<QRCode
+  data={{
+    type: "url",
+    url: "https://example.com",
+    name: "Homepage",
+  }}
+  config={{
+    errorLevel: "M",
+    styleSettings: {
+      dotStyle: "rounded",
+      dotColors: ["#111827"],
+      bgColors: ["#ffffff"],
+    },
+  }}
+/>
+```
+
+## Browser auth
+
+- Use secret keys in server environments only.
+- Use publishable tokens in browser apps.
+- Publishable tokens must match an allowed origin and include the required scopes for each endpoint.

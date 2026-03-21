@@ -2,11 +2,16 @@
   "name": "qr-co",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3002 --turbopack",
     "dev:site": "npm run dev",
     "dev:docs": "npm --prefix apps/docs run dev -- --port 3003",
     "dev:all": "sh -c 'trap \"kill 0\" INT TERM EXIT; npm run dev:site & npm run dev:docs & wait'",
+    "build:sdk": "tsc -p packages/tqrco/tsconfig.build.json --incremental false",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -77,6 +82,7 @@
     "svg-flatten": "^1.0.1",
     "svgson": "^5.3.1",
     "tailwind-merge": "^3.2.0",
+    "tqrco": "file:packages/tqrco",
     "use-debounce": "^10.0.4",
     "usehooks-ts": "^3.1.1",
     "vaul": "^1.1.2",

@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKeys = await listApiKeysForUser(user.id);
+  const apiKeys = await listApiKeysForUser(user.id, "secret");
   return NextResponse.json({ apiKeys });
 }
 

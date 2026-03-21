@@ -1,9 +1,9 @@
 export const runtime = 'nodejs';
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/stack";
-import { attachUploadedFileToQrForUser, getQRByCodeForUser } from "@/lib/qr-service";
-import { buildUploadObjectKey, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage";
+import { attachUploadedFileToQrForUser, attachUploadedImageToQrForUser, getQRByCodeForUser, getQRByIdForUser } from "@/lib/qr-service";
+import { buildUploadObjectKey, createStorageClient, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage";
 
 export async function POST(request: Request) {
   const user = await stackServerApp.getUser();
@@ -14,8 +14,10 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file");
   const code = formData.get("code");
+  const qrId = formData.get("qrId");
+  const purpose = formData.get("purpose");
 
-  if (!(file instanceof File) || typeof code !== "string") {
+  if (!(file instanceof File)) {
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
 
@@ -26,22 +28,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const qr = await getQRByCodeForUser(user.id, code);
+  const isImageUpload = purpose === "image";
+  const qr = isImageUpload
+    ? typeof qrId === "string"
+      ? await getQRByIdForUser(user.id, qrId)
+      : null
+    : typeof code === "string"
+      ? await getQRByCodeForUser(user.id, code)
+      : null;
+
   if (!qr) {
     return NextResponse.json({ error: "QR code not found" }, { status: 404 });
   }
 
-  const s3 = new S3Client({
-    region: "auto",
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-    forcePathStyle: false,
-  });
+  if (isImageUpload && !file.type.startsWith("image/")) {
+    return NextResponse.json({ error: "Only image files can be used here" }, { status: 400 });
+  }
 
-  const key = buildUploadObjectKey(user.id, qr.id, file.name);
+  const s3 = createStorageClient();
+
+  const key = buildUploadObjectKey(user.id, qr.id, file.name, isImageUpload ? "images" : "files");
   const body = Buffer.from(await file.arrayBuffer());
 
   await s3.send(
@@ -53,11 +59,15 @@ export async function POST(request: Request) {
     })
   );
 
-  const updatedQr = await attachUploadedFileToQrForUser(user.id, code, key);
+  const updatedQr = isImageUpload
+    ? await attachUploadedImageToQrForUser(user.id, qr.id, key)
+    : await attachUploadedFileToQrForUser(user.id, code as string, key);
 
   return NextResponse.json({
     key,
     qrId: qr.id,
+    url: updatedQr?.imageUrl ?? null,
+    qr: updatedQr,
     updated: Boolean(updatedQr),
   });
 }

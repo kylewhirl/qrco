@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Search } from "lucide-react";
 
+import { QRImageSquare } from "@/components/qr-image-square";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,11 @@ function searchableText(qr: QR) {
     qr.data.type === "url" ? qr.data.url : "",
     qr.data.type === "text" ? qr.data.text : "",
     qr.data.type === "email" ? `${qr.data.to} ${qr.data.subject} ${qr.data.body}` : "",
+    qr.data.type === "contact"
+      ? qr.data.source === "fields"
+        ? `${qr.data.firstName ?? ""} ${qr.data.lastName ?? ""} ${qr.data.organization ?? ""} ${qr.data.phone ?? ""} ${qr.data.email ?? ""} ${qr.data.website ?? ""} ${qr.data.address ?? ""} ${qr.data.note ?? ""}`
+        : `${qr.data.fileName ?? ""} ${qr.data.vcard}`
+      : "",
     qr.data.type === "phone" ? qr.data.number : "",
     qr.data.type === "sms" ? `${qr.data.number} ${qr.data.message}` : "",
     qr.data.type === "wifi" ? `${qr.data.ssid} ${qr.data.authenticationType}` : "",
@@ -91,9 +97,12 @@ export function QRSearchClient({ qrCodes }: { qrCodes: QR[] }) {
               <Card key={qr.id} className="border-border/70">
                 <CardHeader className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl">{qr.data.name?.trim() || qr.code}</CardTitle>
-                      <CardDescription className="break-all">{publicUrl}</CardDescription>
+                    <div className="flex min-w-0 items-start gap-4">
+                      <QRImageSquare qr={qr} className="h-16 w-16 shrink-0" />
+                      <div className="min-w-0 space-y-1">
+                        <CardTitle className="text-xl">{qr.data.name?.trim() || qr.code}</CardTitle>
+                        <CardDescription className="break-all">{publicUrl}</CardDescription>
+                      </div>
                     </div>
                     <Badge variant="outline">{typeLabel(qr.data.type)}</Badge>
                   </div>

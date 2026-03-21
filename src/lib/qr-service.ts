@@ -4,6 +4,7 @@ import { generateQRCode, getLocationFromIP } from "./utils"
 import { StackServerApp } from "@stackframe/stack";
 import { buildPublicQrUrl, isPrimaryAppHost, normalizeHostname } from "./qr-url";
 import { ensureCustomDomainOwnedByUser, ensureCustomDomainSchema } from "./custom-domains";
+import { buildQrImageUrl } from "./qr-images";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
@@ -89,6 +90,7 @@ function mapQR(record: QRRow): QR {
     customDomainId: record.customDomainId ?? null,
     customHostname: record.customHostname ?? null,
     publicUrl: buildPublicQrUrl(record.code, record.customHostname ?? null),
+    imageUrl: record.data.imageKey ? buildQrImageUrl(record.id, record.data.imageKey) : null,
   };
 }
 
@@ -469,6 +471,20 @@ export async function attachUploadedFileToQrForUser(userId: string, code: string
        AND data->>'type' = 'file'
      RETURNING id`,
     [code, userId, key],
+  );
+
+  return result[0] ? getQRByIdInternal(result[0].id, userId) : null;
+}
+
+export async function attachUploadedImageToQrForUser(userId: string, id: string, key: string): Promise<QR | null> {
+  await ensureQrDataAccess();
+  const result = await queryNoAuth<{ id: string }[]>(
+    `UPDATE "QR"
+     SET data = jsonb_set(data, '{imageKey}', to_jsonb($3::text), true)
+     WHERE id = $1
+       AND user_id = $2
+     RETURNING id`,
+    [id, userId, key],
   );
 
   return result[0] ? getQRByIdInternal(result[0].id, userId) : null;

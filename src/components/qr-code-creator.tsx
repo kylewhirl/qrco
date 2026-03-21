@@ -39,17 +39,52 @@ import { QRData } from "@/lib/types";
 import type { WiFiData } from "@/lib/types";
 import type { URLData } from "@/lib/types";
 import type { EmailData } from "@/lib/types";
-import type { PhoneData, SMSData } from "@/lib/types";
+import type { ContactData, PhoneData, SMSData } from "@/lib/types";
 import { useUser } from "@stackframe/stack";
 
+type ContentTab = "website" | "text" | "email" | "contact" | "phone" | "sms" | "wifi" | "file";
+
+function createDefaultContentData(tab: ContentTab): QRData {
+  switch (tab) {
+    case "website":
+      return { type: "url", url: "https://example.com" };
+    case "text":
+      return { type: "text", text: "" };
+    case "email":
+      return { type: "email", to: "", subject: "", body: "" };
+    case "contact":
+      return { type: "contact", source: "fields" };
+    case "phone":
+      return { type: "phone", number: "" };
+    case "sms":
+      return { type: "sms", number: "", message: "" };
+    case "wifi":
+      return { type: "wifi", ssid: "", authenticationType: "WPA", password: "", hidden: false };
+    case "file":
+      return { type: "file", key: "" };
+  }
+}
+
+function tabMatchesData(tab: ContentTab, data: QRData): boolean {
+  return (
+    (tab === "website" && data.type === "url") ||
+    (tab === "text" && data.type === "text") ||
+    (tab === "email" && data.type === "email") ||
+    (tab === "contact" && data.type === "contact") ||
+    (tab === "phone" && data.type === "phone") ||
+    (tab === "sms" && data.type === "sms") ||
+    (tab === "wifi" && data.type === "wifi") ||
+    (tab === "file" && data.type === "file")
+  );
+}
 
 export default function QrCodeCreator() {
   const user = useUser();
-  const [contentTab, setContentTab] = useState<"website"|"text"|"email"|"contact"|"phone"|"sms"|"wifi"|"file">("website");
+  const [contentTab, setContentTab] = useState<ContentTab>("website");
   const [designTab,  setDesignTab]  = useState<"style"|"background"|"logo"|"error-level"|"details">("style");
 
   // Core QR payload and its serialized string
-  const [contentData, setContentData] = useState<QRData>({ type: "url", url: "https://example.com" });
+  const [contentData, setContentData] = useState<QRData>(createDefaultContentData("website"));
   const [qrString, setQrString] = useState<string>(serialize(contentData));
   // add this line for the file
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -113,6 +148,19 @@ export default function QrCodeCreator() {
   useEffect(() => {
     console.log("Updated logoSettings:", logoSettings);
   }, [logoSettings]);
+
+  useEffect(() => {
+    if (tabMatchesData(contentTab, contentData)) {
+      return;
+    }
+
+    const nextData = createDefaultContentData(contentTab);
+    setOriginalData(nextData);
+    if (!scanTracking) {
+      setContentData(nextData);
+      setQrString(serialize(nextData));
+    }
+  }, [contentTab, contentData, scanTracking]);
 
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -251,9 +299,9 @@ const handleDownloadSvg = async () => {
           )}
           {contentTab === "text" && (
             <TextInput
-              value={scanTracking ? serialize(originalData) : qrString}
+              value={scanTracking && originalData.type === "text" ? originalData.text : contentData.type === "text" ? contentData.text : ""}
               onChange={(text: string) => {
-                const updated = { ...contentData, text };
+                const updated: QRData = { type: "text", text };
                 setOriginalData(updated);
                 if (!scanTracking) {
                   setContentData(updated);
@@ -276,9 +324,9 @@ const handleDownloadSvg = async () => {
           )}
           {contentTab === "contact" && (
             <ContactInput
-              value={scanTracking ? serialize(originalData) : qrString}
-              onChange={(contact: string) => {
-                const updated = { ...contentData, contact };
+              value={scanTracking && originalData.type === "contact" ? originalData : contentData.type === "contact" ? contentData : undefined}
+              onChange={(contact: ContactData) => {
+                const updated: QRData = contact;
                 setOriginalData(updated);
                 if (!scanTracking) {
                   setContentData(updated);
@@ -421,7 +469,7 @@ const handleDownloadSvg = async () => {
                     const { code } = await res.json();
                     setQrString(buildPublicQrUrl(code));
                     // Upload file if present
-                    if (selectedFile) {
+                    if (selectedFile && contentData.type === "file") {
                       try {
                         const uploadForm = new FormData();
                         uploadForm.append("file", selectedFile);

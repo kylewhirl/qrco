@@ -21,6 +21,7 @@ export default async function DashboardPage() {
               id: qr.id,
               code: qr.code,
               data: qr.data,
+              imageUrl: qr.imageUrl ?? null,
               customDomainId: qr.customDomainId ?? null,
               customHostname: qr.customHostname ?? null,
               publicUrl: qr.publicUrl,

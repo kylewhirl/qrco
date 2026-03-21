@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -69,19 +70,23 @@ export function SiteHeader() {
               const isLast = index === dashboardSegments.length - 1
               const label = formatSegment(segment, index, dashboardSegments.length)
 
-              return (
-                <BreadcrumbItem key={href}>
-                  {isLast ? (
+              if (isLast) {
+                return (
+                  <BreadcrumbItem key={href}>
                     <BreadcrumbPage>{label}</BreadcrumbPage>
-                  ) : (
-                    <>
-                      <BreadcrumbLink asChild>
-                        <Link href={href}>{label}</Link>
-                      </BreadcrumbLink>
-                      <BreadcrumbSeparator />
-                    </>
-                  )}
-                </BreadcrumbItem>
+                  </BreadcrumbItem>
+                )
+              }
+
+              return (
+                <Fragment key={href}>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href={href}>{label}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </Fragment>
               )
             })}
           </BreadcrumbList>

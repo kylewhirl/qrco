@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKeyRequest } from "@/lib/api-request-auth";
+import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
 import { getBrandProfileForUser, getDefaultRenderConfig, getStylePresetForUser, mergeRenderConfig } from "@/lib/brand-styles";
 import { getQRByIdForUser } from "@/lib/qr-service";
 import { renderQRCodeBinary, UnsafeServerLogoSourceError } from "@/lib/qr-renderer";
@@ -28,24 +28,30 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await authenticateApiKeyRequest(request);
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authorization = await authorizeApiRequest(request, ["qr:read"]);
+  if (!authorization.ok) {
+    return authorization.response;
   }
 
   try {
     const { id } = await params;
-    const qr = await getQRByIdForUser(auth.userId, id);
+    const qr = await getQRByIdForUser(authorization.value.auth.userId, id);
     if (!qr) {
-      return NextResponse.json({ error: "QR code not found" }, { status: 404 });
+      return NextResponse.json({ error: "QR code not found" }, {
+        status: 404,
+        headers: authorization.value.corsHeaders,
+      });
     }
 
     const presetId = request.nextUrl.searchParams.get("presetId");
     const format = parseFormat(request);
-    const brand = await getBrandProfileForUser(auth.userId);
-    const preset = presetId ? await getStylePresetForUser(auth.userId, presetId) : null;
+    const brand = await getBrandProfileForUser(authorization.value.auth.userId);
+    const preset = presetId ? await getStylePresetForUser(authorization.value.auth.userId, presetId) : null;
     if (presetId && !preset) {
-      return NextResponse.json({ error: "Style preset not found" }, { status: 404 });
+      return NextResponse.json({ error: "Style preset not found" }, {
+        status: 404,
+        headers: authorization.value.corsHeaders,
+      });
     }
 
     let config = mergeRenderConfig(getDefaultRenderConfig(), brand.defaultConfig);
@@ -63,6 +69,7 @@ export async function GET(
     const rendered = await renderQRCodeBinary(qr, config, format);
     return new NextResponse(rendered.body, {
       headers: {
+        ...authorization.value.corsHeaders,
         "Content-Type": rendered.contentType,
         "Cache-Control": "private, max-age=60",
         "Content-Disposition": `inline; filename="${qr.code}.${format}"`,
@@ -70,10 +77,20 @@ export async function GET(
     });
   } catch (error) {
     if (error instanceof UnsafeServerLogoSourceError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, {
+        status: 400,
+        headers: authorization.value.corsHeaders,
+      });
     }
 
     console.error("Failed to render QR code:", error);
-    return NextResponse.json({ error: "Failed to render QR code" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to render QR code" }, {
+      status: 500,
+      headers: authorization.value.corsHeaders,
+    });
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return buildApiPreflightResponse(request);
 }

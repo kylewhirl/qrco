@@ -82,7 +82,17 @@ export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
     }
   }
 
+  const handleImageUploaded = (updatedQR: QR) => {
+    setQRCodes(qrCodes.map((qr) => (qr.id === updatedQR.id ? updatedQR : qr)))
+  }
+
   return (
-    <QRCodeList qrCodes={qrCodes} onCreateQR={handleCreateQR} onUpdateQR={handleUpdateQR} onDeleteQR={handleDeleteQR} />
+    <QRCodeList
+      qrCodes={qrCodes}
+      onCreateQR={handleCreateQR}
+      onUpdateQR={handleUpdateQR}
+      onDeleteQR={handleDeleteQR}
+      onImageUploaded={handleImageUploaded}
+    />
   )
 }

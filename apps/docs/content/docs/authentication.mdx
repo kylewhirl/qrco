@@ -1,9 +1,39 @@
 ---
 title: Authentication
-description: Use bearer API keys to access the tqrco REST API.
+description: Use secret API keys and publishable tokens to access the tqrco REST API.
 ---
 
-## Generate a key
+## Token types
+
+### Secret API keys
+
+Use secret keys for:
+
+- server code
+- route handlers
+- cron jobs
+- backend integrations
+
+### Publishable tokens
+
+Use publishable tokens for browser apps that call the REST API directly.
+
+Publishable tokens are constrained by:
+
+- allowed origins
+- explicit scopes
+
+Available scopes:
+
+- `qr:read`
+- `qr:write`
+- `analytics:read`
+- `brand:read`
+- `brand:write`
+- `styles:read`
+- `styles:write`
+
+## Generate a token
 
 Go to the dashboard settings page:
 
@@ -11,7 +41,7 @@ Go to the dashboard settings page:
 /dashboard/settings
 ```
 
-Create an API key and copy the secret immediately. The raw key is only shown once.
+Create either a secret API key or a publishable token and copy the secret immediately. The raw token is only shown once.
 
 ## Send the key
 
@@ -24,15 +54,19 @@ curl https://tqrco.de/api/v1/brand \
 
 If the key is missing, malformed, or revoked, the API returns `401 Unauthorized`.
 
+Secret keys use the `tqr_live_...` prefix. Publishable tokens use the `tqr_pk_...` prefix.
+
 ## Security model
 
 - API keys are hashed before storage.
-- Keys are linked to the user who created them.
+- Tokens are linked to the user who created them.
 - Brand, style, QR, and analytics queries are filtered to that user id.
 - Revoking a key immediately blocks future requests.
+- Publishable tokens are rejected unless the browser origin matches an allowed origin.
+- Publishable tokens can only access endpoints permitted by their scopes.
 
 ## Recommendations
 
 - Use a separate key per integration.
 - Rotate keys if a system or teammate no longer needs access.
-- Do not embed the key in client-side browser code.
+- Do not embed secret keys in client-side browser code.

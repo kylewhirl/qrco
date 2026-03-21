@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { QRData } from "./types"
 import { phone as Phone } from 'phone';
+import { serializeQrData } from "tqrco";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -126,15 +127,7 @@ export function isValidPhone(phone: string): boolean {
 }
 
 export function serialize(data: QRData): string {
-  switch (data.type) {
-    case "url":   return data.url;
-    case "text":  return data.text;
-    case "email": return `mailto:${data.to}?subject=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(data.body)}`;
-    case "phone": return `tel:${data.number}`;
-    case "sms":   return `sms:${data.number}?body=${encodeURIComponent(data.message)}`;
-    case "wifi":  return `WIFI:S:${data.ssid};T:${data.authenticationType};P:${data.password};;`;
-    case "file":  return data.key; // or a public URL if you have one
-  }
+  return serializeQrData(data);
 }
 
 export function getContrastColor(color: string): "black" | "white" {
@@ -369,4 +362,3 @@ export function contrastRatio(hex1: string, hex2: string) {
   const dark = Math.min(lum1, lum2);
   return (bright + 0.05) / (dark + 0.05);
 }
-

@@ -19,6 +19,7 @@
 
 # production
 /build
+/packages/tqrco/dist
 
 # misc
 .DS_Store
@@ -26,6 +27,7 @@
 *.pem
 /domain-connect/
 /docs/domain-connect/
+/scripts/import-whispering-vine-qr.mjs
 security_best_practices_report.md
 
 # debug

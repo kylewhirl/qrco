@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 
-import QrPreview from "@/components/qr-preview"
+import { QRImageSquare } from "@/components/qr-image-square"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -13,12 +13,13 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
 import type { QRData } from "@/lib/types"
-import { cn, formatRelativeDate, serialize } from "@/lib/utils"
+import { formatRelativeDate } from "@/lib/utils"
 
 export interface RecentQRCodeNavItem {
   id: string
   code: string
   data: QRData
+  imageUrl?: string | null
   totalScans: number
   lastScanned: string | Date | null
 }
@@ -84,15 +85,7 @@ export function NavDocuments({
                 tooltip={getLabel(item)}
               >
                 <Link href={`/dashboard/${item.id}`} className="items-start gap-3">
-                  <div className="h-10 w-10 overflow-hidden rounded-xl border border-sidebar-border bg-white shadow-sm">
-                    <div className="origin-top-left scale-[0.15625]">
-                      <QrPreview
-                        data={serialize(item.data)}
-                        errorLevel="M"
-                        className={cn("pointer-events-none")}
-                      />
-                    </div>
-                  </div>
+                  <QRImageSquare qr={item} className="h-10 w-10 rounded-xl border-sidebar-border" />
 
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate font-medium">{getLabel(item)}</span>

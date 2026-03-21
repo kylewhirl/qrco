@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, FolderKanban, FolderOpenDot, RadioTower, Sparkles } from "lucide-react";
 
+import { QRImageSquare } from "@/components/qr-image-square";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllQRCodes } from "@/lib/qr-service";
@@ -87,11 +88,14 @@ export default async function DashboardFoldersPage() {
                     href={`/dashboard/${qr.id}`}
                     className="flex items-center justify-between gap-3 rounded-2xl border bg-muted/20 p-3 transition hover:bg-muted/40"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{qr.data.name?.trim() || qr.code}</p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {buildPublicQrUrl(qr.code, qr.customHostname ?? null)}
-                      </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <QRImageSquare qr={qr} className="h-12 w-12 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{qr.data.name?.trim() || qr.code}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {buildPublicQrUrl(qr.code, qr.customHostname ?? null)}
+                        </p>
+                      </div>
                     </div>
                     <Badge variant="outline">{qr.totalScans} scans</Badge>
                   </Link>
@@ -127,19 +131,22 @@ export default async function DashboardFoldersPage() {
                   key={qr.id}
                   className="flex flex-col gap-4 rounded-2xl border p-4 lg:flex-row lg:items-center lg:justify-between"
                 >
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium">{qr.data.name?.trim() || qr.code}</p>
-                      {tags.map((tag) => (
-                        <Badge key={tag} variant="outline">{tag}</Badge>
-                      ))}
+                  <div className="flex min-w-0 items-start gap-4">
+                    <QRImageSquare qr={qr} className="h-16 w-16 shrink-0" />
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{qr.data.name?.trim() || qr.code}</p>
+                        {tags.map((tag) => (
+                          <Badge key={tag} variant="outline">{tag}</Badge>
+                        ))}
+                      </div>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {buildPublicQrUrl(qr.code, qr.customHostname ?? null)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Created {formatDate(qr.createdAt)}{qr.lastScanned ? ` · Last scanned ${formatDate(qr.lastScanned)}` : ""}
+                      </p>
                     </div>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {buildPublicQrUrl(qr.code, qr.customHostname ?? null)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Created {formatDate(qr.createdAt)}{qr.lastScanned ? ` · Last scanned ${formatDate(qr.lastScanned)}` : ""}
-                    </p>
                   </div>
 
                   <div className="flex items-center gap-3">

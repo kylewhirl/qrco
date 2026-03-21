@@ -1,4 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## tqrco
+
+This repo contains the main app, the `/api/v1` REST API, and the publishable `tqrco` TypeScript SDK in [packages/tqrco](/Users/kyle/tqrco/packages/tqrco).
+
+Canonical API origin: [https://tqrco.de](https://tqrco.de)  
+Marketing domain: [https://theqrcode.co](https://theqrcode.co)
+
+### SDK install
+
+```bash
+npm install tqrco
+```
+
+### SDK usage
+
+```ts
+import { createTqrcoClient } from "tqrco";
+
+const client = createTqrcoClient({
+  token: process.env.TQRCO_API_KEY!,
+});
+
+const qrCodes = await client.qr.list();
+```
+
+```tsx
+import { TqrcoProvider, useQRCodes } from "tqrco/react";
+import { QRCode } from "tqrco/components";
+
+function QRList() {
+  const { data } = useQRCodes();
+  return (
+    <div>
+      {data?.map((qr) => <QRCode key={qr.id} qrId={qr.id} />)}
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <TqrcoProvider options={{ token: import.meta.env.VITE_TQRCO_PUBLISHABLE_TOKEN }}>
+      <QRList />
+    </TqrcoProvider>
+  );
+}
+```
+
+Secret keys are for server-only usage. Publishable tokens are for browser apps and are restricted by origins and scopes.
+
+## Local app development
 
 ## Getting Started
 

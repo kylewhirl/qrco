@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { S3Client } from "@aws-sdk/client-s3";
 import { getPrimaryAppHosts, normalizeHostname } from "@/lib/qr-url";
 
 const STORAGE_SEGMENT_PATTERN = /[^a-zA-Z0-9_-]/g;
@@ -22,9 +23,26 @@ export function sanitizeFileExtension(filename: string): string {
   return extension;
 }
 
-export function buildUploadObjectKey(userId: string, qrId: string, filename: string): string {
+export function buildUploadObjectKey(
+  userId: string,
+  qrId: string,
+  filename: string,
+  kind: "files" | "images" = "files",
+): string {
   const extension = sanitizeFileExtension(filename);
-  return `uploads/${sanitizeStorageSegment(userId)}/${sanitizeStorageSegment(qrId)}/${randomUUID()}.${extension}`;
+  return `uploads/${sanitizeStorageSegment(userId)}/${sanitizeStorageSegment(qrId)}/${kind}/${randomUUID()}.${extension}`;
+}
+
+export function createStorageClient() {
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+    forcePathStyle: false,
+  });
 }
 
 export function buildSignedUrl(key: string): string {
