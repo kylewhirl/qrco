@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 20 20" color="currentColor"><g transform="translate(-56 -56)"><path d="M 60 60v 4h 2a 2 2, 0, 0, 0, 0 -4" transform="rotate(0,62,62)" fill="currentColor"/><rect x="68" y="60" width="4" height="4" transform="rotate(0,70,62)" fill="currentColor"/><path d="M 68 64v 4h 2a 2 2, 0, 0, 0, 0 -4" transform="rotate(90,70,66)" fill="currentColor"/><path d="M 64 68v 4h 2a 2 2, 0, 0, 0, 0 -4" transform="rotate(-90,66,70)" fill="currentColor"/></g></svg>

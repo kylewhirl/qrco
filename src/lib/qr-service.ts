@@ -260,43 +260,43 @@ export async function getRecentQRCodes(limit = 10): Promise<QR[]> {
 
 export async function getDashboardMetricsForUser(userId: string): Promise<DashboardMetrics> {
   await ensureQrDataAccess();
-  const totalScansResult = await queryNoAuth<{ count: string }[]>(
-    `SELECT COUNT(*)::text as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND s."scannedAt" > NOW() - INTERVAL '7 days'`,
-    [userId],
-  );
+  const [totalScansResult, activeQRCodesResult, topLocationResult, mostActiveQRResult] = await Promise.all([
+    queryNoAuth<{ count: string }[]>(
+      `SELECT COUNT(*)::text as count
+       FROM "Scan" s
+       JOIN "QR" q ON q.id = s."qrId"
+       WHERE q.user_id = $1
+         AND s."scannedAt" > NOW() - INTERVAL '7 days'`,
+      [userId],
+    ),
+    queryNoAuth<{ count: string }[]>(
+      'SELECT COUNT(*)::text as count FROM "QR" WHERE user_id = $1',
+      [userId],
+    ),
+    queryNoAuth<TopLocation[]>(
+      `SELECT s.location, COUNT(*)::int as count
+       FROM "Scan" s
+       JOIN "QR" q ON q.id = s."qrId"
+       WHERE q.user_id = $1
+         AND s.location IS NOT NULL
+       GROUP BY s.location
+       ORDER BY count DESC
+       LIMIT 1`,
+      [userId],
+    ),
+    queryNoAuth<{ code: string; data: QRData; scans: number }[]>(
+      `SELECT q.code, q.data, q."totalScans" as scans
+       FROM "QR" q
+       WHERE q.user_id = $1
+       ORDER BY q."totalScans" DESC, q."createdAt" DESC
+       LIMIT 1`,
+      [userId],
+    ),
+  ]);
+
   const totalScansLast7Days = Number.parseInt(totalScansResult[0]?.count || "0");
-
-  const activeQRCodesResult = await queryNoAuth<{ count: string }[]>(
-    'SELECT COUNT(*)::text as count FROM "QR" WHERE user_id = $1',
-    [userId],
-  );
   const activeQRCodesCount = Number.parseInt(activeQRCodesResult[0]?.count || "0");
-
-  const topLocationResult = await queryNoAuth<TopLocation[]>(
-    `SELECT s.location, COUNT(*)::int as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND s.location IS NOT NULL
-     GROUP BY s.location
-     ORDER BY count DESC
-     LIMIT 1`,
-    [userId],
-  );
   const topLocation = topLocationResult[0] ?? null;
-
-  const mostActiveQRResult = await queryNoAuth<{ code: string; data: QRData; scans: number }[]>(
-    `SELECT q.code, q.data, q."totalScans" as scans
-     FROM "QR" q
-     WHERE q.user_id = $1
-     ORDER BY q."totalScans" DESC, q."createdAt" DESC
-     LIMIT 1`,
-    [userId],
-  );
   const mostActiveQR = mostActiveQRResult[0] ?? null;
 
   return {

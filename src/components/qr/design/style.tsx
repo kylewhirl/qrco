@@ -4,20 +4,188 @@ import React, { Dispatch, SetStateAction } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { parseColorValue } from "@/lib/utils";
+import { averageColors, cn, parseColorValue } from "@/lib/utils";
+
+type DotStyle = StyleSettingsProps["settings"]["dotStyle"];
+type EyeStyle = StyleSettingsProps["settings"]["eyeStyle"];
+type InnerEyeStyle = StyleSettingsProps["settings"]["innerEyeStyle"];
+
+const DOT_STYLE_OPTIONS: DotStyle[] = [
+  "square",
+  "dots",
+  "rounded",
+  "extra-rounded",
+  "classy",
+  "classy-rounded",
+];
+
+const EYE_STYLE_OPTIONS: EyeStyle[] = [
+  "square",
+  "extra-rounded",
+  "dot",
+  "rounded",
+  "classy",
+  "classy-rounded",
+  "dots",
+];
+
+const INNER_EYE_STYLE_OPTIONS: InnerEyeStyle[] = [
+  "none",
+  "square",
+  "dot",
+  "rounded",
+  "extra-rounded",
+  "classy",
+  "classy-rounded",
+  "dots",
+];
+const swatchMarkupCache = new Map<string, string>();
+
+function formatStyleLabel(style: string) {
+  return style.replace("-", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function NoneSwatch({ active, label }: { active: boolean; label: string }) {
+  return (
+    <div
+      className={cn(
+        "flex h-12 w-12 items-center justify-center rounded-xl border bg-background text-muted-foreground transition hover:border-foreground/20",
+        active ? "border-primary ring-2 ring-primary/15" : "border-border"
+      )}
+    >
+      <svg viewBox="0 0 50 50" className="h-7 w-7" aria-hidden="true">
+        <path d="M10 40 L40 10" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
+function getSwatchAssetPath(
+  kind: "dots" | "eyes" | "innerEyes",
+  style: Exclude<DotStyle | EyeStyle | InnerEyeStyle, "none">
+) {
+  return `/qr-style-swatches/${kind}-${style}.svg`;
+}
+
+function StaticSwatch({
+  kind,
+  style,
+  active,
+  swatchColor,
+  swatchBackground,
+}: {
+  kind: "dots" | "eyes" | "innerEyes";
+  style: Exclude<DotStyle | EyeStyle | InnerEyeStyle, "none">;
+  active: boolean;
+  swatchColor: string;
+  swatchBackground?: string;
+}) {
+  const assetPath = getSwatchAssetPath(kind, style);
+  const [markup, setMarkup] = React.useState<string | null>(() => swatchMarkupCache.get(assetPath) ?? null);
+
+  React.useEffect(() => {
+    const cached = swatchMarkupCache.get(assetPath);
+    if (cached) {
+      setMarkup(cached);
+      return;
+    }
+
+    let activeRun = true;
+
+    fetch(assetPath)
+      .then((response) => response.text())
+      .then((text) => {
+        swatchMarkupCache.set(assetPath, text);
+        if (activeRun) {
+          setMarkup(text);
+        }
+      });
+
+    return () => {
+      activeRun = false;
+    };
+  }, [assetPath]);
+
+  return (
+    <div
+      className={cn(
+        "flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border bg-background transition hover:border-foreground/20",
+        active ? "border-primary ring-2 ring-primary/15" : "border-border"
+      )}
+      style={{
+        color: swatchColor,
+        ...(swatchBackground
+          ? swatchBackground.includes("gradient(")
+            ? { backgroundImage: swatchBackground, backgroundColor: undefined }
+            : { backgroundColor: swatchBackground, backgroundImage: "none" }
+          : {}),
+      }}
+    >
+      {markup ? (
+        <div
+          className="flex h-12 w-12 items-center justify-center"
+          dangerouslySetInnerHTML={{ __html: markup }}
+        />
+      ) : (
+        <div className="h-12 w-12 animate-pulse bg-muted" />
+      )}
+    </div>
+  );
+}
+
+function StyleOptionGrid<T extends string>({
+  options,
+  value,
+  onChange,
+  kind,
+  swatchColor,
+  swatchBackground,
+}: {
+  options: T[];
+  value: T;
+  onChange: (value: T) => void;
+  kind: "dots" | "eyes" | "innerEyes";
+  swatchColor: string;
+  swatchBackground?: string;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      {options.map((option) =>
+        option === "none" ? (
+          <div key={option} className="flex flex-col items-center gap-1">
+            <button type="button" onClick={() => onChange(option)} className="flex flex-col items-center gap-1">
+              <NoneSwatch active={value === option} label={formatStyleLabel(option)} />
+            </button>
+            <span className="text-[11px] text-muted-foreground">{formatStyleLabel(option)}</span>
+          </div>
+        ) : (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className="flex flex-col items-center gap-1"
+          >
+            <StaticSwatch
+              kind={kind}
+              style={option as Exclude<DotStyle | EyeStyle | InnerEyeStyle, "none">}
+              active={value === option}
+              swatchColor={swatchColor}
+              swatchBackground={swatchBackground}
+            />
+            <span className="text-[11px] text-muted-foreground">{formatStyleLabel(option)}</span>
+          </button>
+        )
+      )}
+    </div>
+  );
+}
 
 export interface StyleSettingsProps {
   settings: {
@@ -101,6 +269,10 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
       settings.bgGradientType,
       settings.bgRotation
   );
+  const dotSwatchColor = averageColors(settings.dotColors) || "#000000";
+  const eyeSwatchColor = averageColors(settings.eyeColors) || "#000000";
+  const innerEyeSwatchColor = averageColors(settings.innerEyeColors) || "#000000";
+  const swatchBackground = bgValue || "#ffffff";
 
   return (
     <Card className={`p-4 ${className ? ` ${className}` : ""}`}>
@@ -112,33 +284,23 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
         <div className="flex flex-row space-x-6 w-full items-center">
             <div className="flex flex-col space-y-1">
             <Label htmlFor="all-style">Style</Label>
-            <Select
-            value={settings.dotStyle}
-            onValueChange={(value) =>
-                onChange({
-                ...settings,
-                dotStyle: value as StyleSettingsProps["settings"]["dotStyle"],
-                eyeStyle: value as StyleSettingsProps["settings"]["eyeStyle"],
-                innerEyeStyle: "none",
-                })
-            }
-            disabled={advancedOpen}
-            >
-            <SelectTrigger
-                id="all-style"
-                className={advancedOpen ? "opacity-50 cursor-not-allowed" : ""}
-            >
-                <SelectValue placeholder="Select style" />
-            </SelectTrigger>
-            <SelectContent>
-                {["square", "dots", "rounded", "extra-rounded", "classy", "classy-rounded"].map((opt) => (
-                <SelectItem key={opt} value={opt}>
-                    {opt.replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())}
-                </SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
-
+            <div className={advancedOpen ? "pointer-events-none opacity-50" : ""}>
+              <StyleOptionGrid
+                options={DOT_STYLE_OPTIONS}
+                value={settings.dotStyle}
+                kind="dots"
+                swatchColor={dotSwatchColor}
+                swatchBackground={swatchBackground}
+                onChange={(value) =>
+                  onChange({
+                    ...settings,
+                    dotStyle: value,
+                    eyeStyle: value as StyleSettingsProps["settings"]["eyeStyle"],
+                    innerEyeStyle: "none",
+                  })
+                }
+              />
+            </div>
             </div>
             <div className="flex flex-col space-y-1">
             <Label htmlFor="all-color">Color</Label>
@@ -231,23 +393,14 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
                 <div className="flex flex-row space-x-6 items-center">
                     <div className="flex flex-col space-y-1">
                     <Label htmlFor="dot-style">Dot Style</Label>
-                    <Select
-                        value={settings.dotStyle}
-                        onValueChange={(value) =>
-                        onChange({ ...settings, dotStyle: value as StyleSettingsProps["settings"]["dotStyle"] })
-                        }
-                    >
-                        <SelectTrigger id="dot-style">
-                        <SelectValue placeholder="Select dot style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {["square", "dots", "rounded", "extra-rounded", "classy", "classy-rounded"].map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                            {opt.replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
+                    <StyleOptionGrid
+                      options={DOT_STYLE_OPTIONS}
+                      value={settings.dotStyle}
+                      kind="dots"
+                      swatchColor={dotSwatchColor}
+                      swatchBackground={swatchBackground}
+                      onChange={(value) => onChange({ ...settings, dotStyle: value })}
+                    />
                     </div>
 
                     <div className="flex flex-col space-y-1">
@@ -288,31 +441,14 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
                 <div className="flex flex-row space-x-6 items-center">
                     <div className="flex flex-col space-y-1">
                     <Label htmlFor="eye-style">Eye Shape</Label>
-                    <Select
-                        value={settings.eyeStyle}
-                        onValueChange={(value) =>
-                        onChange({ ...settings, eyeStyle: value as StyleSettingsProps["settings"]["eyeStyle"] })
-                        }
-                    >
-                        <SelectTrigger id="eye-style">
-                        <SelectValue placeholder="Select eye style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {[
-                            "square",
-                            "extra-rounded",
-                            "dot",
-                            "rounded",
-                            "classy",
-                            "classy-rounded",
-                            "dots",
-                        ].map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                            {opt.replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
+                    <StyleOptionGrid
+                      options={EYE_STYLE_OPTIONS}
+                      value={settings.eyeStyle}
+                      kind="eyes"
+                      swatchColor={eyeSwatchColor}
+                      swatchBackground={swatchBackground}
+                      onChange={(value) => onChange({ ...settings, eyeStyle: value })}
+                    />
                     </div>
 
                     <div className="flex flex-col space-y-1">
@@ -345,23 +481,14 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
                 <div className="flex flex-row space-x-6 items-center">
                     <div className="flex flex-col space-y-1">
                     <Label htmlFor="inner-eye-style">Inner Eye Shape</Label>
-                    <Select
-                        value={settings.innerEyeStyle}
-                        onValueChange={(value) =>
-                        onChange({ ...settings, innerEyeStyle: value as StyleSettingsProps["settings"]["innerEyeStyle"] })
-                        }
-                    >
-                        <SelectTrigger id="inner-eye-style">
-                        <SelectValue placeholder="Select inner eye style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {["none", "square", "dot", "rounded", "extra-rounded", "classy", "classy-rounded", "dots"].map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                            {opt.replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
+                    <StyleOptionGrid
+                      options={INNER_EYE_STYLE_OPTIONS}
+                      value={settings.innerEyeStyle}
+                      kind="innerEyes"
+                      swatchColor={innerEyeSwatchColor}
+                      swatchBackground={swatchBackground}
+                      onChange={(value) => onChange({ ...settings, innerEyeStyle: value })}
+                    />
                     </div>
 
                     <div className="flex flex-col space-y-1">

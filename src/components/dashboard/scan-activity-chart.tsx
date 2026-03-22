@@ -62,8 +62,6 @@ export function ScanActivityChart({ data }: ScanActivityChartProps) {
     .filter((_, i) => i % step === 0)
     .map((d) => d.date);
 
-  console.log(ticks)
-
   return (
     <Card className="col-span-4">
       <CardHeader>

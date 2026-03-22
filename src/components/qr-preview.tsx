@@ -58,6 +58,7 @@ const DEFAULT_STYLE_SETTINGS: Required<StyleSettings> = {
 export interface QrPreviewProps {
   data: string;
   errorLevel: "L" | "M" | "Q" | "H";
+  size?: number;
   margin?: number;
   styleSettings?: StyleSettings | null;
   logoSettings?: {
@@ -111,6 +112,7 @@ export function calculateScanability(
 const QrPreview: React.FC<QrPreviewProps> = ({
   data,
   errorLevel,
+  size = 256,
   styleSettings: rawStyleSettings,
   logoSettings,
   borderSettings,
@@ -203,8 +205,8 @@ const QrPreview: React.FC<QrPreviewProps> = ({
       : { color: inner0 };
 
     const options: Options = {
-      width: 256,
-      height: 256,
+      width: size,
+      height: size,
       data,
       margin: 4,
       type: "svg",
@@ -306,6 +308,7 @@ const QrPreview: React.FC<QrPreviewProps> = ({
   }, [
     data,
     errorLevel,
+    size,
     rawStyleSettings,
     styleSettings,
     borderSettings,
@@ -314,15 +317,15 @@ const QrPreview: React.FC<QrPreviewProps> = ({
   ]);
 
   return (
-    <div style={{ position: "relative", width: 256, height: 256 }} className={className}>
+    <div style={{ position: "relative", width: size, height: size }} className={className}>
       <div
         ref={ref}
         style={{
           position: "absolute",
           top: 0,
           left: 0,
-          width: "256px",
-          height: "256px",
+          width: `${size}px`,
+          height: `${size}px`,
         }}
       />
     </div>

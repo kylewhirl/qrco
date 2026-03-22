@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { QrCode, BarChart, Settings } from "lucide-react"
+import { ArrowRight, BarChart, QrCode, Settings } from "lucide-react"
 import dynamic from "next/dynamic"
 
 const QrCodeCreator = dynamic(() => import("@/components/qr-code-creator"), {
   ssr: false,
   loading: () => (
-    <div className="min-h-[600px] flex items-center justify-center">
+    <div className="flex min-h-[600px] items-center justify-center rounded-[32px] border bg-card/80">
       Loading QR UI...
     </div>
   ),
@@ -19,22 +19,41 @@ import Footer from "@/components/footer";
 
 
 export default function HomePage() {
-
-
   return (
     <div className="flex min-h-screen flex-col">
      <Header/>
       <main className="flex-1">
-      <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-2">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold font-brand tracking-tight">Create a QR code</h1>
-                <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-                  Customize it with colors, logos, and more.
-                  </p>
+      <section className="relative w-full overflow-x-hidden overflow-y-visible py-12 md:py-20 lg:py-24">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-muted)_72%,transparent),transparent_28%),radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--color-border)_82%,transparent),transparent_26%),linear-gradient(180deg,var(--color-background)_0%,color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))_100%)]" />
+          <div className="absolute -left-24 top-28 h-64 w-64 rounded-full bg-muted/60 blur-3xl" />
+          <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-border/50 blur-3xl" />
+
+          <div className="container relative mx-auto px-6">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">QR code creator</p>
+              <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                Create a QR code
+              </h1>
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                Customize it with colors, gradients, logos, and more.
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link href="/sign-up" passHref>
+                  <Button className="h-11 rounded-xl px-6">
+                    Get Started
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+                <Link href="/dashboard" passHref>
+                  <Button variant="outline" className="h-11 rounded-xl px-6">
+                    Open Dashboard
+                  </Button>
+                </Link>
               </div>
-              <QrCodeCreator/>
+            </div>
+
+            <div className="mt-12">
+              <QrCodeCreator variant="hero" />
             </div>
           </div>
         </section>

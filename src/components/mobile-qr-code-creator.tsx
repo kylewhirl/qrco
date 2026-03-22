@@ -31,7 +31,7 @@ import Scanability from "@/components/ui/scanability";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import Link from "next/link";
 
-import { flattenAndDownloadSvg } from "@/lib/flatten-svg";
+import { flattenAndDownloadSvg, prepareSvgForExport } from "@/lib/flatten-svg";
 import { serialize } from "@/lib/utils";
 import { buildPublicQrUrl } from "@/lib/qr-url";
 import { QRData } from "@/lib/types";
@@ -185,7 +185,7 @@ const handleDownloadSvg = async () => {
     if (!svg) return;
 
     // Create a canvas and draw the SVG onto it
-    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgData = await prepareSvgForExport(svg);
     const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
 
