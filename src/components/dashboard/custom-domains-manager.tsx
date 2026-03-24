@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
+const DEFAULT_DOMAIN_FALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theqrcode.co";
+
 export function CustomDomainsManager() {
   const searchParams = useSearchParams();
   const [domains, setDomains] = useState<CustomDomain[]>([]);
@@ -21,6 +23,8 @@ export function CustomDomainsManager() {
   const [isCreating, setIsCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [savingFallbackId, setSavingFallbackId] = useState<string | null>(null);
+  const [fallbackDrafts, setFallbackDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void loadDomains();
@@ -43,6 +47,12 @@ export function CustomDomainsManager() {
 
     return () => window.clearTimeout(timer);
   }, [searchParams]);
+
+  useEffect(() => {
+    setFallbackDrafts((current) => Object.fromEntries(
+      domains.map((domain) => [domain.id, current[domain.id] ?? domain.fallbackUrl ?? ""]),
+    ));
+  }, [domains]);
 
   async function loadDomains() {
     setIsLoading(true);
@@ -160,6 +170,42 @@ export function CustomDomainsManager() {
     window.location.assign(connectUrl);
   }
 
+  async function handleFallbackSave(domain: CustomDomain) {
+    setSavingFallbackId(domain.id);
+    try {
+      const response = await fetch(`/api/dashboard/domains/${domain.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fallbackUrl: (fallbackDrafts[domain.id] || "").trim() || null,
+        }),
+      });
+
+      const data = await response.json() as { domain?: CustomDomain, error?: string };
+      if (!response.ok || !data.domain) {
+        throw new Error(data.error || "Failed to update fallback URL");
+      }
+
+      setDomains((current) => current.map((item) => (item.id === domain.id ? data.domain! : item)));
+      setFallbackDrafts((current) => ({
+        ...current,
+        [domain.id]: data.domain?.fallbackUrl ?? "",
+      }));
+      toast.success(
+        data.domain.fallbackUrl
+          ? "Fallback URL updated"
+          : `Fallback reset to ${DEFAULT_DOMAIN_FALLBACK_URL}`,
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Failed to update fallback URL");
+    } finally {
+      setSavingFallbackId(null);
+    }
+  }
+
   return (
     <Card id="domains" className="scroll-mt-24">
       <CardHeader>
@@ -225,6 +271,30 @@ export function CustomDomainsManager() {
                   <p className="text-xs text-muted-foreground">
                     QR links will look like {buildPublicQrUrl("abc123", domain.hostname)}
                   </p>
+                  <div className="rounded-lg border bg-muted/20 p-3 text-xs">
+                    <p className="font-medium">Non-QR fallback</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Visitors who open this domain without a valid QR code path will be redirected here. Leave blank to use {DEFAULT_DOMAIN_FALLBACK_URL}.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 md:flex-row">
+                      <Input
+                        type="url"
+                        placeholder={DEFAULT_DOMAIN_FALLBACK_URL}
+                        value={fallbackDrafts[domain.id] ?? domain.fallbackUrl ?? ""}
+                        onChange={(event) => setFallbackDrafts((current) => ({
+                          ...current,
+                          [domain.id]: event.target.value,
+                        }))}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => handleFallbackSave(domain)}
+                        disabled={savingFallbackId === domain.id}
+                      >
+                        {savingFallbackId === domain.id ? "Saving..." : "Save fallback"}
+                      </Button>
+                    </div>
+                  </div>
                   {domain.verification?.length ? (
                     <div className="rounded-lg bg-muted/50 p-3 text-xs">
                       <p className="font-medium">Verification records</p>

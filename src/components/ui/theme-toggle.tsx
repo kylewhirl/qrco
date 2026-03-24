@@ -1,4 +1,7 @@
+ "use client";
+
 import { Sun, Moon, Laptop } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes"
 import {
   DropdownMenu,
@@ -10,14 +13,18 @@ import { Button } from "./button";
 
 
 export function ThemeToggle() {
-
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Toggle theme">
-                {resolvedTheme === "dark" ? <Moon size={18} /> : resolvedTheme === "light" ? <Sun size={18} /> : <Laptop size={18} />}
+                {!mounted ? <Laptop size={18} /> : resolvedTheme === "dark" ? <Moon size={18} /> : resolvedTheme === "light" ? <Sun size={18} /> : <Laptop size={18} />}
             </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

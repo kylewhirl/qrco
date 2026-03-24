@@ -59,6 +59,8 @@ type QrCodeCreatorProps = {
   variant?: "default" | "hero";
 };
 
+type CreatorUser = ReturnType<typeof useUser>;
+
 const CONTENT_OPTIONS: {
   value: ContentTab;
   label: string;
@@ -120,8 +122,7 @@ function tabMatchesData(tab: ContentTab, data: QRData): boolean {
   );
 }
 
-export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProps) {
-  const user = useUser();
+function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps & { user: CreatorUser }) {
   const [contentTab, setContentTab] = useState<ContentTab>("website");
   const [designTab, setDesignTab] = useState<DesignTab>("style");
   const [contentData, setContentData] = useState<QRData>(createDefaultContentData("website"));
@@ -684,4 +685,24 @@ export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProp
       </div>
     </div>
   );
+}
+
+function HydratedQrCodeCreator(props: QrCodeCreatorProps) {
+  const user = useUser({ or: "return-null" });
+
+  return <QrCodeCreatorContent {...props} user={user} />;
+}
+
+export default function QrCodeCreator(props: QrCodeCreatorProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) {
+    return <QrCodeCreatorContent {...props} user={null} />;
+  }
+
+  return <HydratedQrCodeCreator {...props} />;
 }

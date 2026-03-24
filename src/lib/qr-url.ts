@@ -1,4 +1,6 @@
 const DEFAULT_QR_HOST = process.env.NEXT_PUBLIC_DEFAULT_QR_HOST || "tqrco.de";
+const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theqrcode.co";
+const DEFAULT_APP_HOST = normalizeHostname(new URL(DEFAULT_APP_URL).hostname);
 
 export function normalizeHostname(hostname: string | null | undefined): string {
   if (!hostname) {
@@ -9,6 +11,21 @@ export function normalizeHostname(hostname: string | null | undefined): string {
   const withoutProtocol = trimmed.replace(/^https?:\/\//, "");
   const withoutPath = withoutProtocol.split("/")[0] || "";
   return withoutPath.replace(/\.$/, "").split(":")[0] || "";
+}
+
+export function getRequestHostname(
+  source:
+    | { headers: Pick<Headers, "get">; nextUrl?: { hostname?: string } }
+    | { headers: Record<string, string | string[] | undefined>; nextUrl?: { hostname?: string } },
+): string {
+  const headerValue = typeof (source.headers as { get?: unknown }).get === "function"
+    ? (source.headers as Pick<Headers, "get">).get("x-forwarded-host")
+        || (source.headers as Pick<Headers, "get">).get("host")
+    : (source.headers as Record<string, string | string[] | undefined>)["x-forwarded-host"]
+        || (source.headers as Record<string, string | string[] | undefined>).host;
+
+  const resolvedHeader = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+  return normalizeHostname(resolvedHeader || source.nextUrl?.hostname || "");
 }
 
 export function getApexName(hostname: string): string {
@@ -38,7 +55,7 @@ export function getPrimaryAppHosts(): string[] {
         .split(",")
         .map((value) => normalizeHostname(value))
         .filter(Boolean)
-        .concat([DEFAULT_QR_HOST, "www.tqrco.de", "localhost", "127.0.0.1"]),
+        .concat([DEFAULT_APP_HOST, DEFAULT_QR_HOST, "www.tqrco.de", "localhost", "127.0.0.1"]),
     ),
   );
 }
@@ -54,6 +71,10 @@ export function isPrimaryAppHost(hostname: string): boolean {
   }
 
   return getPrimaryAppHosts().includes(normalized);
+}
+
+export function getPrimaryAppUrl(pathname = "/"): URL {
+  return new URL(pathname, DEFAULT_APP_URL);
 }
 
 export function buildPublicQrUrl(code: string, customHostname?: string | null): string {

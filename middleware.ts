@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isPrimaryAppHost, normalizeHostname } from "@/lib/qr-url";
+import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
 export function middleware(request: NextRequest) {
-  const hostname = normalizeHostname(request.headers.get("host"));
+  const hostname = getRequestHostname(request);
 
   if (!hostname || isPrimaryAppHost(hostname)) {
     return NextResponse.next();
@@ -12,17 +12,9 @@ export function middleware(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  const pathname = request.nextUrl.pathname;
-  if (pathname === "/favicon.ico") {
-    return NextResponse.next();
-  }
-
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 1) {
-    return NextResponse.next();
-  }
-
-  return new NextResponse("Not Found", { status: 404 });
+  const rewriteUrl = request.nextUrl.clone();
+  rewriteUrl.pathname = `/__custom-domain${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
+  return NextResponse.rewrite(rewriteUrl);
 }
 
 export const config = {

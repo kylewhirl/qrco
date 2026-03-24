@@ -17,6 +17,31 @@ export const customDomainCreateSchema = z.object({
   hostname: z.string().trim().min(1).max(255),
 });
 
+export const customDomainFallbackSchema = z.object({
+  fallbackUrl: z.preprocess((value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed;
+  }, z.union([
+    z.string().url().max(2048).transform((value, context) => {
+      const url = new URL(value);
+      if (!["http:", "https:"].includes(url.protocol)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fallback URL must use http or https",
+        });
+        return z.NEVER;
+      }
+
+      return url.toString();
+    }),
+    z.null(),
+  ])),
+});
+
 export const createApiKeySchema = z.object({
   name: z.string().trim().min(1).max(80),
 });

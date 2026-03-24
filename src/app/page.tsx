@@ -1,22 +1,10 @@
-'use client';
-
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BarChart, QrCode, Settings } from "lucide-react"
-import dynamic from "next/dynamic"
-
-const QrCodeCreator = dynamic(() => import("@/components/qr-code-creator"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[600px] items-center justify-center rounded-[32px] border bg-card/80">
-      Loading QR UI...
-    </div>
-  ),
-})
+import QrCodeCreator from "@/components/qr-code-creator"
 
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-
 
 export default function HomePage() {
   return (

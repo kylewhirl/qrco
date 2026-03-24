@@ -67,6 +67,7 @@ export interface CustomDomain {
   userId: string;
   hostname: string;
   apexName: string;
+  fallbackUrl: string | null;
   status: CustomDomainStatus;
   verification: DomainVerificationInstruction[] | null;
   configuration: DomainConfiguration | null;

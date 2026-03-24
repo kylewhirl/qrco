@@ -1,5 +1,5 @@
 import {
-  getRecentQRCodes,
+  getAllQRCodes,
 } from "@/lib/qr-service"
 import { DashboardClient } from "./client"
 
@@ -8,7 +8,7 @@ export default async function DashboardPage() {
 
   try {
     // Fetch dashboard data
-    const qrCodes = await getRecentQRCodes()
+    const qrCodes = await getAllQRCodes()
 
     return (
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

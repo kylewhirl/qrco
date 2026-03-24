@@ -7,7 +7,7 @@ import type {
   DomainConfiguration,
   DomainVerificationInstruction,
 } from "@/lib/types";
-import { getApexName, isValidHostname, normalizeHostname } from "@/lib/qr-url";
+import { getApexName, getPrimaryAppUrl, isValidHostname, normalizeHostname } from "@/lib/qr-url";
 
 type VercelDomainRecord = {
   name?: string
@@ -187,6 +187,7 @@ export async function ensureCustomDomainSchema() {
         )
       `);
       await queryAdmin(`ALTER TABLE "CustomDomain" ADD COLUMN IF NOT EXISTS configuration JSONB`);
+      await queryAdmin(`ALTER TABLE "CustomDomain" ADD COLUMN IF NOT EXISTS "fallbackUrl" TEXT`);
       await queryAdmin(`CREATE INDEX IF NOT EXISTS "CustomDomain_userId_idx" ON "CustomDomain" ("userId")`);
       await queryAdmin(`CREATE INDEX IF NOT EXISTS "CustomDomain_status_idx" ON "CustomDomain" ("userId", status)`);
       await queryAdmin(`
@@ -226,6 +227,7 @@ function mapCustomDomain(record: CustomDomainRow): CustomDomain {
     userId: record.userId,
     hostname: record.hostname,
     apexName: record.apexName,
+    fallbackUrl: record.fallbackUrl,
     status: record.status,
     verification: record.verification,
     configuration: record.configuration,
@@ -270,6 +272,7 @@ async function syncDomainRow(domain: Pick<CustomDomain, "id" | "userId" | "hostn
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -297,6 +300,7 @@ export async function listCustomDomainsForUser(userId: string): Promise<CustomDo
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -321,6 +325,7 @@ export async function listVerifiedCustomDomainsForUser(userId: string): Promise<
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -344,6 +349,7 @@ export async function getCustomDomainByIdForUser(userId: string, id: string): Pr
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -425,6 +431,7 @@ export async function createCustomDomainForUser(userId: string, rawHostname: str
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -435,6 +442,7 @@ export async function createCustomDomainForUser(userId: string, rawHostname: str
       $1,
       $2,
       $3,
+      NULL,
       $4,
       $5::jsonb,
       $6::jsonb,
@@ -446,6 +454,7 @@ export async function createCustomDomainForUser(userId: string, rawHostname: str
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -507,6 +516,7 @@ export async function verifyCustomDomainForUser(userId: string, id: string): Pro
       "userId",
       hostname,
       "apexName",
+      "fallbackUrl",
       status,
       verification,
       configuration,
@@ -524,6 +534,64 @@ export async function verifyCustomDomainForUser(userId: string, id: string): Pro
   ]);
 
   return rows[0] ? mapCustomDomain(rows[0]) : null;
+}
+
+export async function updateCustomDomainFallbackForUser(
+  userId: string,
+  id: string,
+  fallbackUrl: string | null,
+): Promise<CustomDomain | null> {
+  await ensureCustomDomainSchema();
+  const domain = await getCustomDomainByIdForUser(userId, id);
+  if (!domain) {
+    return null;
+  }
+
+  if (fallbackUrl) {
+    const fallbackHostname = normalizeHostname(new URL(fallbackUrl).hostname);
+    if (fallbackHostname === normalizeHostname(domain.hostname)) {
+      throw new Error("Fallback URL cannot point to the same custom domain");
+    }
+  }
+
+  const rows = await queryNoAuth<CustomDomainRow[]>(`
+    UPDATE "CustomDomain"
+    SET "fallbackUrl" = $1
+    WHERE id = $2 AND "userId" = $3
+    RETURNING
+      id,
+      "userId",
+      hostname,
+      "apexName",
+      "fallbackUrl",
+      status,
+      verification,
+      configuration,
+      "verifiedAt",
+      "lastCheckedAt",
+      "isPrimary",
+      "createdAt"
+  `, [fallbackUrl, id, userId]);
+
+  return rows[0] ? mapCustomDomain(rows[0]) : null;
+}
+
+export async function getCustomDomainFallbackUrlForHostname(hostname: string): Promise<string> {
+  await ensureCustomDomainSchema();
+  const normalizedHostname = normalizeHostname(hostname);
+
+  if (!normalizedHostname) {
+    return getPrimaryAppUrl().toString();
+  }
+
+  const rows = await queryNoAuth<{ fallbackUrl: string | null }[]>(`
+    SELECT "fallbackUrl"
+    FROM "CustomDomain"
+    WHERE hostname = $1
+    LIMIT 1
+  `, [normalizedHostname]);
+
+  return rows[0]?.fallbackUrl || getPrimaryAppUrl().toString();
 }
 
 export async function deleteCustomDomainForUser(userId: string, id: string): Promise<boolean> {
