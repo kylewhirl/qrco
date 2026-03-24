@@ -23,7 +23,7 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
      <Header/>
       <main className="flex-1">
-      <section className="relative w-full overflow-x-hidden overflow-y-visible py-12 md:py-20 lg:py-24">
+      <section className="relative w-full overflow-x-clip overflow-y-visible py-12 md:py-20 lg:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-muted)_72%,transparent),transparent_28%),radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--color-border)_82%,transparent),transparent_26%),linear-gradient(180deg,var(--color-background)_0%,color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))_100%)]" />
           <div className="absolute -left-24 top-28 h-64 w-64 rounded-full bg-muted/60 blur-3xl" />
           <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-border/50 blur-3xl" />

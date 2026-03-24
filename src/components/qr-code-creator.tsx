@@ -179,13 +179,8 @@ export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProp
     hideBackgroundDots?: boolean;
   } | undefined>(undefined);
   const [scanability, setScanability] = useState<number>(0);
-  const [heroPreviewMode, setHeroPreviewMode] = useState<"static" | "fixed" | "absolute">("static");
-  const [heroPreviewMetrics, setHeroPreviewMetrics] = useState({ width: 0, left: 0, height: 0 });
 
   const previewRef = useRef<HTMLDivElement>(null);
-  const heroGridRef = useRef<HTMLDivElement>(null);
-  const heroPreviewRailRef = useRef<HTMLElement>(null);
-  const heroPreviewCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (tabMatchesData(contentTab, contentData)) {
@@ -199,65 +194,6 @@ export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProp
       setQrString(serialize(nextData));
     }
   }, [contentTab, contentData, scanTracking]);
-
-  useEffect(() => {
-    if (variant !== "hero") {
-      return;
-    }
-
-    const syncPreviewPosition = () => {
-      const grid = heroGridRef.current;
-      const rail = heroPreviewRailRef.current;
-      const card = heroPreviewCardRef.current;
-
-      if (!grid || !rail || !card) {
-        return;
-      }
-
-      if (window.innerWidth < 1024) {
-        setHeroPreviewMode("static");
-        setHeroPreviewMetrics({ width: 0, left: 0, height: 0 });
-        return;
-      }
-
-      const topOffset = 16;
-      const gridRect = grid.getBoundingClientRect();
-      const railRect = rail.getBoundingClientRect();
-      const cardHeight = card.offsetHeight;
-
-      setHeroPreviewMetrics({
-        width: railRect.width,
-        left: railRect.left,
-        height: cardHeight,
-      });
-
-      if (gridRect.top >= topOffset) {
-        setHeroPreviewMode("static");
-        return;
-      }
-
-      if (gridRect.bottom <= cardHeight + topOffset) {
-        setHeroPreviewMode("absolute");
-        return;
-      }
-
-      setHeroPreviewMode("fixed");
-    };
-
-    syncPreviewPosition();
-
-    const handleChange = () => {
-      window.requestAnimationFrame(syncPreviewPosition);
-    };
-
-    window.addEventListener("scroll", handleChange, { passive: true });
-    window.addEventListener("resize", handleChange);
-
-    return () => {
-      window.removeEventListener("scroll", handleChange);
-      window.removeEventListener("resize", handleChange);
-    };
-  }, [variant, contentTab, designTab, scanTracking, isLoading, styleSettings, borderSettings, logoSettings]);
 
   const handleDownloadSvg = async () => {
     if (!previewRef.current) return;
@@ -546,7 +482,7 @@ export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProp
   if (variant === "hero") {
     return (
       <div className="mx-auto w-full max-w-[1180px] rounded-[28px] border bg-card p-3 shadow-sm sm:p-4">
-        <div ref={heroGridRef} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 max-w-full space-y-3">
             <section className="rounded-[22px] border bg-background p-4 sm:p-5">
               <div className="space-y-4">
@@ -594,31 +530,8 @@ export default function QrCodeCreator({ variant = "default" }: QrCodeCreatorProp
             </section>
           </div>
 
-          <aside
-            ref={heroPreviewRailRef}
-            className="relative"
-          >
-            <div
-              ref={heroPreviewCardRef}
-              className="rounded-[22px] border bg-muted/35 p-3"
-              style={
-                heroPreviewMode === "fixed"
-                  ? {
-                      position: "fixed",
-                      top: 16,
-                      left: heroPreviewMetrics.left,
-                      width: heroPreviewMetrics.width,
-                    }
-                  : heroPreviewMode === "absolute"
-                    ? {
-                        position: "absolute",
-                        left: 0,
-                        bottom: 0,
-                        width: "100%",
-                      }
-                    : undefined
-              }
-            >
+          <aside className="relative lg:sticky lg:top-4 lg:self-start">
+            <div className="rounded-[22px] border bg-muted/35 p-3">
               <div className="mb-3 flex items-center justify-between gap-3 px-1">
                 <div className="flex items-center gap-2">
                   <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Preview</div>
