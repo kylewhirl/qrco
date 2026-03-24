@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { S3Client } from "@aws-sdk/client-s3";
-import { getPrimaryAppHosts, normalizeHostname } from "@/lib/qr-url";
+import { getPrimaryAppHost, normalizeHostname } from "@/lib/qr-url";
 
 const STORAGE_SEGMENT_PATTERN = /[^a-zA-Z0-9_-]/g;
 const FILE_EXTENSION_PATTERN = /^[a-z0-9]{1,16}$/i;
@@ -52,9 +52,10 @@ export function buildSignedUrl(key: string): string {
 }
 
 function getAllowedServerLogoHosts() {
+  const primaryHost = getPrimaryAppHost();
   return new Set(
     [
-      ...getPrimaryAppHosts(),
+      primaryHost,
       ...(process.env.QR_LOGO_ALLOWED_HOSTS || "")
         .split(",")
         .map((value) => normalizeHostname(value))
@@ -78,7 +79,7 @@ export function resolveSafeServerLogoSrc(src: string | null | undefined): string
   }
 
   if (trimmed.startsWith("/")) {
-    const [primaryHost] = getPrimaryAppHosts();
+    const primaryHost = getPrimaryAppHost();
     return primaryHost ? `https://${primaryHost}${trimmed}` : undefined;
   }
 

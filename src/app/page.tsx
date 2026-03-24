@@ -1,12 +1,23 @@
+import { headers } from "next/headers";
 import Link from "next/link"
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BarChart, QrCode, Settings } from "lucide-react"
 import QrCodeCreator from "@/components/qr-code-creator"
+import { getCustomDomainFallbackUrlForHostname } from "@/lib/custom-domains";
+import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const requestHeaders = await headers();
+  const hostname = getRequestHostname({ headers: requestHeaders });
+
+  if (hostname && !isPrimaryAppHost(hostname)) {
+    redirect(await getCustomDomainFallbackUrlForHostname(hostname));
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
      <Header/>
