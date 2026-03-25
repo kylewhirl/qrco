@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon-picker";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,21 @@ export default function LogoSettings({
 
   const [selectedIconName, setSelectedIconName] = useState<IconName | undefined>(undefined);
   const svgCaptureRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLogoSettings(
+      settings
+        ? {
+            src: settings.src,
+            size: settings.size,
+            margin: settings.margin ?? 2,
+            hideBackgroundDots: settings.hideBackgroundDots ?? true,
+            color: settings.color ?? "#000000",
+            strokeWidth: settings.strokeWidth ?? 2,
+          }
+        : undefined,
+    );
+  }, [settings]);
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,7 +280,7 @@ export default function LogoSettings({
           <div className="flex items-center justify-between">
             <label className="text-sm">Margin</label>
             <Slider
-              defaultValue={[logoSettings.margin]}
+              value={[logoSettings.margin]}
               max={30}
               step={1}
               className="w-24"
@@ -280,7 +295,7 @@ export default function LogoSettings({
           <div className="flex items-center justify-between">
             <label className="text-sm">Size</label>
             <Slider
-              defaultValue={[logoSettings.size]}
+              value={[logoSettings.size]}
               min={0.1}
               max={1}
               step={0.1}

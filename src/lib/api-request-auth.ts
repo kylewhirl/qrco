@@ -83,11 +83,11 @@ export async function authenticateApiKeyRequest(request: NextRequest): Promise<A
     if (!origin) {
       return null;
     }
+  }
 
-    const allowedOrigins = record.allowedOrigins ?? [];
-    if (!allowedOrigins.includes(origin)) {
-      return null;
-    }
+  const allowedOrigins = record.allowedOrigins ?? [];
+  if (origin && allowedOrigins.length > 0 && !allowedOrigins.includes(origin)) {
+    return null;
   }
 
   await touchApiKeyLastUsed(record.id);
@@ -118,17 +118,15 @@ export async function authorizeApiRequest(
     };
   }
 
-  if (auth.kind === "publishable") {
-    const missingScope = requiredScopes.find((scope) => !auth.scopes.includes(scope));
-    if (missingScope) {
-      return {
-        ok: false,
-        response: NextResponse.json({ error: `Missing required scope: ${missingScope}` }, {
-          status: 403,
-          headers: buildCorsHeaders(auth.origin),
-        }),
-      };
-    }
+  const missingScope = requiredScopes.find((scope) => !auth.scopes.includes(scope));
+  if (missingScope) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: `Missing required scope: ${missingScope}` }, {
+        status: 403,
+        headers: buildCorsHeaders(auth.origin),
+      }),
+    };
   }
 
   return {

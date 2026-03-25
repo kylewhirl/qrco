@@ -56,6 +56,12 @@ export async function GET(
 
     let config = mergeRenderConfig(getDefaultRenderConfig(), brand.defaultConfig);
     config = mergeRenderConfig(config, preset?.config);
+    config = mergeRenderConfig(config, {
+      errorLevel: qr.data.errorLevel ?? config.errorLevel,
+      styleSettings: qr.data.styleSettings,
+      logoSettings: qr.data.logoSettings,
+      borderSettings: qr.data.borderSettings,
+    });
 
     const width = parseDimension(request.nextUrl.searchParams.get("width"));
     const height = parseDimension(request.nextUrl.searchParams.get("height"));

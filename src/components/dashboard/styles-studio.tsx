@@ -1,32 +1,40 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PaintbrushVertical, Palette, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Palette, Plus, Save, Sparkles, Trash2, Wand2 } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import QrPreview from "@/components/qr-preview";
-import BorderSettings from "@/components/qr/design/border";
-import ErrorLevelSettings from "@/components/qr/design/error-level";
-import LogoSettings from "@/components/qr/design/logo";
-import StyleSettings, { type StyleSettingsProps } from "@/components/qr/design/style";
+import { StyleDesignerPanel, type StyleDesignerTab } from "@/components/dashboard/style-designer-panel";
 import type {
   BrandProfile,
   QrBorderSettings,
   QrLogoSettings,
   QrRenderConfig,
+  QrStyleSettings,
+  QrTypeDefaults,
   StylePreset,
+  StylePresetQrType,
 } from "@/lib/types";
 
-const SAMPLE_QR_DATA = "https://tqrco.de/style-preview";
-
-const DEFAULT_STYLE_SETTINGS: StyleSettingsProps["settings"] = {
+const DEFAULT_STYLE_SETTINGS: QrStyleSettings = {
   dotStyle: "square",
   dotColorType: "solid",
   dotColors: ["#111827"],
@@ -77,17 +85,69 @@ const EMPTY_BRAND: BrandProfile = {
   accentColor: "#0f766e",
   backgroundColor: "#ffffff",
   defaultConfig: DEFAULT_CONFIG,
+  typeDefaults: {},
   createdAt: new Date(0),
   updatedAt: new Date(0),
+};
+
+const STYLE_TARGET_OPTIONS: Array<{
+  value: StylePresetQrType;
+  label: string;
+}> = [
+  { value: "all", label: "All types" },
+  { value: "url", label: "Website" },
+  { value: "contact", label: "Contact" },
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "sms", label: "SMS" },
+  { value: "wifi", label: "WiFi" },
+  { value: "file", label: "File" },
+];
+
+const PREVIEW_DATA_BY_TYPE: Record<StylePresetQrType, string> = {
+  all: "https://tqrco.de/style-preview",
+  url: "https://tqrco.de/style-preview",
+  contact: "BEGIN:VCARD\nVERSION:3.0\nFN:TQR Co\nEMAIL:hello@tqrco.com\nEND:VCARD",
+  text: "TQR Co style preview",
+  email: "mailto:hello@tqrco.com?subject=Style%20Preview",
+  phone: "tel:+12125550123",
+  sms: "SMSTO:+12125550123:Style preview",
+  wifi: "WIFI:T:WPA;S:TQRCO;P:preview123;;",
+  file: "https://tqrco.de/files/style-preview.pdf",
 };
 
 type PresetDraft = {
   id?: string;
   name: string;
   description: string;
+  qrType: StylePresetQrType;
   isDefault: boolean;
   config: QrRenderConfig;
 };
+
+type StyleTableRow =
+  | {
+      key: string;
+      kind: "brand";
+      name: string;
+      description: string;
+      qrType: StylePresetQrType;
+      isDefault: true;
+      updatedAt: string | Date;
+      config: QrRenderConfig;
+    }
+  | {
+      key: string;
+      kind: "preset";
+      preset: StylePreset;
+      name: string;
+      description: string;
+      qrType: StylePresetQrType;
+      isDefault: boolean;
+      updatedAt: string | Date;
+      config: QrRenderConfig;
+    };
 
 function normalizeConfig(config?: QrRenderConfig | null): QrRenderConfig {
   return {
@@ -109,11 +169,40 @@ function normalizeConfig(config?: QrRenderConfig | null): QrRenderConfig {
   };
 }
 
+function normalizeTypeDefaults(typeDefaults?: QrTypeDefaults | null): QrTypeDefaults {
+  if (!typeDefaults) {
+    return {};
+  }
+
+  const normalized: QrTypeDefaults = {};
+  for (const option of STYLE_TARGET_OPTIONS) {
+    if (option.value === "all") {
+      continue;
+    }
+
+    const value = typeDefaults[option.value];
+    if (value) {
+      normalized[option.value] = normalizeConfig(value);
+    }
+  }
+
+  return normalized;
+}
+
+function normalizePreset(preset: StylePreset): StylePreset {
+  return {
+    ...preset,
+    qrType: preset.qrType ?? "all",
+    config: normalizeConfig(preset.config),
+  };
+}
+
 function toPresetDraft(preset?: StylePreset | null): PresetDraft {
   if (!preset) {
     return {
-      name: "New preset",
+      name: "New style",
       description: "",
+      qrType: "all",
       isDefault: false,
       config: normalizeConfig(DEFAULT_CONFIG),
     };
@@ -123,26 +212,64 @@ function toPresetDraft(preset?: StylePreset | null): PresetDraft {
     id: preset.id,
     name: preset.name,
     description: preset.description ?? "",
+    qrType: preset.qrType ?? "all",
     isDefault: preset.isDefault,
     config: normalizeConfig(preset.config),
   };
+}
+
+function sortPresets(presets: StylePreset[]) {
+  return [...presets].sort((a, b) => {
+    if (a.isDefault !== b.isDefault) {
+      return Number(b.isDefault) - Number(a.isDefault);
+    }
+
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 }
 
 function formatDate(value: string | Date) {
   return new Date(value).toLocaleString();
 }
 
+function getTypeLabel(value: StylePresetQrType) {
+  return STYLE_TARGET_OPTIONS.find((option) => option.value === value)?.label ?? "All types";
+}
+
+function getDefaultHelperText(qrType: StylePresetQrType) {
+  if (qrType === "all") {
+    return "Saving this as default clears any current default styles and makes this the fallback across every QR type.";
+  }
+
+  return `Saving this as default clears the current ${getTypeLabel(qrType).toLowerCase()} default and any all-types default.`;
+}
+
+function getTablePreviewLogoSettings(logoSettings?: QrLogoSettings | null): QrLogoSettings | undefined {
+  if (!logoSettings?.src) {
+    return undefined;
+  }
+
+  return {
+    ...logoSettings,
+    size: Math.min(logoSettings.size, 0.24),
+    margin: Math.min(logoSettings.margin ?? 10, 2),
+    hideBackgroundDots: logoSettings.hideBackgroundDots ?? true,
+  };
+}
+
 export function StylesStudio() {
   const [brand, setBrand] = useState<BrandProfile>(EMPTY_BRAND);
   const [presets, setPresets] = useState<StylePreset[]>([]);
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [presetDraft, setPresetDraft] = useState<PresetDraft>(toPresetDraft());
-  const [activeEditor, setActiveEditor] = useState<"preset" | "brand">("preset");
-  const [designTab, setDesignTab] = useState<"style" | "border" | "logo" | "error-level">("style");
+  const [brandTarget, setBrandTarget] = useState<StylePresetQrType>("all");
+  const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false);
+  const [presetDesignTab, setPresetDesignTab] = useState<StyleDesignerTab>("style");
+  const [brandDesignTab, setBrandDesignTab] = useState<StyleDesignerTab>("style");
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBrand, setIsSavingBrand] = useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
-  const [isDeletingPreset, setIsDeletingPreset] = useState(false);
+  const [deletingPresetId, setDeletingPresetId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -162,36 +289,12 @@ export function StylesStudio() {
         const nextBrand = {
           ...brandData.brand,
           defaultConfig: normalizeConfig(brandData.brand?.defaultConfig),
+          typeDefaults: normalizeTypeDefaults(brandData.brand?.typeDefaults),
         } as BrandProfile;
-        const nextPresets = (presetsData.presets ?? []).map((preset: StylePreset) => ({
-          ...preset,
-          config: normalizeConfig(preset.config),
-        }));
+        const nextPresets = sortPresets((presetsData.presets ?? []).map((preset: StylePreset) => normalizePreset(preset)));
 
         setBrand(nextBrand);
         setPresets(nextPresets);
-
-        if (nextPresets.length > 0) {
-          setSelectedPresetId(nextPresets[0].id);
-          setPresetDraft(toPresetDraft(nextPresets[0]));
-        } else {
-          setSelectedPresetId(null);
-          setPresetDraft({
-            name: "New preset",
-            description: "",
-            isDefault: false,
-            config: {
-              ...normalizeConfig(nextBrand.defaultConfig),
-              styleSettings: {
-                ...normalizeConfig(nextBrand.defaultConfig).styleSettings,
-                dotColors: [nextBrand.primaryColor],
-                eyeColors: [nextBrand.primaryColor],
-                innerEyeColors: [nextBrand.accentColor],
-                bgColors: [nextBrand.backgroundColor],
-              },
-            },
-          });
-        }
       } catch (error) {
         console.error(error);
         toast.error("Failed to load styles");
@@ -203,38 +306,89 @@ export function StylesStudio() {
     void loadData();
   }, []);
 
-  const selectedPreset = useMemo(
-    () => presets.find((preset) => preset.id === selectedPresetId) ?? null,
-    [presets, selectedPresetId],
-  );
-
-  const currentConfig = activeEditor === "brand" ? normalizeConfig(brand.defaultConfig) : normalizeConfig(presetDraft.config);
-
-  function updateBrandConfig(updater: (config: QrRenderConfig) => QrRenderConfig) {
-    setBrand((current) => ({
-      ...current,
-      defaultConfig: normalizeConfig(updater(normalizeConfig(current.defaultConfig))),
-    }));
-  }
-
-  function updatePresetConfig(updater: (config: QrRenderConfig) => QrRenderConfig) {
-    setPresetDraft((current) => ({
-      ...current,
-      config: normalizeConfig(updater(normalizeConfig(current.config))),
-    }));
-  }
-
-  function updateCurrentConfig(updater: (config: QrRenderConfig) => QrRenderConfig) {
-    if (activeEditor === "brand") {
-      updateBrandConfig(updater);
-      return;
+  const brandDefaultConfig = useMemo(() => {
+    if (brandTarget === "all") {
+      return normalizeConfig(brand.defaultConfig);
     }
 
-    updatePresetConfig(updater);
+    return normalizeConfig(brand.typeDefaults?.[brandTarget] ?? brand.defaultConfig);
+  }, [brand.defaultConfig, brand.typeDefaults, brandTarget]);
+
+  const tableRows = useMemo<StyleTableRow[]>(() => {
+    const rows: StyleTableRow[] = [
+      {
+        key: "brand-all",
+        kind: "brand",
+        name: `${brand.brandName} default`,
+        description: "Shared fallback style from your brand profile.",
+        qrType: "all",
+        isDefault: true,
+        updatedAt: brand.updatedAt,
+        config: normalizeConfig(brand.defaultConfig),
+      },
+    ];
+
+    for (const option of STYLE_TARGET_OPTIONS) {
+      if (option.value === "all") {
+        continue;
+      }
+
+      const config = brand.typeDefaults?.[option.value];
+      if (!config) {
+        continue;
+      }
+
+      rows.push({
+        key: `brand-${option.value}`,
+        kind: "brand",
+        name: `${brand.brandName} ${option.label} default`,
+        description: `Type-specific brand default for ${option.label.toLowerCase()} QR codes.`,
+        qrType: option.value,
+        isDefault: true,
+        updatedAt: brand.updatedAt,
+        config: normalizeConfig(config),
+      });
+    }
+
+    for (const preset of presets) {
+      rows.push({
+        key: preset.id,
+        kind: "preset",
+        preset,
+        name: preset.name,
+        description: preset.description || "No description",
+        qrType: preset.qrType,
+        isDefault: preset.isDefault,
+        updatedAt: preset.updatedAt,
+        config: preset.config,
+      });
+    }
+
+    return rows;
+  }, [brand.brandName, brand.defaultConfig, brand.typeDefaults, brand.updatedAt, presets]);
+
+  function updateBrandConfig(updater: (config: QrRenderConfig) => QrRenderConfig) {
+    setBrand((current) => {
+      if (brandTarget === "all") {
+        return {
+          ...current,
+          defaultConfig: normalizeConfig(updater(normalizeConfig(current.defaultConfig))),
+        };
+      }
+
+      return {
+        ...current,
+        typeDefaults: {
+          ...(current.typeDefaults ?? {}),
+          [brandTarget]: normalizeConfig(updater(normalizeConfig(current.typeDefaults?.[brandTarget] ?? current.defaultConfig))),
+        },
+      };
+    });
   }
 
   function applyBrandPaletteToConfig(config: QrRenderConfig): QrRenderConfig {
     const nextConfig = normalizeConfig(config);
+
     return {
       ...nextConfig,
       styleSettings: {
@@ -251,24 +405,47 @@ export function StylesStudio() {
     updateBrandConfig((config) => applyBrandPaletteToConfig(config));
   }
 
-  function startNewPreset() {
-    setActiveEditor("preset");
-    setSelectedPresetId(null);
-    setPresetDraft({
-      name: "New preset",
+  function createNewPresetDraft() {
+    return {
+      name: "New style",
       description: "",
+      qrType: "all" as const,
       isDefault: false,
       config: applyBrandPaletteToConfig(brand.defaultConfig),
-    });
+    };
   }
 
-  function selectPreset(preset: StylePreset) {
-    setActiveEditor("preset");
-    setSelectedPresetId(preset.id);
+  function openNewPresetDialog() {
+    setPresetDraft(createNewPresetDraft());
+    setPresetDesignTab("style");
+    setPresetDialogOpen(true);
+  }
+
+  function openPresetDialog(preset: StylePreset) {
     setPresetDraft(toPresetDraft(preset));
+    setPresetDesignTab("style");
+    setPresetDialogOpen(true);
   }
 
-  async function saveBrand() {
+  function findConflictingDefaultPreset() {
+    if (!presetDraft.isDefault) {
+      return null;
+    }
+
+    return presets.find((preset) => {
+      if (!preset.isDefault || preset.id === presetDraft.id) {
+        return false;
+      }
+
+      if (presetDraft.qrType === "all") {
+        return true;
+      }
+
+      return preset.qrType === "all" || preset.qrType === presetDraft.qrType;
+    }) ?? null;
+  }
+
+  async function saveBrand(closeAfterSave = false) {
     setIsSavingBrand(true);
     try {
       const response = await fetch("/api/dashboard/brand", {
@@ -283,6 +460,7 @@ export function StylesStudio() {
           accentColor: brand.accentColor,
           backgroundColor: brand.backgroundColor,
           defaultConfig: normalizeConfig(brand.defaultConfig),
+          typeDefaults: normalizeTypeDefaults(brand.typeDefaults),
         }),
       });
 
@@ -294,7 +472,11 @@ export function StylesStudio() {
       setBrand({
         ...data.brand,
         defaultConfig: normalizeConfig(data.brand.defaultConfig),
+        typeDefaults: normalizeTypeDefaults(data.brand.typeDefaults),
       });
+      if (closeAfterSave) {
+        setBrandDialogOpen(false);
+      }
       toast.success("Brand defaults saved");
     } catch (error) {
       console.error(error);
@@ -306,8 +488,19 @@ export function StylesStudio() {
 
   async function savePreset() {
     if (!presetDraft.name.trim()) {
-      toast.error("Preset name is required");
+      toast.error("Style name is required");
       return;
+    }
+
+    const conflictingDefault = findConflictingDefaultPreset();
+    if (conflictingDefault) {
+      const shouldContinue = window.confirm(
+        `"${conflictingDefault.name}" is currently the default for ${getTypeLabel(conflictingDefault.qrType).toLowerCase()}. Save "${presetDraft.name.trim()}" as the new default instead?`,
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
     }
 
     setIsSavingPreset(true);
@@ -320,8 +513,9 @@ export function StylesStudio() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name: presetDraft.name,
-            description: presetDraft.description || null,
+            name: presetDraft.name.trim(),
+            description: presetDraft.description.trim() || null,
+            qrType: presetDraft.qrType,
             isDefault: presetDraft.isDefault,
             config: normalizeConfig(presetDraft.config),
           }),
@@ -333,36 +527,28 @@ export function StylesStudio() {
       }
 
       const data = await response.json();
-      const savedPreset = {
-        ...data.preset,
-        config: normalizeConfig(data.preset.config),
-      } as StylePreset;
+      const savedPreset = normalizePreset(data.preset as StylePreset);
 
-      setPresets((current) => {
-        const filtered = current.filter((preset) => preset.id !== savedPreset.id);
-        return [savedPreset, ...filtered].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
-      });
-      setSelectedPresetId(savedPreset.id);
+      setPresets((current) => sortPresets([savedPreset, ...current.filter((preset) => preset.id !== savedPreset.id)]));
       setPresetDraft(toPresetDraft(savedPreset));
-      setActiveEditor("preset");
-      toast.success(presetDraft.id ? "Preset updated" : "Preset created");
+      setPresetDialogOpen(false);
+      toast.success(presetDraft.id ? "Style updated" : "Style created");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to save preset");
+      toast.error("Failed to save style");
     } finally {
       setIsSavingPreset(false);
     }
   }
 
-  async function deletePreset() {
-    if (!presetDraft.id) {
-      startNewPreset();
+  async function deletePreset(preset: StylePreset) {
+    if (!window.confirm(`Delete "${preset.name}"?`)) {
       return;
     }
 
-    setIsDeletingPreset(true);
+    setDeletingPresetId(preset.id);
     try {
-      const response = await fetch(`/api/dashboard/styles/${presetDraft.id}`, {
+      const response = await fetch(`/api/dashboard/styles/${preset.id}`, {
         method: "DELETE",
       });
 
@@ -370,77 +556,135 @@ export function StylesStudio() {
         throw new Error("Failed to delete preset");
       }
 
-      const nextPresets = presets.filter((preset) => preset.id !== presetDraft.id);
-      setPresets(nextPresets);
-
-      if (nextPresets[0]) {
-        setSelectedPresetId(nextPresets[0].id);
-        setPresetDraft(toPresetDraft(nextPresets[0]));
-      } else {
-        setSelectedPresetId(null);
-        startNewPreset();
+      setPresets((current) => current.filter((item) => item.id !== preset.id));
+      if (presetDraft.id === preset.id) {
+        setPresetDialogOpen(false);
       }
-
-      toast.success("Preset deleted");
+      toast.success("Style deleted");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete preset");
+      toast.error("Failed to delete style");
     } finally {
-      setIsDeletingPreset(false);
+      setDeletingPresetId(null);
     }
   }
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(241,245,249,0.92))] p-6 shadow-sm md:p-8">
-        <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-emerald-300/15 blur-3xl" />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.24em]">
-              Style System
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Brand & preset styles</h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                This is the QR creator focused on design only. Build one brand default, save reusable presets, and use
-                those same styles in the REST render API.
-              </p>
-            </div>
+      <Card className="border-border/70">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Saved styles</CardTitle>
+            <CardDescription>Browse, edit, and delete saved styles without leaving the page.</CardDescription>
           </div>
+          <Button onClick={openNewPresetDialog}>
+            <Plus className="h-4 w-4" />
+            Create style
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[92px]">Preview</TableHead>
+                <TableHead>Style name</TableHead>
+                <TableHead>QR type</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                    Loading styles...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                tableRows.map((row) => (
+                  <TableRow key={row.key}>
+                    <TableCell>
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border bg-background p-2">
+                        <QrPreview
+                          data={PREVIEW_DATA_BY_TYPE[row.qrType]}
+                          errorLevel={row.config.errorLevel ?? "M"}
+                          size={48}
+                          styleSettings={row.config.styleSettings}
+                          borderSettings={row.config.borderSettings ?? undefined}
+                          logoSettings={getTablePreviewLogoSettings(row.config.logoSettings)}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{row.name}</p>
+                          {row.isDefault ? (
+                            <Badge className="rounded-full bg-emerald-600 text-white hover:bg-emerald-600">
+                              Default
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{row.description}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="rounded-full">
+                        {getTypeLabel(row.qrType)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(row.updatedAt)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (row.kind === "brand") {
+                              setBrandTarget(row.qrType);
+                              setBrandDesignTab("style");
+                              setBrandDialogOpen(true);
+                              return;
+                            }
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/60 bg-background/80 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Brand</p>
-              <p className="mt-2 text-lg font-semibold">{brand.brandName}</p>
-              <p className="mt-1 text-sm text-muted-foreground">One default look for every QR you generate.</p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-background/80 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Presets</p>
-              <p className="mt-2 text-lg font-semibold">{presets.length}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Saved campaign and client variations.</p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-background/80 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Render API</p>
-              <p className="mt-2 text-lg font-semibold">Style-ready</p>
-              <p className="mt-1 text-sm text-muted-foreground">Render SVG or PNG with a preset id or brand defaults.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+                            openPresetDialog(row.preset);
+                          }}
+                        >
+                          <PaintbrushVertical className="h-4 w-4" />
+                          <span className="sr-only">Edit style</span>
+                        </Button>
+                        {row.kind === "preset" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={deletingPresetId === row.preset.id}
+                            onClick={() => void deletePreset(row.preset)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete style</span>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
-        <div className="space-y-6">
-          <Card className="border-border/70">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                Brand profile
-              </CardTitle>
-              <CardDescription>
-                Set the palette that new presets inherit and the API can use as your default render style.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="border-border/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Brand profile
+            </CardTitle>
+            <CardDescription>New styles inherit from this palette, and brand defaults power fallback renders.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="brand-name">Brand name</Label>
                 <Input
@@ -449,7 +693,6 @@ export function StylesStudio() {
                   onChange={(event) => setBrand((current) => ({ ...current, brandName: event.target.value }))}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="brand-logo">Logo URL</Label>
                 <Input
@@ -459,325 +702,294 @@ export function StylesStudio() {
                   onChange={(event) => setBrand((current) => ({ ...current, logoUrl: event.target.value.trim() || null }))}
                 />
               </div>
-
-              <div className="grid gap-3">
-                {[
-                  ["Primary", "primaryColor"],
-                  ["Accent", "accentColor"],
-                  ["Background", "backgroundColor"],
-                ].map(([label, key]) => (
-                  <div key={key} className="space-y-2">
-                    <Label>{label} color</Label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        className="h-10 w-14 rounded-md border bg-transparent p-1"
-                        value={brand[key as keyof Pick<BrandProfile, "primaryColor" | "accentColor" | "backgroundColor">]}
-                        onChange={(event) =>
-                          setBrand((current) => ({
-                            ...current,
-                            [key]: event.target.value,
-                          }))
-                        }
-                      />
-                      <Input
-                        value={brand[key as keyof Pick<BrandProfile, "primaryColor" | "accentColor" | "backgroundColor">]}
-                        onChange={(event) =>
-                          setBrand((current) => ({
-                            ...current,
-                            [key]: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <Button variant="outline" onClick={syncBrandPalette}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Sync palette into brand default
-                </Button>
-                <Button
-                  variant={activeEditor === "brand" ? "default" : "secondary"}
-                  onClick={() => setActiveEditor("brand")}
-                >
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Edit brand default style
-                </Button>
-                <Button onClick={saveBrand} disabled={isSavingBrand}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSavingBrand ? "Saving..." : "Save brand profile"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/70">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Presets</CardTitle>
-                <CardDescription>Reusable saved styles for the dashboard and API.</CardDescription>
-              </div>
-              <Button size="sm" variant="outline" onClick={startNewPreset}>
-                <Plus className="mr-2 h-4 w-4" />
-                New
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading styles...</p>
-              ) : presets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No presets yet. Start from your brand default and save one.</p>
-              ) : (
-                presets.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => selectPreset(preset)}
-                    className={`w-full rounded-2xl border p-4 text-left transition ${
-                      selectedPresetId === preset.id && activeEditor === "preset"
-                        ? "border-foreground/40 bg-muted/50"
-                        : "border-border/60 hover:border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{preset.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {preset.description || "No description"}
-                        </p>
-                      </div>
-                      {preset.isDefault ? <Badge>Default</Badge> : null}
-                    </div>
-                    <p className="mt-3 text-xs text-muted-foreground">Updated {formatDate(preset.updatedAt)}</p>
-                  </button>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="border-border/70">
-          <CardHeader className="space-y-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <CardTitle>
-                  {activeEditor === "brand" ? "Brand default editor" : "Preset editor"}
-                </CardTitle>
-                <CardDescription>
-                  Same creator controls, stripped down to QR appearance only.
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => updateCurrentConfig((config) => applyBrandPaletteToConfig(config))}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Apply brand palette
-                </Button>
-                {activeEditor === "preset" ? (
-                  <Button onClick={savePreset} disabled={isSavingPreset}>
-                    <Save className="mr-2 h-4 w-4" />
-                    {isSavingPreset ? "Saving..." : "Save preset"}
-                  </Button>
-                ) : null}
-              </div>
             </div>
 
-            {activeEditor === "preset" ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="preset-name">Preset name</Label>
-                  <Input
-                    id="preset-name"
-                    value={presetDraft.name}
-                    onChange={(event) => setPresetDraft((current) => ({ ...current, name: event.target.value }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border/60 px-4 py-3">
-                  <div>
-                    <p className="font-medium">Default preset</p>
-                    <p className="text-sm text-muted-foreground">Use this style when no preset is specified.</p>
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                ["Primary", "primaryColor"],
+                ["Accent", "accentColor"],
+                ["Background", "backgroundColor"],
+              ].map(([label, key]) => (
+                <div key={key} className="space-y-2">
+                  <Label>{label} color</Label>
+                  <div className="flex items-center gap-3 rounded-2xl border p-3">
+                    <input
+                      type="color"
+                      className="h-10 w-12 rounded-md border bg-transparent p-1"
+                      value={brand[key as keyof Pick<BrandProfile, "primaryColor" | "accentColor" | "backgroundColor">]}
+                      onChange={(event) =>
+                        setBrand((current) => ({
+                          ...current,
+                          [key]: event.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={brand[key as keyof Pick<BrandProfile, "primaryColor" | "accentColor" | "backgroundColor">]}
+                      onChange={(event) =>
+                        setBrand((current) => ({
+                          ...current,
+                          [key]: event.target.value,
+                        }))
+                      }
+                    />
                   </div>
-                  <Switch
-                    checked={presetDraft.isDefault}
-                    onCheckedChange={(checked) => setPresetDraft((current) => ({ ...current, isDefault: checked }))}
-                  />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="preset-description">Description</Label>
-                  <Textarea
-                    id="preset-description"
-                    value={presetDraft.description}
-                    onChange={(event) => setPresetDraft((current) => ({ ...current, description: event.target.value }))}
-                    placeholder="Campaign, client, or use case notes"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
-                Editing the brand default changes the baseline style used for new presets and default API renders.
-              </div>
-            )}
-          </CardHeader>
+              ))}
+            </div>
 
-          <CardContent className="space-y-6">
-            <Tabs value={designTab} onValueChange={(value) => setDesignTab(value as typeof designTab)}>
-              <div className="overflow-x-auto">
-                <TabsList>
-                  {["style", "border", "logo", "error-level"].map((tab) => (
-                    <TabsTrigger key={tab} value={tab} className="capitalize">
-                      {tab.replace("-", " ")}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
-
-              <TabsContent value="style">
-                <StyleSettings
-                  settings={{
-                    ...DEFAULT_STYLE_SETTINGS,
-                    ...(currentConfig.styleSettings ?? {}),
-                  }}
-                  onChange={(nextStyle) =>
-                    updateCurrentConfig((config) => ({
-                      ...config,
-                      styleSettings:
-                        typeof nextStyle === "function"
-                          ? nextStyle({
-                              ...DEFAULT_STYLE_SETTINGS,
-                              ...(config.styleSettings ?? {}),
-                            })
-                          : nextStyle,
-                    }))
-                  }
-                />
-              </TabsContent>
-
-              <TabsContent value="border">
-                <BorderSettings
-                  settings={currentConfig.borderSettings ?? DEFAULT_BORDER_SETTINGS}
-                  onChange={(nextBorder) =>
-                    updateCurrentConfig((config) => ({
-                      ...config,
-                      borderSettings:
-                        typeof nextBorder === "function"
-                          ? nextBorder(config.borderSettings ?? DEFAULT_BORDER_SETTINGS)
-                          : nextBorder,
-                    }))
-                  }
-                />
-              </TabsContent>
-
-              <TabsContent value="logo">
-                <LogoSettings
-                  settings={currentConfig.logoSettings ?? undefined}
-                  onChange={(nextLogo) =>
-                    updateCurrentConfig((config) => ({
-                      ...config,
-                      logoSettings: nextLogo
-                        ? {
-                            src: nextLogo.src || "",
-                            size: nextLogo.size,
-                            margin: nextLogo.margin,
-                            hideBackgroundDots: nextLogo.hideBackgroundDots,
-                          }
-                        : (brand.logoUrl
-                            ? ({
-                                src: brand.logoUrl,
-                                size: 0.24,
-                                margin: 2,
-                                hideBackgroundDots: true,
-                              } satisfies QrLogoSettings)
-                            : null),
-                    }))
-                  }
-                />
-              </TabsContent>
-
-              <TabsContent value="error-level">
-                <ErrorLevelSettings
-                  value={currentConfig.errorLevel}
-                  onChange={(nextErrorLevel) =>
-                    updateCurrentConfig((config) => ({
-                      ...config,
-                      errorLevel:
-                        typeof nextErrorLevel === "function"
-                          ? nextErrorLevel(config.errorLevel)
-                          : nextErrorLevel,
-                    }))
-                  }
-                />
-              </TabsContent>
-            </Tabs>
-
-            {activeEditor === "preset" ? (
-              <div className="flex justify-end">
-                <Button variant="destructive" onClick={deletePreset} disabled={isDeletingPreset}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {isDeletingPreset ? "Deleting..." : presetDraft.id ? "Delete preset" : "Discard draft"}
-                </Button>
-              </div>
-            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button variant="outline" onClick={syncBrandPalette}>
+                <Sparkles className="h-4 w-4" />
+                Sync palette into selected default
+              </Button>
+              <Button onClick={() => void saveBrand()} disabled={isSavingBrand}>
+                <Save className="h-4 w-4" />
+                {isSavingBrand ? "Saving..." : "Save brand profile"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="sticky top-6 border-border/70">
-            <CardHeader>
-              <CardTitle>Live preview</CardTitle>
-              <CardDescription>
-                Content is fixed here on purpose. This screen is only about the look and feel of the QR.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top,rgba(15,118,110,0.10),transparent_55%),linear-gradient(180deg,rgba(248,250,252,1),rgba(241,245,249,0.75))] p-6">
-                <div className="flex justify-center">
-                  <QrPreview
-                    data={SAMPLE_QR_DATA}
-                    errorLevel={currentConfig.errorLevel}
-                    styleSettings={currentConfig.styleSettings}
-                    logoSettings={currentConfig.logoSettings ?? undefined}
-                    borderSettings={currentConfig.borderSettings ?? undefined}
-                  />
-                </div>
-              </div>
+        <Card className="border-border/70">
+          <CardHeader>
+            <CardTitle>Brand default appearance</CardTitle>
+            <CardDescription>Keep the API fallback and new-style starting point under control.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="brand-target">Default target</Label>
+              <Select value={brandTarget} onValueChange={(value) => setBrandTarget(value as StylePresetQrType)}>
+                <SelectTrigger id="brand-target">
+                  <SelectValue placeholder="Choose a target" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STYLE_TARGET_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="grid gap-3">
-                <div className="rounded-2xl border border-border/60 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Editing</p>
-                  <p className="mt-2 text-base font-semibold">
-                    {activeEditor === "brand" ? "Brand default" : presetDraft.name || "Untitled preset"}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {activeEditor === "brand"
-                      ? "This becomes the fallback style for API renders."
-                      : presetDraft.description || "Save this style and use it from the dashboard or API."}
-                  </p>
-                </div>
+            <div className="rounded-2xl border bg-muted/35 p-4">
+              <p className="text-sm font-medium">{getTypeLabel(brandTarget)}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {brandTarget === "all"
+                  ? "This default applies when no type-specific override exists."
+                  : "This override only applies to the selected QR type."}
+              </p>
+            </div>
 
-                <div className="rounded-2xl border border-border/60 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">API usage</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Render with this style by sending a `presetId`, or omit it to fall back to the saved brand default.
-                  </p>
-                </div>
-
-                {selectedPreset ? (
-                  <div className="rounded-2xl border border-border/60 p-4">
-                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Selected preset</p>
-                    <p className="mt-2 text-base font-semibold">{selectedPreset.name}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Last updated {formatDate(selectedPreset.updatedAt)}</p>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <Button className="w-full" onClick={() => setBrandDialogOpen(true)}>
+              <PaintbrushVertical className="h-4 w-4" />
+              Edit default appearance
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
+        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
+          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+            <DialogTitle>{presetDraft.id ? "Edit style" : "Create style"}</DialogTitle>
+            <DialogDescription>
+              Update the style details at the top, then fine-tune the QR appearance in the designer below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <StyleDesignerPanel
+            topSection={
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Style details</div>
+                  <h3 className="text-lg font-semibold">Name, target, and default behavior</h3>
+                  <p className="text-sm text-muted-foreground">
+                    These settings control how the style shows up in your library and which QR codes it should be used for.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="style-name">Style name</Label>
+                    <Input
+                      id="style-name"
+                      value={presetDraft.name}
+                      onChange={(event) => setPresetDraft((current) => ({ ...current, name: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="style-type">QR type</Label>
+                    <Select
+                      value={presetDraft.qrType}
+                      onValueChange={(value) =>
+                        setPresetDraft((current) => ({ ...current, qrType: value as StylePresetQrType }))
+                      }
+                    >
+                      <SelectTrigger id="style-type">
+                        <SelectValue placeholder="Choose a QR type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STYLE_TARGET_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="space-y-2">
+                    <Label htmlFor="style-description">Description</Label>
+                    <Textarea
+                      id="style-description"
+                      value={presetDraft.description}
+                      onChange={(event) => setPresetDraft((current) => ({ ...current, description: event.target.value }))}
+                      placeholder="What this style is for"
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium">Default style</p>
+                        <p className="text-sm text-muted-foreground">Exclusive per target</p>
+                      </div>
+                      <Switch
+                        checked={presetDraft.isDefault}
+                        onCheckedChange={(checked) =>
+                          setPresetDraft((current) => ({ ...current, isDefault: checked }))
+                        }
+                      />
+                    </div>
+                    <p className="mt-3 text-sm text-muted-foreground">{getDefaultHelperText(presetDraft.qrType)}</p>
+                    {presetDraft.isDefault ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        If another saved style already owns this default target, saving will ask to replace it.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            }
+            config={normalizeConfig(presetDraft.config)}
+            previewData={PREVIEW_DATA_BY_TYPE[presetDraft.qrType]}
+            previewLabel={`Previewing a sample ${getTypeLabel(presetDraft.qrType).toLowerCase()} QR.`}
+            designTab={presetDesignTab}
+            onDesignTabChange={setPresetDesignTab}
+            onChange={(config) => setPresetDraft((current) => ({ ...current, config: normalizeConfig(config) }))}
+          />
+
+          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
+            {presetDraft.id ? (
+              <Button
+                variant="destructive"
+                className="mr-auto"
+                disabled={deletingPresetId === presetDraft.id}
+                onClick={() => {
+                  const preset = presets.find((item) => item.id === presetDraft.id);
+                  if (preset) {
+                    void deletePreset(preset);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => setPresetDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void savePreset()} disabled={isSavingPreset}>
+              <Save className="h-4 w-4" />
+              {isSavingPreset ? "Saving..." : presetDraft.id ? "Save changes" : "Create style"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
+        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
+          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+            <DialogTitle>Edit brand default appearance</DialogTitle>
+            <DialogDescription>
+              This controls the reusable fallback style for {getTypeLabel(brandTarget).toLowerCase()} QR codes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <StyleDesignerPanel
+            topSection={
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Brand defaults</div>
+                  <h3 className="text-lg font-semibold">Choose the fallback target</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use one all-types default or create a type-specific override for a single QR destination.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand-style-name">Brand style name</Label>
+                    <Input
+                      id="brand-style-name"
+                      value={brand.brandName}
+                      onChange={(event) => setBrand((current) => ({ ...current, brandName: event.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      This label is shown for your brand default row in the saved styles table.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="brand-dialog-target">Target</Label>
+                    <Select value={brandTarget} onValueChange={(value) => setBrandTarget(value as StylePresetQrType)}>
+                      <SelectTrigger id="brand-dialog-target">
+                        <SelectValue placeholder="Choose a target" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STYLE_TARGET_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="rounded-2xl border px-4 py-3 md:col-span-2">
+                    <p className="font-medium">{getTypeLabel(brandTarget)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {brandTarget === "all"
+                        ? "This is the shared fallback when a QR type has no override."
+                        : "This override is only used for the selected QR type."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+            config={brandDefaultConfig}
+            previewData={PREVIEW_DATA_BY_TYPE[brandTarget]}
+            previewLabel={`Previewing the brand default for ${getTypeLabel(brandTarget).toLowerCase()} QR codes.`}
+            designTab={brandDesignTab}
+            onDesignTabChange={setBrandDesignTab}
+            onChange={(config) => updateBrandConfig(() => normalizeConfig(config))}
+          />
+
+          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <Button variant="outline" onClick={() => setBrandDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void saveBrand(true)} disabled={isSavingBrand}>
+              <Save className="h-4 w-4" />
+              {isSavingBrand ? "Saving..." : "Save brand defaults"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

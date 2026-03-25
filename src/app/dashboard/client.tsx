@@ -16,7 +16,7 @@ interface DashboardClientProps {
 export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
   const [qrCodes, setQRCodes] = useState<QR[]>(initialQRCodes)
 
-  const handleCreateQR = async ({ data, customDomainId }: QRMutationInput) => {
+  const handleCreateQR = async ({ data, customDomainId }: QRMutationInput): Promise<QR> => {
     try {
       const response = await fetch("/api/qr", {
         method: "POST",
@@ -32,7 +32,8 @@ export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
       }
 
       const newQR = await response.json()
-      setQRCodes([newQR, ...qrCodes])
+      setQRCodes((current) => [newQR, ...current])
+      return newQR
     } catch (error) {
       console.error("Error creating QR code:", error)
       throw error

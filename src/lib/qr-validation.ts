@@ -70,3 +70,12 @@ export const createPublishableTokenSchema = z.object({
   scopes: z.array(apiAccessScopeSchema).min(1).max(7),
   allowedOrigins: z.array(originSchema).min(1).max(20),
 });
+
+export const updateApiAccessTokenSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  scopes: z.array(apiAccessScopeSchema).min(1).max(7).optional(),
+  allowedOrigins: z.array(originSchema).max(20).optional(),
+}).refine(
+  (value) => Object.keys(value).length > 0,
+  "At least one field must be provided",
+);

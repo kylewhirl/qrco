@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest) {
     const brand = await upsertBrandProfileForUser(user.id, {
       ...parsed.data,
       logoUrl: parsed.data.logoUrl ?? null,
+      typeDefaults: parsed.data.typeDefaults ?? {},
     });
     return NextResponse.json({ brand });
   } catch (error) {

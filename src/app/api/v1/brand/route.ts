@@ -39,6 +39,7 @@ export async function PUT(request: NextRequest) {
     const brand = await upsertBrandProfileForUser(authorization.value.auth.userId, {
       ...parsed.data,
       logoUrl: parsed.data.logoUrl ?? null,
+      typeDefaults: parsed.data.typeDefaults ?? {},
     });
     return NextResponse.json({ data: brand }, { headers: authorization.value.corsHeaders });
   } catch (error) {

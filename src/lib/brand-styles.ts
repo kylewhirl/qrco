@@ -1,7 +1,7 @@
 import "server-only";
 
 import { queryAdmin, queryNoAuth } from "@/lib/db";
-import type { BrandProfile, QrRenderConfig, StylePreset } from "@/lib/types";
+import type { BrandProfile, QRData, QrRenderConfig, QrTypeDefaults, StylePreset, StylePresetQrType } from "@/lib/types";
 
 let ensureBrandStylesSchemaPromise: Promise<void> | null = null;
 
@@ -49,6 +49,7 @@ function mapBrandProfile(record: BrandProfile | null, userId: string): BrandProf
     accentColor: "#0f766e",
     backgroundColor: "#ffffff",
     defaultConfig: DEFAULT_RENDER_CONFIG,
+    typeDefaults: {},
     createdAt: new Date(0),
     updatedAt: new Date(0),
   };
@@ -69,22 +70,26 @@ export async function ensureBrandStylesSchema() {
           "accentColor" TEXT NOT NULL,
           "backgroundColor" TEXT NOT NULL,
           "defaultConfig" JSONB NOT NULL,
+          "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `);
+      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb`);
       await queryAdmin(`
         CREATE TABLE IF NOT EXISTS "StylePreset" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           "userId" TEXT NOT NULL,
           name TEXT NOT NULL,
           description TEXT,
+          "qrType" TEXT NOT NULL DEFAULT 'all',
           "isDefault" BOOLEAN NOT NULL DEFAULT FALSE,
           config JSONB NOT NULL,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `);
+      await queryAdmin(`ALTER TABLE "StylePreset" ADD COLUMN IF NOT EXISTS "qrType" TEXT NOT NULL DEFAULT 'all'`);
       await queryAdmin(`CREATE INDEX IF NOT EXISTS "StylePreset_userId_idx" ON "StylePreset" ("userId")`);
       await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
       await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "BrandProfile" TO authenticated`);
@@ -123,7 +128,7 @@ export async function ensureBrandStylesSchema() {
 export async function getBrandProfileForUser(userId: string): Promise<BrandProfile> {
   await ensureBrandStylesSchema();
   const result = await queryNoAuth<BrandProfile[]>(
-    `SELECT id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "createdAt", "updatedAt"
+    `SELECT id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"
      FROM "BrandProfile"
      WHERE "userId" = $1
      LIMIT 1`,
@@ -140,8 +145,8 @@ export async function upsertBrandProfileForUser(
   await ensureBrandStylesSchema();
 
   const result = await queryNoAuth<BrandProfile[]>(
-    `INSERT INTO "BrandProfile" ("userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig")
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO "BrandProfile" ("userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults")
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
      ON CONFLICT ("userId")
      DO UPDATE SET
        "brandName" = EXCLUDED."brandName",
@@ -150,8 +155,9 @@ export async function upsertBrandProfileForUser(
        "accentColor" = EXCLUDED."accentColor",
        "backgroundColor" = EXCLUDED."backgroundColor",
        "defaultConfig" = EXCLUDED."defaultConfig",
+       "typeDefaults" = EXCLUDED."typeDefaults",
        "updatedAt" = NOW()
-     RETURNING id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "createdAt", "updatedAt"`,
+     RETURNING id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"`,
     [
       userId,
       input.brandName,
@@ -160,6 +166,7 @@ export async function upsertBrandProfileForUser(
       input.accentColor,
       input.backgroundColor,
       JSON.stringify(input.defaultConfig),
+      JSON.stringify(input.typeDefaults ?? {}),
     ],
   );
 
@@ -169,7 +176,7 @@ export async function upsertBrandProfileForUser(
 export async function listStylePresetsForUser(userId: string): Promise<StylePreset[]> {
   await ensureBrandStylesSchema();
   return queryNoAuth<StylePreset[]>(
-    `SELECT id, "userId", name, description, "isDefault", config, "createdAt", "updatedAt"
+    `SELECT id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"
      FROM "StylePreset"
      WHERE "userId" = $1
      ORDER BY "isDefault" DESC, "updatedAt" DESC`,
@@ -180,7 +187,7 @@ export async function listStylePresetsForUser(userId: string): Promise<StylePres
 export async function getStylePresetForUser(userId: string, presetId: string): Promise<StylePreset | null> {
   await ensureBrandStylesSchema();
   const result = await queryNoAuth<StylePreset[]>(
-    `SELECT id, "userId", name, description, "isDefault", config, "createdAt", "updatedAt"
+    `SELECT id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"
      FROM "StylePreset"
      WHERE id = $1 AND "userId" = $2
      LIMIT 1`,
@@ -190,12 +197,24 @@ export async function getStylePresetForUser(userId: string, presetId: string): P
   return result[0] ?? null;
 }
 
-async function clearDefaultPreset(userId: string, excludeId?: string) {
+async function clearDefaultPreset(
+  userId: string,
+  qrType: StylePresetQrType,
+  excludeId?: string,
+) {
   const params: unknown[] = [userId];
-  let where = `"userId" = $1`;
+  let where = `"userId" = $1 AND "isDefault" = TRUE`;
+
+  if (qrType === "all") {
+    where += "";
+  } else {
+    params.push(qrType);
+    where += ` AND ("qrType" = $2 OR "qrType" = 'all')`;
+  }
+
   if (excludeId) {
     params.push(excludeId);
-    where += ` AND id <> $2`;
+    where += ` AND id <> $${params.length}`;
   }
 
   await queryNoAuth(`UPDATE "StylePreset" SET "isDefault" = FALSE WHERE ${where}`, params);
@@ -208,14 +227,21 @@ export async function createStylePresetForUser(
   await ensureBrandStylesSchema();
 
   if (input.isDefault) {
-    await clearDefaultPreset(userId);
+    await clearDefaultPreset(userId, input.qrType ?? "all");
   }
 
   const result = await queryNoAuth<StylePreset[]>(
-    `INSERT INTO "StylePreset" ("userId", name, description, "isDefault", config)
-     VALUES ($1, $2, $3, $4, $5::jsonb)
-     RETURNING id, "userId", name, description, "isDefault", config, "createdAt", "updatedAt"`,
-    [userId, input.name, input.description ?? null, input.isDefault, JSON.stringify(input.config)],
+    `INSERT INTO "StylePreset" ("userId", name, description, "qrType", "isDefault", config)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+     RETURNING id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"`,
+    [
+      userId,
+      input.name,
+      input.description ?? null,
+      input.qrType ?? "all",
+      input.isDefault,
+      JSON.stringify(input.config),
+    ],
   );
 
   return result[0];
@@ -236,12 +262,13 @@ export async function updateStylePresetForUser(
   const next: Omit<StylePreset, "id" | "userId" | "createdAt" | "updatedAt"> = {
     name: input.name ?? current.name,
     description: input.description === undefined ? current.description : input.description ?? null,
+    qrType: input.qrType ?? current.qrType,
     isDefault: input.isDefault ?? current.isDefault,
     config: input.config ?? current.config,
   };
 
   if (next.isDefault) {
-    await clearDefaultPreset(userId, presetId);
+    await clearDefaultPreset(userId, next.qrType, presetId);
   }
 
   const result = await queryNoAuth<StylePreset[]>(
@@ -249,12 +276,13 @@ export async function updateStylePresetForUser(
      SET
        name = $3,
        description = $4,
-       "isDefault" = $5,
-       config = $6::jsonb,
+       "qrType" = $5,
+       "isDefault" = $6,
+       config = $7::jsonb,
        "updatedAt" = NOW()
      WHERE id = $1 AND "userId" = $2
-     RETURNING id, "userId", name, description, "isDefault", config, "createdAt", "updatedAt"`,
-    [presetId, userId, next.name, next.description, next.isDefault, JSON.stringify(next.config)],
+     RETURNING id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"`,
+    [presetId, userId, next.name, next.description, next.qrType, next.isDefault, JSON.stringify(next.config)],
   );
 
   return result[0] ?? null;
@@ -274,6 +302,13 @@ export async function deleteStylePresetForUser(userId: string, presetId: string)
 
 export function getDefaultRenderConfig() {
   return DEFAULT_RENDER_CONFIG;
+}
+
+export function getTypeDefaultRenderConfig(
+  brand: BrandProfile,
+  type: QRData["type"],
+): QrRenderConfig | null {
+  return brand.typeDefaults?.[type as keyof QrTypeDefaults] ?? null;
 }
 
 export function mergeRenderConfig(base: QrRenderConfig, override?: QrRenderConfig | null): QrRenderConfig {

@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { CustomDomain, QR } from "@/lib/types"
 import { formatDate, isValidURL, isValidEmail, isValidPhone, truncateText } from "@/lib/utils"
 import { Edit, Trash2, Plus, PaintbrushVertical, QrCode } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label";
 import { Textarea } from "./ui/textarea"
@@ -47,10 +47,11 @@ import SmsInput from "./qr/inputs/sms";
 import WifiInput from "./qr/inputs/wifi";
 import FileInput from "./qr/inputs/file";
 import { QRImageSquare } from "./qr-image-square";
-import { QRData } from "@/lib/types"
+import { BrandProfile, QRData, StylePreset } from "@/lib/types"
 import QrPreview from "./qr-preview"
-import { serialize } from "@/lib/utils"
 import { buildPublicQrUrl } from "@/lib/qr-url"
+import { QrDesignDialog } from "./dashboard/qr-design-dialog";
+import { flattenAndDownloadSvg, prepareSvgForExport } from "@/lib/flatten-svg";
 
 interface QRMutationInput {
   data: QRData
@@ -59,31 +60,103 @@ interface QRMutationInput {
 
 interface QRCodeListProps {
   qrCodes: QR[]
-  onCreateQR: (payload: QRMutationInput) => Promise<void>
+  onCreateQR: (payload: QRMutationInput) => Promise<QR>
   onUpdateQR: (id: string, payload: QRMutationInput) => Promise<void>
   onDeleteQR: (id: string) => Promise<void>
   onImageUploaded: (qr: QR) => void
 }
 
+type QuickCreateType = Exclude<QRData["type"], "file">;
+
+const QUICK_CREATE_OPTIONS: Array<{
+  value: QuickCreateType;
+  label: string;
+  icon: typeof GlobeIcon;
+}> = [
+  { value: "url", label: "Website", icon: GlobeIcon },
+  { value: "text", label: "Text", icon: TypeIcon },
+  { value: "email", label: "Email", icon: MailIcon },
+  { value: "contact", label: "Contact", icon: UserIcon },
+  { value: "phone", label: "Phone", icon: PhoneIcon },
+  { value: "sms", label: "SMS", icon: MessageSquareIcon },
+  { value: "wifi", label: "WiFi", icon: WifiIcon },
+]
+
+function createDefaultQuickCreateData(type: QuickCreateType): QRData {
+  switch (type) {
+    case "url":
+      return { type: "url", url: "" }
+    case "text":
+      return { type: "text", text: "" }
+    case "email":
+      return { type: "email", to: "", subject: "", body: "" }
+    case "contact":
+      return { type: "contact", source: "fields" }
+    case "phone":
+      return { type: "phone", number: "" }
+    case "sms":
+      return { type: "sms", number: "", message: "" }
+    case "wifi":
+      return { type: "wifi", ssid: "", authenticationType: "WPA", password: "", hidden: false }
+  }
+}
+
+function mergeRenderConfig(
+  base: NonNullable<BrandProfile["defaultConfig"]>,
+  override?: BrandProfile["defaultConfig"] | null,
+) {
+  if (!override) {
+    return base
+  }
+
+  const borderSettings =
+    override.borderSettings === undefined
+      ? base.borderSettings
+      : override.borderSettings === null
+        ? null
+        : {
+            ...(base.borderSettings ?? {}),
+            ...override.borderSettings,
+          }
+
+  return {
+    ...base,
+    ...override,
+    styleSettings: {
+      ...(base.styleSettings ?? {}),
+      ...(override.styleSettings ?? {}),
+    },
+    logoSettings: override.logoSettings === undefined ? base.logoSettings : override.logoSettings,
+    borderSettings,
+  }
+}
+
 export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImageUploaded }: QRCodeListProps) {
-  const [newUrl, setNewUrl] = useState("")
+  const [newData, setNewData] = useState<QRData>(createDefaultQuickCreateData("url"))
   const [newCustomDomainId, setNewCustomDomainId] = useState<string | null>(null)
   const [editingQR, setEditingQR] = useState<QR | null>(null)
   const [editData, setEditData] = useState<QRData | null>(null)
+  const [designData, setDesignData] = useState<QRData | null>(null)
   const [editCustomDomainId, setEditCustomDomainId] = useState<string | null>(null)
   const [domains, setDomains] = useState<CustomDomain[]>([])
+  const [brand, setBrand] = useState<BrandProfile | null>(null)
+  const [stylePresets, setStylePresets] = useState<StylePreset[]>([])
   const [domainsLoading, setDomainsLoading] = useState(true)
+  const [stylesLoading, setStylesLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isSavingDesign, setIsSavingDesign] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [designDialogOpen, setDesignDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const viewPreviewRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     void loadDomains()
+    void loadStyles()
   }, [])
 
   async function loadDomains() {
@@ -104,6 +177,30 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
     }
   }
 
+  async function loadStyles() {
+    setStylesLoading(true)
+    try {
+      const [brandResponse, presetsResponse] = await Promise.all([
+        fetch("/api/dashboard/brand"),
+        fetch("/api/dashboard/styles"),
+      ])
+
+      if (!brandResponse.ok || !presetsResponse.ok) {
+        throw new Error("Failed to load styles")
+      }
+
+      const brandData = await brandResponse.json() as { brand?: BrandProfile }
+      const presetsData = await presetsResponse.json() as { presets?: StylePreset[] }
+      setBrand(brandData.brand ?? null)
+      setStylePresets(presetsData.presets ?? [])
+    } catch (error) {
+      console.error("Failed to load design styles:", error)
+      toast.error("Failed to load saved styles")
+    } finally {
+      setStylesLoading(false)
+    }
+  }
+
   function ClientFormattedDate({ date }: { date: string | Date | null }) {
     const [formatted, setFormatted] = useState("")
 
@@ -118,26 +215,63 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
     return <span>{formatted}</span>
   }
 
-  const handleCreate = async () => {
-    if (!newUrl) {
-      toast.error("URL is required")
-      return
+  function validateQrData(data: QRData): string | null {
+    switch (data.type) {
+      case "url":
+        return !data.url || !isValidURL(data.url) ? "Please enter a valid URL" : null
+      case "text":
+        return !data.text ? "Text content cannot be empty" : null
+      case "email":
+        return !data.to || !data.subject || !data.body || !isValidEmail(data.to)
+          ? "Please fill out a valid email, subject, and body"
+          : null
+      case "phone":
+        return !data.number || !isValidPhone(data.number) ? "Please enter a valid phone number" : null
+      case "contact":
+        if (data.source === "fields") {
+          return !data.firstName &&
+            !data.lastName &&
+            !data.organization &&
+            !data.phone &&
+            !data.email &&
+            !data.website &&
+            !data.address &&
+            !data.note
+            ? "Please enter at least one contact field"
+            : null
+        }
+        return !data.vcard.trim() ? "Please upload or paste a valid VCARD payload" : null
+      case "sms":
+        return !data.number || !data.message || !isValidPhone(data.number)
+          ? "Please enter a valid number and message"
+          : null
+      case "wifi":
+        return !data.ssid ? "SSID cannot be empty" : null
+      case "file":
+        return !data.key ? "File key cannot be empty" : null
     }
+  }
 
-    if (!isValidURL(newUrl)) {
-      toast.error("Please enter a valid URL")
+  const handleCreate = async () => {
+    const validationError = validateQrData(newData)
+    if (validationError) {
+      toast.error(validationError)
       return
     }
 
     setIsCreating(true)
     try {
-      await onCreateQR({
-        data: { type: "url", url: newUrl },
+      const createdQR = await onCreateQR({
+        data: newData,
         customDomainId: newCustomDomainId,
       })
-      setNewUrl("")
+      setNewData(createDefaultQuickCreateData("url"))
       setNewCustomDomainId(null)
       setCreateDialogOpen(false)
+      setEditingQR(createdQR)
+      setEditData(createdQR.data)
+      setEditCustomDomainId(createdQR.customDomainId ?? null)
+      setViewDialogOpen(true)
       toast.success("QR code created successfully")
     } catch (error) {
       console.error("Error creating QR code:", error)
@@ -150,78 +284,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
   const handleUpdate = async () => {
     if (!editingQR || !editData) return;
 
-    // Type-specific validation
-    switch (editData.type) {
-      case "url":
-        if (!editData.url || !isValidURL(editData.url)) {
-          toast.error("Please enter a valid URL");
-          return;
-        }
-        break;
-      case "text":
-        if (!editData.text) {
-          toast.error("Text content cannot be empty");
-          return;
-        }
-        break;
-      case "email":
-        if (
-          !editData.to ||
-          !editData.subject ||
-          !editData.body ||
-          !isValidEmail(editData.to)
-        ) {
-          toast.error("Please fill out valid email to, subject, and body");
-          return;
-        }
-        break;
-      case "phone":
-        if (!editData.number || !isValidPhone(editData.number)) {
-          toast.error("Please enter a valid phone number");
-          return;
-        }
-        break;
-      case "contact":
-        if (
-          editData.source === "fields" &&
-          !editData.firstName &&
-          !editData.lastName &&
-          !editData.organization &&
-          !editData.phone &&
-          !editData.email &&
-          !editData.website &&
-          !editData.address &&
-          !editData.note
-        ) {
-          toast.error("Please enter at least one contact field");
-          return;
-        }
-        if (editData.source === "vcard" && !editData.vcard.trim()) {
-          toast.error("Please upload or paste a valid VCF payload");
-          return;
-        }
-        break;
-      case "sms":
-        if (!editData.number || !editData.message || !isValidPhone(editData.number)) {
-          toast.error("Please enter a valid number and non-empty message");
-          return;
-        }
-        break;
-      case "wifi":
-        if (!editData.ssid) {
-          toast.error("SSID cannot be empty");
-          return;
-        }
-        break;
-      case "file":
-        if (!editData.key) {
-          toast.error("File key cannot be empty");
-          return;
-        }
-        break;
-      default:
-        toast.error("Invalid content type");
-        return;
+    const validationError = validateQrData(editData)
+    if (validationError) {
+      toast.error(validationError)
+      return
     }
 
     setIsUpdating(true);
@@ -243,6 +309,60 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
     }
   }
 
+  const handleDownloadViewedSvg = async () => {
+    const svg = viewPreviewRef.current?.querySelector("svg")
+    if (!svg) {
+      toast.error("Preview is not ready yet")
+      return
+    }
+
+    await flattenAndDownloadSvg(svg)
+  }
+
+  const handleDownloadViewedPng = async () => {
+    const svg = viewPreviewRef.current?.querySelector("svg")
+    if (!svg) {
+      toast.error("Preview is not ready yet")
+      return
+    }
+
+    const svgData = await prepareSvgForExport(svg)
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
+    const url = URL.createObjectURL(svgBlob)
+    const img = new window.Image()
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      canvas.width = svg.width.baseVal.value || 512
+      canvas.height = svg.height.baseVal.value || 512
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const anchor = document.createElement("a")
+            anchor.href = URL.createObjectURL(blob)
+            anchor.download = `${editingQR?.code ?? "qr-code"}.png`
+            document.body.appendChild(anchor)
+            anchor.click()
+            document.body.removeChild(anchor)
+            URL.revokeObjectURL(anchor.href)
+          }
+          URL.revokeObjectURL(url)
+        }, "image/png")
+      } else {
+        URL.revokeObjectURL(url)
+      }
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      toast.error("Failed to export PNG")
+    }
+
+    img.src = url
+  }
+
   const handleDelete = async () => {
     if (!editingQR) return
 
@@ -260,7 +380,66 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
     }
   }
 
+  const handleDesignSave = async () => {
+    if (!editingQR || !designData) return
+
+    setIsSavingDesign(true)
+    try {
+      await onUpdateQR(editingQR.id, {
+        data: designData,
+        customDomainId: editingQR.customDomainId ?? null,
+      })
+      setDesignDialogOpen(false)
+      setEditingQR(null)
+      setDesignData(null)
+      toast.success("QR design updated successfully")
+    } catch (error) {
+      console.error("Error updating QR design:", error)
+      toast.error("Failed to update QR design")
+    } finally {
+      setIsSavingDesign(false)
+    }
+  }
+
   const getPublicUrl = (qr: QR) => qr.publicUrl || buildPublicQrUrl(qr.code, qr.customHostname ?? null)
+  const mergeQrMeta = (previous: QRData | null, next: QRData): QRData => ({
+    ...next,
+    name: previous?.name,
+    description: previous?.description,
+    imageKey: previous?.imageKey,
+    errorLevel: previous?.errorLevel,
+    styleSettings: previous?.styleSettings,
+    logoSettings: previous?.logoSettings,
+    borderSettings: previous?.borderSettings,
+  })
+  const getViewPreviewConfig = (qr: QR | null) => {
+    if (!qr) {
+      return {
+        errorLevel: "M" as const,
+        styleSettings: undefined,
+        logoSettings: undefined,
+        borderSettings: undefined,
+      }
+    }
+
+    const brandConfig = brand?.defaultConfig
+    const typeConfig = brand?.typeDefaults?.[qr.data.type]
+    const mergedBrandConfig = brandConfig
+      ? mergeRenderConfig(mergeRenderConfig(brandConfig, typeConfig), {
+          errorLevel: qr.data.errorLevel ?? brandConfig.errorLevel,
+          styleSettings: qr.data.styleSettings,
+          logoSettings: qr.data.logoSettings,
+          borderSettings: qr.data.borderSettings,
+        })
+      : null
+
+    return {
+      errorLevel: mergedBrandConfig?.errorLevel ?? qr.data.errorLevel ?? "M",
+      styleSettings: mergedBrandConfig?.styleSettings ?? qr.data.styleSettings ?? undefined,
+      logoSettings: mergedBrandConfig?.logoSettings ?? qr.data.logoSettings ?? undefined,
+      borderSettings: mergedBrandConfig?.borderSettings ?? qr.data.borderSettings ?? undefined,
+    }
+  }
 
 
   
@@ -281,18 +460,56 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create QR Code</DialogTitle>
-              <DialogDescription>Enter the URL for your new QR code.</DialogDescription>
+              <DialogDescription>Choose a QR type and enter the content to create it quickly.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label htmlFor="url">URL</label>
-                <Input
-                  id="url"
-                  placeholder="https://example.com"
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                />
+                <Label htmlFor="quick-create-type">QR type</Label>
+                <Select
+                  value={newData.type}
+                  onValueChange={(value) => setNewData(createDefaultQuickCreateData(value as QuickCreateType))}
+                >
+                  <SelectTrigger id="quick-create-type" className="w-full">
+                    <SelectValue placeholder="Select QR type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QUICK_CREATE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center">
+                          <option.icon className="mr-2 h-4 w-4" />
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {newData.type === "url" ? (
+                <WebsiteInput value={newData} onChange={setNewData} />
+              ) : null}
+              {newData.type === "text" ? (
+                <TextInput
+                  value={newData.text}
+                  onChange={(text) => setNewData({ type: "text", text })}
+                />
+              ) : null}
+              {newData.type === "email" ? (
+                <EmailInput value={newData} onChange={setNewData} />
+              ) : null}
+              {newData.type === "contact" ? (
+                <ContactInput value={newData} onChange={setNewData} />
+              ) : null}
+              {newData.type === "phone" ? (
+                <PhoneInput value={newData} onChange={setNewData} />
+              ) : null}
+              {newData.type === "sms" ? (
+                <SmsInput value={newData} onChange={setNewData} />
+              ) : null}
+              {newData.type === "wifi" ? (
+                <WifiInput value={newData} onChange={setNewData} />
+              ) : null}
+
               <div className="grid gap-2">
                 <Label htmlFor="custom-domain">Custom domain</Label>
                 <Select
@@ -407,25 +624,44 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             </DialogDescription>
                           </DialogHeader>
                           <div className="flex items-center flex-col gap-4">
-                            {editingQR ? (
-                              <QRImageSquare
-                                qr={editingQR}
-                                editable
-                                className="h-24 w-24"
-                                onUploaded={(updatedQr) => {
-                                  onImageUploaded(updatedQr)
-                                  setEditingQR(updatedQr)
-                                }}
+                            <div ref={viewPreviewRef} className="flex w-full items-center justify-center">
+                              <QrPreview
+                                data={editingQR ? getPublicUrl(editingQR) : ""}
+                                errorLevel={getViewPreviewConfig(editingQR).errorLevel}
+                                styleSettings={getViewPreviewConfig(editingQR).styleSettings}
+                                borderSettings={getViewPreviewConfig(editingQR).borderSettings}
+                                logoSettings={getViewPreviewConfig(editingQR).logoSettings}
+                                className="w-full h-full"
                               />
-                            ) : null}
-                            <QrPreview
-                              data={editingQR?.data ? serialize(editingQR.data) : ""}
-                              errorLevel="M"
-                              className="w-full h-full"
-                            />
-                            <span className="text-sm text-muted-foreground">{qr.data.type === "url" ? "Website" : qr.data.type.charAt(0).toUpperCase() + qr.data.type.slice(1)}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              {editingQR?.data.type === "url"
+                                ? "Website"
+                                : editingQR?.data.type === "sms"
+                                  ? "SMS"
+                                  : editingQR?.data.type
+                                    ? editingQR.data.type.charAt(0).toUpperCase() + editingQR.data.type.slice(1)
+                                    : ""}
+                            </span>
                           </div>
                           <DialogFooter>
+                            <Button variant="outline" onClick={handleDownloadViewedSvg}>
+                              Download SVG
+                            </Button>
+                            <Button variant="outline" onClick={handleDownloadViewedPng}>
+                              Download PNG
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                if (!editingQR) return
+                                setViewDialogOpen(false)
+                                setDesignData(editingQR.data)
+                                setDesignDialogOpen(true)
+                              }}
+                            >
+                              Edit design
+                            </Button>
                             <Button onClick={() => setViewDialogOpen(false)}>
                               Done
                             </Button>
@@ -438,7 +674,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                           setDesignDialogOpen(open)
                           if (!open) {
                             setEditingQR(null)
-                            setEditCustomDomainId(null)
+                            setDesignData(null)
                           }
                         }}
                       >
@@ -448,8 +684,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             size="icon"
                             onClick={() => {
                               setEditingQR(qr)
-                              setEditData(qr.data)
-                              setEditCustomDomainId(qr.customDomainId ?? null)
+                              setDesignData(qr.data)
                               setDesignDialogOpen(true)
                             }}
                           >
@@ -457,181 +692,29 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             <span className="sr-only">Design</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
+                        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
+                          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
                             <DialogTitle>Design QR Code</DialogTitle>
                             <DialogDescription>
-                              Update the URL for QR code: {editingQR?.code}
+                              Customize this QR, apply a saved style, and download the result.
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="mt-4 space-y-4">
-                            <div className="space-y-1">
-                              <Label htmlFor="edit-custom-domain">Public domain</Label>
-                              <Select
-                                value={editCustomDomainId ?? "default"}
-                                onValueChange={(value) => setEditCustomDomainId(value === "default" ? null : value)}
-                                disabled={domainsLoading}
-                              >
-                                <SelectTrigger id="edit-custom-domain" className="w-full">
-                                  <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="default">Use default domain</SelectItem>
-                                  {domains.map((domain) => (
-                                    <SelectItem key={domain.id} value={domain.id}>
-                                      {domain.hostname}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label htmlFor="content-type">Content</Label>
-                              <Select
-                                value={editData?.type ?? ""}
-                                onValueChange={value => {
-                                  // Set initial values for each type to satisfy QRData
-                                  switch (value as QRData['type']) {
-                                    case "url":
-                                      setEditData({ type: "url", url: "" });
-                                      break;
-                                    case "text":
-                                      setEditData({ type: "text", text: "" });
-                                      break;
-                                    case "email":
-                                      setEditData({ type: "email", to: "", subject: "", body: "" });
-                                      break;
-                                    case "contact":
-                                      setEditData({ type: "contact", source: "fields" });
-                                      break;
-                                    case "phone":
-                                      setEditData({ type: "phone", number: "" });
-                                      break;
-                                    case "sms":
-                                      setEditData({ type: "sms", number: "", message: "" });
-                                      break;
-                                    case "wifi":
-                                      setEditData({ type: "wifi", ssid: "", authenticationType: "", password: "" });
-                                      break;
-                                    case "file":
-                                      setEditData({ type: "file", key: "" });
-                                      break;
-                                    default:
-                                      setEditData(null);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger id="content-type" className="w-full">
-                                  <SelectValue placeholder="Select content type"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="url">
-                                    <div className="flex items-center">
-                                      <GlobeIcon className="mr-2 h-4 w-4" />
-                                      Website
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="text">
-                                    <div className="flex items-center">
-                                      <TypeIcon className="mr-2 h-4 w-4" />
-                                      Text
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="email">
-                                    <div className="flex items-center">
-                                      <MailIcon className="mr-2 h-4 w-4" />
-                                      Email
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="contact">
-                                    <div className="flex items-center">
-                                      <UserIcon className="mr-2 h-4 w-4" />
-                                      Contact
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="phone">
-                                    <div className="flex items-center">
-                                      <PhoneIcon className="mr-2 h-4 w-4" />
-                                      Phone
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="sms">
-                                    <div className="flex items-center">
-                                      <MessageSquareIcon className="mr-2 h-4 w-4" />
-                                      SMS
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="wifi">
-                                    <div className="flex items-center">
-                                      <WifiIcon className="mr-2 h-4 w-4" />
-                                      WiFi
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="file">
-                                    <div className="flex items-center">
-                                      <FileIcon className="mr-2 h-4 w-4" />
-                                      File
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Render inputs based on selected type */}
-                            {editData?.type === "url" && (
-                              <WebsiteInput value={editData} onChange={handleUpdate} />
-                            )}
-                            {editData?.type === "text" && (
-                              <TextInput value={editData?.text} onChange={handleUpdate} />
-                            )}
-                            {editData?.type === "email" && (
-                              <EmailInput
-                                value={editData}
-                                onChange={handleUpdate}
-                              />
-                            )}
-                            {editData?.type === "contact" && (
-                              <ContactInput
-                                value={editData}
-                                onChange={v =>
-                                  setEditData({
-                                    ...v,
-                                    name: editData.name,
-                                    description: editData.description,
-                                  })
-                                }
-                              />
-                            )}
-                            {editData?.type === "phone" && (
-                              <PhoneInput
-                                value={editData}
-                                onChange={handleUpdate}
-                              />
-                            )}
-                            {editData?.type === "sms" && (
-                              <SmsInput
-                                value={editData}
-                                onChange={handleUpdate}
-                              />
-                            )}
-                            {editData?.type === "wifi" && (
-                              <WifiInput
-                                value={editData}
-                                onChange={handleUpdate}
-                              />
-                            )}
-                            {editData?.type === "file" && (
-                              <FileInput
-                                onChange={handleUpdate}
-                              />
-                            )}
-                          </div>
-                          <DialogFooter>
+                          {editingQR && designData ? (
+                            <QrDesignDialog
+                              qr={editingQR}
+                              value={designData}
+                              brand={brand}
+                              presets={stylePresets}
+                              stylesLoading={stylesLoading}
+                              onChange={setDesignData}
+                            />
+                          ) : null}
+                          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
                             <Button onClick={() => setDesignDialogOpen(false)}>
                               Cancel
                             </Button>
-                            <Button onClick={handleUpdate} disabled={isUpdating}>
-                              {isUpdating ? "Updating..." : "Update"}
+                            <Button onClick={handleDesignSave} disabled={isSavingDesign}>
+                              {isSavingDesign ? "Saving..." : "Save design"}
                             </Button>
                           </DialogFooter>
                         </DialogContent>
@@ -729,28 +812,28 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                   // Set initial values for each type to satisfy QRData
                                   switch (value as QRData['type']) {
                                     case "url":
-                                      setEditData({ type: "url", url: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "url", url: "" }));
                                       break;
                                     case "text":
-                                      setEditData({ type: "text", text: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "text", text: "" }));
                                       break;
                                     case "email":
-                                      setEditData({ type: "email", to: "", subject: "", body: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "email", to: "", subject: "", body: "" }));
                                       break;
                                     case "contact":
-                                      setEditData({ type: "contact", source: "fields" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "contact", source: "fields" }));
                                       break;
                                     case "phone":
-                                      setEditData({ type: "phone", number: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "phone", number: "" }));
                                       break;
                                     case "sms":
-                                      setEditData({ type: "sms", number: "", message: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "sms", number: "", message: "" }));
                                       break;
                                     case "wifi":
-                                      setEditData({ type: "wifi", ssid: "", authenticationType: "", password: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "wifi", ssid: "", authenticationType: "", password: "" }));
                                       break;
                                     case "file":
-                                      setEditData({ type: "file", key: "" });
+                                      setEditData((prev) => mergeQrMeta(prev, { type: "file", key: "" }));
                                       break;
                                     default:
                                       setEditData(null);
@@ -835,13 +918,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             {editData?.type === "contact" && (
                               <ContactInput
                                 value={editData}
-                                onChange={v =>
-                                  setEditData({
-                                    ...v,
-                                    name: editData.name,
-                                    description: editData.description,
-                                  })
-                                }
+                                onChange={v => setEditData((prev) => mergeQrMeta(prev, v))}
                               />
                             )}
                             {editData?.type === "phone" && (
@@ -864,12 +941,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             )}
                             {editData?.type === "file" && (
                               <FileInput
-                                onChange={v =>
-                                  setEditData({
-                                    ...editData,
-                                    ...v,
-                                    type: "file"
-                                  })
+                                onChange={file =>
+                                  setEditData((prev) =>
+                                    prev ? mergeQrMeta(prev, { type: "file", key: file?.name ?? "" }) : prev
+                                  )
                                 }
                               />
                             )}

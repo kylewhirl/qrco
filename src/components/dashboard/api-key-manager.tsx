@@ -33,6 +33,14 @@ interface ApiKeyCreateResponse {
   record: ApiKeyListItem;
 }
 
+interface TokenEditorState {
+  id: string;
+  kind: "secret" | "publishable";
+  name: string;
+  scopes: ApiAccessScope[];
+  allowedOriginsText: string;
+}
+
 function formatDate(value: string | Date | null) {
   if (!value) {
     return null;
@@ -59,6 +67,8 @@ export function ApiKeyManager() {
   const [isCreating, setIsCreating] = useState(false);
   const [isCreatingPublishable, setIsCreatingPublishable] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [editor, setEditor] = useState<TokenEditorState | null>(null);
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [newPublishableSecret, setNewPublishableSecret] = useState<string | null>(null);
 
@@ -220,6 +230,99 @@ export function ApiKeyManager() {
     );
   }
 
+  function startEditing(item: ApiKeyListItem, kind: "secret" | "publishable") {
+    setEditor({
+      id: item.id,
+      kind,
+      name: item.name,
+      scopes: item.scopes?.length ? item.scopes : AVAILABLE_SCOPES.map((scope) => scope.value),
+      allowedOriginsText: item.allowedOrigins?.join("\n") ?? "",
+    });
+  }
+
+  function toggleEditorScope(scope: ApiAccessScope, checked: boolean) {
+    setEditor((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        scopes: checked
+          ? Array.from(new Set([...current.scopes, scope]))
+          : current.scopes.filter((item) => item !== scope),
+      };
+    });
+  }
+
+  async function handleSaveEditor() {
+    if (!editor) {
+      return;
+    }
+
+    const allowedOrigins = parseOrigins(editor.allowedOriginsText);
+    if (!editor.name.trim()) {
+      toast.error("Token name is required");
+      return;
+    }
+    if (editor.scopes.length === 0) {
+      toast.error("Select at least one scope");
+      return;
+    }
+
+    setSavingId(editor.id);
+    try {
+      const response = await fetch(
+        editor.kind === "secret"
+          ? `/api/dashboard/api-keys/${editor.id}`
+          : `/api/dashboard/publishable-tokens/${editor.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: editor.name,
+            scopes: editor.scopes,
+            allowedOrigins,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update token");
+      }
+
+      const data = await response.json() as { apiKey?: ApiKeyListItem; token?: ApiKeyListItem };
+      const updated = (data.apiKey ?? data.token) as ApiKeyListItem;
+      const setter = editor.kind === "secret" ? setApiKeys : setPublishableTokens;
+      setter((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setEditor(null);
+      toast.success(editor.kind === "secret" ? "API key updated" : "Publishable token updated");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update token");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  function renderScopeEditor(selectedScopes: ApiAccessScope[], onToggle: (scope: ApiAccessScope, checked: boolean) => void) {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        {AVAILABLE_SCOPES.map((scope) => (
+          <label key={scope.value} className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+            <Checkbox
+              checked={selectedScopes.includes(scope.value)}
+              onCheckedChange={(checked) => onToggle(scope.value, checked === true)}
+            />
+            <span>{scope.label}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
   function renderTokenList(items: ApiKeyListItem[], kind: "secret" | "publishable") {
     if (items.length === 0 && !isLoading) {
       return (
@@ -231,35 +334,94 @@ export function ApiKeyManager() {
 
     return items.map((item) => (
       <div key={item.id} className="rounded-lg border p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{item.name}</span>
-              <Badge variant={item.revokedAt ? "secondary" : "default"}>
-                {item.revokedAt ? "Revoked" : "Active"}
-              </Badge>
-              <Badge variant="outline">{item.kind === "secret" ? "Server" : "Browser"}</Badge>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{item.name}</span>
+                <Badge variant={item.revokedAt ? "secondary" : "default"}>
+                  {item.revokedAt ? "Revoked" : "Active"}
+                </Badge>
+                <Badge variant="outline">{item.kind === "secret" ? "Server" : "Browser"}</Badge>
+              </div>
+              <p className="font-mono text-xs text-muted-foreground">{item.prefix}...</p>
+              <p className="text-xs text-muted-foreground">
+                Created {formatDate(item.createdAt)}
+                {item.lastUsedAt ? ` • Last used ${formatDate(item.lastUsedAt)}` : ""}
+              </p>
+              {item.allowedOrigins?.length ? (
+                <p className="text-xs text-muted-foreground">Origins: {item.allowedOrigins.join(", ")}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Origins: none configured</p>
+              )}
+              {item.scopes?.length ? (
+                <p className="text-xs text-muted-foreground">Scopes: {item.scopes.join(", ")}</p>
+              ) : null}
             </div>
-            <p className="font-mono text-xs text-muted-foreground">{item.prefix}...</p>
-            <p className="text-xs text-muted-foreground">
-              Created {formatDate(item.createdAt)}
-              {item.lastUsedAt ? ` • Last used ${formatDate(item.lastUsedAt)}` : ""}
-            </p>
-            {item.allowedOrigins?.length ? (
-              <p className="text-xs text-muted-foreground">Origins: {item.allowedOrigins.join(", ")}</p>
-            ) : null}
-            {item.scopes?.length ? (
-              <p className="text-xs text-muted-foreground">Scopes: {item.scopes.join(", ")}</p>
-            ) : null}
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                disabled={Boolean(item.revokedAt)}
+                onClick={() => startEditing(item, kind)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                disabled={Boolean(item.revokedAt) || deletingId === item.id}
+                onClick={() => handleRevoke(item.id, kind)}
+              >
+                {deletingId === item.id ? "Revoking..." : "Revoke"}
+              </Button>
+            </div>
           </div>
 
-          <Button
-            variant="outline"
-            disabled={Boolean(item.revokedAt) || deletingId === item.id}
-            onClick={() => handleRevoke(item.id, kind)}
-          >
-            {deletingId === item.id ? "Revoking..." : "Revoke"}
-          </Button>
+          {editor?.id === item.id && editor.kind === kind ? (
+            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+              <div className="space-y-2">
+                <Label htmlFor={`token-name-${item.id}`}>Name</Label>
+                <Input
+                  id={`token-name-${item.id}`}
+                  value={editor.name}
+                  onChange={(event) =>
+                    setEditor((current) => (current ? { ...current, name: event.target.value } : current))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`token-origins-${item.id}`}>Allowed origins</Label>
+                <Textarea
+                  id={`token-origins-${item.id}`}
+                  value={editor.allowedOriginsText}
+                  onChange={(event) =>
+                    setEditor((current) =>
+                      current ? { ...current, allowedOriginsText: event.target.value } : current,
+                    )
+                  }
+                  placeholder={"https://app.example.com\nhttp://localhost:3006"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank to allow requests with no browser origin. If an origin is present, it must match one of these values.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Scopes</Label>
+                {renderScopeEditor(editor.scopes, toggleEditorScope)}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditor(null)} disabled={savingId === item.id}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEditor} disabled={savingId === item.id}>
+                  {savingId === item.id ? "Saving..." : "Save changes"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     ));

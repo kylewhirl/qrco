@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/stack";
-import { revokeApiKeyForUser } from "@/lib/api-keys";
+import { revokeApiKeyForUser, updateApiKeyForUser } from "@/lib/api-keys";
+import { updateApiAccessTokenSchema } from "@/lib/qr-validation";
 
 export async function DELETE(
   request: Request,
@@ -23,5 +24,33 @@ export async function DELETE(
   } catch (error) {
     console.error("Failed to revoke publishable token:", error);
     return NextResponse.json({ error: "Failed to revoke publishable token" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const parsed = updateApiAccessTokenSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+
+    const { id } = await params;
+    const updated = await updateApiKeyForUser(user.id, id, parsed.data);
+    if (!updated) {
+      return NextResponse.json({ error: "Publishable token not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ token: updated });
+  } catch (error) {
+    console.error("Failed to update publishable token:", error);
+    return NextResponse.json({ error: "Failed to update publishable token" }, { status: 500 });
   }
 }

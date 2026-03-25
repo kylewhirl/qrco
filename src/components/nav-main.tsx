@@ -51,13 +51,13 @@ export function NavMain({
                 </SidebarMenuButton>
               </DialogTrigger>
               <DialogOverlay className="backdrop-blur bg-background/30">
-              <DialogContent className="!max-w-5xl max-h-screen overflow-auto">
-                <DialogTitle>
+              <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-7xl">
+                <DialogTitle className="sr-only">
                   <div className="flex flex-row items-center">
                   <QrCode className="mr-2 h-4 w-4" />
                   Create QR Code</div>
                 </DialogTitle>
-                <QrCodeCreator />
+                <QrCodeCreator variant="hero" />
               </DialogContent>
               </DialogOverlay>
             </Dialog>

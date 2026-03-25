@@ -93,11 +93,6 @@ const wifiSchema = z.object({
   hidden: z.boolean().optional(),
 });
 
-export const qrDataSchema = z.intersection(
-  z.union([urlSchema, fileSchema, textSchema, emailSchema, phoneSchema, smsSchema, contactFieldsSchema, contactVCardSchema, wifiSchema]),
-  baseMetaSchema,
-);
-
 const colorArraySchema = z.array(z.string().trim().min(1)).min(1).max(2);
 
 export const qrStyleSettingsSchema = z.object({
@@ -150,6 +145,29 @@ export const qrRenderConfigSchema = z.object({
   borderSettings: qrBorderSettingsSchema.nullable().optional(),
 });
 
+export const qrTypeDefaultsSchema = z.object({
+  url: qrRenderConfigSchema.optional(),
+  file: qrRenderConfigSchema.optional(),
+  text: qrRenderConfigSchema.optional(),
+  email: qrRenderConfigSchema.optional(),
+  phone: qrRenderConfigSchema.optional(),
+  sms: qrRenderConfigSchema.optional(),
+  contact: qrRenderConfigSchema.optional(),
+  wifi: qrRenderConfigSchema.optional(),
+});
+
+const qrDataMetaSchema = baseMetaSchema.extend({
+  errorLevel: z.enum(["L", "M", "Q", "H"]).optional(),
+  styleSettings: qrStyleSettingsSchema.nullable().optional(),
+  logoSettings: qrLogoSettingsSchema.nullable().optional(),
+  borderSettings: qrBorderSettingsSchema.nullable().optional(),
+});
+
+export const qrDataSchema = z.intersection(
+  z.union([urlSchema, fileSchema, textSchema, emailSchema, phoneSchema, smsSchema, contactFieldsSchema, contactVCardSchema, wifiSchema]),
+  qrDataMetaSchema,
+);
+
 export const brandProfileSchema = z.object({
   brandName: z.string().trim().min(1).max(120),
   logoUrl: z.string().url().nullable().optional(),
@@ -157,11 +175,25 @@ export const brandProfileSchema = z.object({
   accentColor: z.string().trim().min(1).max(32),
   backgroundColor: z.string().trim().min(1).max(32),
   defaultConfig: qrRenderConfigSchema,
+  typeDefaults: qrTypeDefaultsSchema.optional(),
 });
+
+export const stylePresetQrTypeSchema = z.enum([
+  "all",
+  "url",
+  "file",
+  "text",
+  "email",
+  "phone",
+  "sms",
+  "contact",
+  "wifi",
+]);
 
 export const stylePresetCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(240).nullable().optional(),
+  qrType: stylePresetQrTypeSchema.default("all"),
   isDefault: z.boolean().optional(),
   config: qrRenderConfigSchema,
 });
@@ -238,6 +270,10 @@ export interface QRMeta {
   name?: string | null;
   description?: string | null;
   imageKey?: string | null;
+  errorLevel?: "L" | "M" | "Q" | "H";
+  styleSettings?: QrStyleSettings | null;
+  logoSettings?: QrLogoSettings | null;
+  borderSettings?: QrBorderSettings | null;
 }
 
 export interface URLData {
@@ -343,8 +379,20 @@ export interface BrandProfile {
   accentColor: string;
   backgroundColor: string;
   defaultConfig: QrRenderConfig;
+  typeDefaults?: QrTypeDefaults;
   createdAt: string | Date;
   updatedAt: string | Date;
+}
+
+export interface QrTypeDefaults {
+  url?: QrRenderConfig;
+  file?: QrRenderConfig;
+  text?: QrRenderConfig;
+  email?: QrRenderConfig;
+  phone?: QrRenderConfig;
+  sms?: QrRenderConfig;
+  contact?: QrRenderConfig;
+  wifi?: QrRenderConfig;
 }
 
 export interface StylePreset {
@@ -352,11 +400,14 @@ export interface StylePreset {
   userId: string;
   name: string;
   description: string | null;
+  qrType: "all" | QRData["type"];
   isDefault: boolean;
   config: QrRenderConfig;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
+
+export type StylePresetQrType = StylePreset["qrType"];
 
 export interface DashboardMetrics {
   totalScansLast7Days: number;

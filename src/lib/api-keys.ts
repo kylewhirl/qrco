@@ -39,7 +39,7 @@ function getTokenPrefix(kind: ApiTokenKind) {
 }
 
 function normalizeScopes(kind: ApiTokenKind, scopes: ApiAccessScope[] | null | undefined) {
-  if (kind === "secret") {
+  if (!scopes?.length) {
     return ALL_API_ACCESS_SCOPES;
   }
 
@@ -149,7 +149,7 @@ async function createAccessTokenForUser(userId: string, input: {
   const keyHash = hashApiKey(secret);
   const prefix = maskPrefix(secret);
   const scopes = normalizeScopes(input.kind, input.scopes);
-  const allowedOrigins = input.kind === "publishable" ? normalizeAllowedOrigins(input.allowedOrigins) : null;
+  const allowedOrigins = normalizeAllowedOrigins(input.allowedOrigins);
 
   const result = await queryNoAuth<ApiKeySummary[]>(
     `INSERT INTO "ApiKey" ("userId", name, prefix, "keyHash", kind, scopes, "allowedOrigins")
@@ -185,6 +185,7 @@ export async function createApiKeyForUser(userId: string, name: string) {
   return createAccessTokenForUser(userId, {
     name,
     kind: "secret",
+    scopes: ALL_API_ACCESS_SCOPES,
   });
 }
 
@@ -206,6 +207,49 @@ export async function revokeApiKeyForUser(userId: string, apiKeyId: string) {
      WHERE id = $1 AND "userId" = $2 AND "revokedAt" IS NULL
      RETURNING id, name, prefix, kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"`,
     [apiKeyId, userId],
+  );
+
+  return result[0] ? mapApiKeySummary(result[0]) : null;
+}
+
+export async function updateApiKeyForUser(
+  userId: string,
+  apiKeyId: string,
+  input: {
+    name?: string;
+    scopes?: ApiAccessScope[];
+    allowedOrigins?: string[] | null;
+  },
+) {
+  await ensureApiKeyTable();
+
+  const currentResult = await queryNoAuth<ApiKeySummary[]>(
+    `SELECT id, name, prefix, kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"
+     FROM "ApiKey"
+     WHERE id = $1 AND "userId" = $2
+     LIMIT 1`,
+    [apiKeyId, userId],
+  );
+
+  const current = currentResult[0] ? mapApiKeySummary(currentResult[0]) : null;
+  if (!current) {
+    return null;
+  }
+
+  const nextName = input.name?.trim() ? input.name.trim() : current.name;
+  const nextScopes = input.scopes ? normalizeScopes(current.kind, input.scopes) : current.scopes;
+  const nextAllowedOrigins =
+    input.allowedOrigins !== undefined ? normalizeAllowedOrigins(input.allowedOrigins) : current.allowedOrigins;
+
+  const result = await queryNoAuth<ApiKeySummary[]>(
+    `UPDATE "ApiKey"
+     SET
+       name = $3,
+       scopes = $4::jsonb,
+       "allowedOrigins" = $5::jsonb
+     WHERE id = $1 AND "userId" = $2
+     RETURNING id, name, prefix, kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"`,
+    [apiKeyId, userId, nextName, JSON.stringify(nextScopes), JSON.stringify(nextAllowedOrigins)],
   );
 
   return result[0] ? mapApiKeySummary(result[0]) : null;

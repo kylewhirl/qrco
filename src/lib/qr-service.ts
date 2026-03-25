@@ -5,6 +5,7 @@ import { StackServerApp } from "@stackframe/stack";
 import { buildPublicQrUrl, isPrimaryAppHost, normalizeHostname } from "./qr-url";
 import { ensureCustomDomainOwnedByUser, ensureCustomDomainSchema } from "./custom-domains";
 import { buildQrImageUrl } from "./qr-images";
+import { getBrandProfileForUser, getDefaultRenderConfig, getTypeDefaultRenderConfig, mergeRenderConfig } from "./brand-styles";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
@@ -94,6 +95,29 @@ function mapQR(record: QRRow): QR {
   };
 }
 
+async function applyCreateDefaultsToQrData(userId: string, data: QRData): Promise<QRData> {
+  const brand = await getBrandProfileForUser(userId);
+  let config = mergeRenderConfig(getDefaultRenderConfig(), brand.defaultConfig);
+  config = mergeRenderConfig(config, getTypeDefaultRenderConfig(brand, data.type));
+
+  const next: QRData = { ...data };
+
+  if (next.errorLevel === undefined) {
+    next.errorLevel = config.errorLevel;
+  }
+  if (!("styleSettings" in next)) {
+    next.styleSettings = config.styleSettings ?? null;
+  }
+  if (!("logoSettings" in next)) {
+    next.logoSettings = config.logoSettings ?? null;
+  }
+  if (!("borderSettings" in next)) {
+    next.borderSettings = config.borderSettings ?? null;
+  }
+
+  return next;
+}
+
 async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null> {
   await ensureQrDataAccess();
   const params: unknown[] = [id];
@@ -119,9 +143,10 @@ async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null
 export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null): Promise<QR> {
   const code = await generateUniqueCode();
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
+  const dataWithDefaults = await applyCreateDefaultsToQrData(userId, data);
   const result = await queryNoAuth<{ id: string }[]>(
     'INSERT INTO "QR" (code, data, user_id, "customDomainId") VALUES ($1, $2::jsonb, $3, $4) RETURNING id',
-    [code, JSON.stringify(data), userId, resolvedCustomDomainId],
+    [code, JSON.stringify(dataWithDefaults), userId, resolvedCustomDomainId],
   );
 
   const qr = await getQRByIdInternal(result[0].id);

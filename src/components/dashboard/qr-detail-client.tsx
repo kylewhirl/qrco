@@ -516,7 +516,14 @@ export function QRDetailClient({
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="rounded-[28px] border border-border/70 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_52%),#ffffff] p-4">
-                <QrPreview data={serialize(draftData)} errorLevel="M" className="mx-auto" />
+                <QrPreview
+                  data={publicUrl}
+                  errorLevel={draftData.errorLevel ?? "M"}
+                  styleSettings={draftData.styleSettings ?? undefined}
+                  borderSettings={draftData.borderSettings ?? undefined}
+                  logoSettings={draftData.logoSettings ?? undefined}
+                  className="mx-auto"
+                />
               </div>
 
               <div className="space-y-3 rounded-2xl border bg-muted/30 p-4 text-sm">

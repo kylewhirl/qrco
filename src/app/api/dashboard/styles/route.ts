@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     const preset = await createStylePresetForUser(user.id, {
       name: parsed.data.name,
       description: parsed.data.description ?? null,
+      qrType: parsed.data.qrType ?? "all",
       isDefault: parsed.data.isDefault ?? false,
       config: parsed.data.config,
     });
