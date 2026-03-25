@@ -308,7 +308,7 @@ const IconPicker = React.forwardRef<
   const renderVirtualContent = useCallback(() => {
     if (filteredIcons.length === 0) {
       return (
-        <div className="text-center text-gray-500">
+        <div className="text-center text-muted-foreground">
           No icon found
         </div>
       );

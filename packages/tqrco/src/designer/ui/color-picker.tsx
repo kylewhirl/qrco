@@ -16,20 +16,56 @@ export interface ColorPickerProps extends React.InputHTMLAttributes<HTMLInputEle
 }
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({ color, className, disabled = false, disableGradient = false, disableMobilePicker = false, ...props }) => {
-  // Determine if the current color string is a gradient
+  const [resolvedTheme, setResolvedTheme] = React.useState<"light" | "dark">("light");
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const getResolvedTheme = () => {
+      if (document.documentElement.classList.contains("dark")) {
+        return "dark" as const;
+      }
+      if (document.documentElement.classList.contains("light")) {
+        return "light" as const;
+      }
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    };
+
+    const updateTheme = () => {
+      setResolvedTheme(getResolvedTheme());
+    };
+
+    updateTheme();
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleMediaChange = () => updateTheme();
+
+    mediaQuery.addEventListener?.("change", handleMediaChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener?.("change", handleMediaChange);
+    };
+  }, []);
+
   const isGradient = !disableGradient && (color.startsWith("linear-gradient") || color.startsWith("radial-gradient"));
-  // Compute button background style
   const buttonStyle: React.CSSProperties = disabled
     ? {}
     : isGradient
     ? { background: color }
     : { backgroundColor: color };
-  // Determine contrast base color by averaging all stops (solid or gradient)
   const colorStops = isGradient ? parseColorValue(color).colors : [color];
   const avgColor = averageColors(colorStops);
   const iconContrastColor = getContrastColor(avgColor);
 
-  // Debounced handler to prevent rapid updates from gradient picker
   const debouncedChange = useDebouncedCallback((newColor: string) => {
     if (props.onChange) {
       const syntheticEvent = {
@@ -94,6 +130,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, className, disa
                   hideGradientAngle: true,
                   hideGradientStop: true,
                 } : {})}
+                disableDarkMode={resolvedTheme === "light"}
+                disableLightMode={resolvedTheme === "dark"}
             />
       </PopoverContent>
     </Popover>

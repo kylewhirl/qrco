@@ -637,7 +637,7 @@ function Surface({
   children,
 }: React.PropsWithChildren<{ className?: string }>) {
   return (
-    <div className={cx("rounded-3xl border border-slate-200/80 bg-white/95 shadow-sm", className)}>
+    <div className={cx("rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm", className)}>
       {children}
     </div>
   );
@@ -656,14 +656,14 @@ function Button({
     <button
       {...props}
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60",
         size === "sm" && "h-9 px-3 text-sm",
         size === "md" && "h-10 px-4 text-sm",
         size === "icon" && "h-10 w-10",
-        variant === "primary" && "bg-slate-900 text-white hover:bg-slate-800",
-        variant === "secondary" && "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-        variant === "ghost" && "text-slate-600 hover:bg-slate-100",
-        variant === "destructive" && "bg-red-600 text-white hover:bg-red-500",
+        variant === "primary" && "bg-primary text-primary-foreground hover:bg-primary/90",
+        variant === "secondary" && "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+        variant === "ghost" && "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        variant === "destructive" && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         className,
       )}
     />
@@ -675,7 +675,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cx(
-        "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-slate-300",
+        "h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-ring",
         props.className,
       )}
     />
@@ -687,7 +687,7 @@ function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
     <textarea
       {...props}
       className={cx(
-        "min-h-[96px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-slate-300",
+        "min-h-[96px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-ring",
         props.className,
       )}
     />
@@ -699,7 +699,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cx(
-        "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-300",
+        "h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-ring",
         props.className,
       )}
     />
@@ -713,7 +713,7 @@ function Field({
 }: React.PropsWithChildren<{ label: string; htmlFor?: string }>) {
   return (
     <label className="space-y-1.5" htmlFor={htmlFor}>
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       {children}
     </label>
   );
@@ -722,9 +722,9 @@ function Field({
 function MetricCard({ title, value, detail }: { title: string; value: string | number; detail: string }) {
   return (
     <Surface className="p-5">
-      <div className="text-sm text-slate-500">{title}</div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{value}</div>
-      <div className="mt-2 text-sm text-slate-500">{detail}</div>
+      <div className="text-sm text-muted-foreground">{title}</div>
+      <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{value}</div>
+      <div className="mt-2 text-sm text-muted-foreground">{detail}</div>
     </Surface>
   );
 }
@@ -751,28 +751,28 @@ function OverlayDialog({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      className="fixed inset-0 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
       style={{ zIndex: OVERLAY_Z_INDEX }}
       onClick={onClose}
     >
       <div
         className={cx(
-          "max-h-[92vh] w-full overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 shadow-2xl",
+          "max-h-[92vh] w-full overflow-hidden rounded-[28px] border border-border bg-background shadow-2xl",
           size === "md" ? "max-w-2xl" : "max-w-6xl",
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-5">
           <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-            {description ? <p className="text-sm text-slate-500">{description}</p> : null}
+            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+            {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close dialog">
             <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="max-h-[calc(92vh-150px)] overflow-y-auto px-6 py-5">{children}</div>
-        {footer ? <div className="border-t border-slate-200 bg-white px-6 py-4">{footer}</div> : null}
+        {footer ? <div className="border-t border-border bg-card px-6 py-4">{footer}</div> : null}
       </div>
     </div>
   );
@@ -944,14 +944,14 @@ function DashboardImageSquare({
     return (
       <div
         className={cx(
-          "relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/70 shadow-sm",
+          "relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted/70 shadow-sm",
           className,
         )}
       >
         {imageSrc ? (
           <img src={imageSrc} alt={`${label} image`} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.08),transparent_58%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.92))] text-slate-500">
+          <div className="flex h-full w-full items-center justify-center bg-muted/60 text-muted-foreground">
             <QrCodeIcon className="h-5 w-5" />
           </div>
         )}
@@ -963,7 +963,7 @@ function DashboardImageSquare({
     <button
       type="button"
       className={cx(
-        "group relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/70 shadow-sm transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-progress",
+        "group relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted/70 shadow-sm transition hover:border-ring/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-progress",
         className,
       )}
       onClick={() => inputRef.current?.click()}
@@ -973,11 +973,11 @@ function DashboardImageSquare({
       {imageSrc ? (
         <img src={imageSrc} alt={`${label} image`} className="h-full w-full object-cover" />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.08),transparent_58%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(226,232,240,0.92))] text-slate-500">
+        <div className="flex h-full w-full items-center justify-center bg-muted/60 text-muted-foreground">
           <QrCodeIcon className="h-5 w-5" />
         </div>
       )}
-      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45 text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
       </div>
       <input ref={inputRef} type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
@@ -1081,7 +1081,7 @@ function QRDataFields({
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <div className="text-sm font-medium text-slate-700">Contact Source</div>
+          <div className="text-sm font-medium text-foreground">Contact Source</div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -1258,7 +1258,7 @@ function QRDataFields({
             />
           </Field>
         ) : null}
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-foreground">
           <input
             id="wifi-hidden"
             type="checkbox"
@@ -1929,8 +1929,8 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
 
       {requestError ? (
         <Surface className="border-red-200 bg-red-50/70 p-5">
-          <div className="text-base font-semibold text-slate-900">tqrco request failed</div>
-          <div className="mt-1 text-sm text-slate-500">
+          <div className="text-base font-semibold text-foreground">tqrco request failed</div>
+          <div className="mt-1 text-sm text-muted-foreground">
             This usually means the token is missing a required scope or the current origin is not allowlisted.
           </div>
           <div className="mt-3 text-sm text-red-700">{requestError.message}</div>
@@ -1938,10 +1938,10 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
       ) : null}
 
       <Surface className="overflow-hidden">
-        <div className="flex flex-col gap-4 border-b border-slate-200 bg-white px-6 py-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border bg-card px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="text-xl font-semibold text-slate-900">QR Codes</div>
-            <div className="mt-1 text-sm text-slate-500">Manage QR view, design, and editing flows from the SDK.</div>
+            <div className="text-xl font-semibold text-foreground">QR Codes</div>
+            <div className="mt-1 text-sm text-muted-foreground">Manage QR view, design, and editing flows from the SDK.</div>
           </div>
           <Button
             size="sm"
@@ -1958,7 +1958,7 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
+              <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-[0.14em] text-muted-foreground">
                 <th className="px-6 py-3 font-medium">Image</th>
                 <th className="px-6 py-3 font-medium">Code</th>
                 <th className="px-6 py-3 font-medium">Public URL</th>
@@ -1972,13 +1972,13 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
             <tbody>
               {(qrCodes.data?.length ?? 0) === 0 ? (
                 <tr>
-                  <td className="px-6 py-12 text-center text-sm text-slate-500" colSpan={8}>
+                  <td className="px-6 py-12 text-center text-sm text-muted-foreground" colSpan={8}>
                     {qrCodes.isLoading ? "Loading QR codes..." : "No QR codes found."}
                   </td>
                 </tr>
               ) : (
                 qrCodes.data?.map((qr) => (
-                  <tr key={qr.id} className="border-b border-slate-100 align-middle">
+                  <tr key={qr.id} className="border-b border-border/60 align-middle">
                     <td className="px-6 py-4">
                       <DashboardImageSquare
                         qr={qr}
@@ -1988,12 +1988,12 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
                         onError={(error) => pushError(error, "Failed to upload image.")}
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{qr.data?.name ? qr.data.name : qr.code}</td>
-                    <td className="max-w-[280px] px-6 py-4 font-mono text-xs text-slate-500">{truncateText(getPublicUrl(qr), 42)}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{getQrTypeLabel(qr.data.type)}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{qr.totalScans}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{formatDate(qr.lastScanned)}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{formatDate(qr.createdAt)}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-foreground">{qr.data?.name ? qr.data.name : qr.code}</td>
+                    <td className="max-w-[280px] px-6 py-4 font-mono text-xs text-muted-foreground">{truncateText(getPublicUrl(qr), 42)}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{getQrTypeLabel(qr.data.type)}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{qr.totalScans}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(qr.lastScanned)}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(qr.createdAt)}</td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" onClick={() => openView(qr)} aria-label="View QR code">
@@ -2102,14 +2102,14 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
       >
         {activeQr ? (
           <div className="flex flex-col items-center gap-4">
-            <div ref={viewPreviewRef} className="flex w-full items-center justify-center rounded-[24px] border border-slate-200 bg-white p-6">
+            <div ref={viewPreviewRef} className="flex w-full items-center justify-center rounded-[24px] border border-border bg-card p-6">
               <RenderedQRCode
                 data={getPublicUrl(activeQr)}
                 config={getQrConfig(activeQr.data)}
                 className="flex h-full w-full items-center justify-center"
               />
             </div>
-            <span className="text-sm text-slate-500">{getQrTypeLabel(activeQr.data.type)}</span>
+            <span className="text-sm text-muted-foreground">{getQrTypeLabel(activeQr.data.type)}</span>
           </div>
         ) : null}
       </OverlayDialog>
@@ -2262,9 +2262,9 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
         }
       >
         {activeQr ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="text-sm text-slate-700">
-              This will remove <span className="font-medium text-slate-900">{activeQr.data.name ?? activeQr.code}</span> and its saved configuration.
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-sm text-muted-foreground">
+              This will remove <span className="font-medium text-foreground">{activeQr.data.name ?? activeQr.code}</span> and its saved configuration.
             </div>
           </div>
         ) : null}
