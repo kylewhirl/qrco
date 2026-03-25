@@ -502,3 +502,24 @@ export function QRImageSquare({
     </button>
   );
 }
+
+export {
+  QRCodesManager,
+  QrDesignEditor,
+  type QRCodesManagerProps,
+  type QrDesignEditorProps,
+} from "./dashboard";
+export {
+  BorderSettings,
+  ColorPicker,
+  ErrorLevelSettings,
+  Icon,
+  IconPicker,
+  LogoSettings,
+  StyleSettings,
+  type BorderSettingsProps,
+  type ColorPickerProps,
+  type ErrorLevelSettingsProps,
+  type IconName,
+  type StyleSettingsProps,
+} from "./designer/index";
