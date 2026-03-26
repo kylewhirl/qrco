@@ -58,7 +58,7 @@ export default async function DashboardBillingPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="rounded-[28px] border border-border/70 bg-[linear-gradient(135deg,rgba(14,165,233,0.10),transparent_44%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-6 shadow-sm md:p-8">
+      <section className="dashboard-hero dashboard-hero-sky rounded-[28px] border p-6 md:p-8">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Commerce</p>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Billing</h1>

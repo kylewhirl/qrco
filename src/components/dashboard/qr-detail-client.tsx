@@ -166,7 +166,7 @@ export function QRDetailClient({
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="rounded-[28px] border border-border/70 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-6 shadow-sm md:p-8">
+      <section className="dashboard-hero dashboard-hero-emerald rounded-[28px] border p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-5">
             <QRImageSquare
@@ -515,7 +515,7 @@ export function QRDetailClient({
               <CardDescription>Preview uses the current draft payload.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-[28px] border border-border/70 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_52%),#ffffff] p-4">
+              <div className="dashboard-preview-surface dashboard-preview-emerald rounded-[28px] border p-4">
                 <QrPreview
                   data={publicUrl}
                   errorLevel={draftData.errorLevel ?? "M"}

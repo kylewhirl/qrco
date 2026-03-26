@@ -33,7 +33,7 @@ const developerNotes = [
 export default function DashboardSettingsPage() {
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="relative overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(135deg,rgba(0,0,0,0.03),transparent_35%),linear-gradient(180deg,#fff,rgba(245,247,250,0.96))] p-6 shadow-sm md:p-8">
+      <section className="dashboard-hero dashboard-hero-slate rounded-[28px] border p-6 md:p-8">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_55%)] md:block" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-4">

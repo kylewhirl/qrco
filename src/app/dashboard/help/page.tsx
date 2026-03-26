@@ -33,7 +33,7 @@ const helpLinks = [
 export default function DashboardHelpPage() {
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="rounded-[28px] border border-border/70 bg-[linear-gradient(135deg,rgba(244,114,182,0.10),transparent_44%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-6 shadow-sm md:p-8">
+      <section className="dashboard-hero dashboard-hero-pink rounded-[28px] border p-6 md:p-8">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Support</p>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Get Help</h1>

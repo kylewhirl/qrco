@@ -174,6 +174,103 @@
   .font-brand {
     font-family: var(--font-orbitron);
   }
+
+  .dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    border-color: color-mix(in oklab, var(--border) 72%, transparent);
+    background:
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--card) 97%, white 3%),
+        color-mix(in oklab, var(--muted) 40%, var(--card) 60%)
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 65%, transparent),
+      0 24px 44px -36px color-mix(in oklab, var(--foreground) 22%, transparent);
+  }
+
+  .dashboard-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--dashboard-hero-accent, rgba(16, 185, 129, 0.12)), transparent 46%);
+    pointer-events: none;
+  }
+
+  .dashboard-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-preview-surface {
+    border-color: color-mix(in oklab, var(--border) 72%, transparent);
+    background:
+      radial-gradient(circle at top, var(--dashboard-preview-accent, rgba(16, 185, 129, 0.16)), transparent 54%),
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--card) 96%, white 4%),
+        color-mix(in oklab, var(--background) 86%, var(--card) 14%)
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 60%, transparent),
+      0 18px 30px -26px color-mix(in oklab, var(--foreground) 20%, transparent);
+  }
+
+  .dashboard-hero-slate {
+    --dashboard-hero-accent: rgba(15, 23, 42, 0.08);
+  }
+
+  .dashboard-hero-blue {
+    --dashboard-hero-accent: rgba(59, 130, 246, 0.13);
+  }
+
+  .dashboard-hero-sky {
+    --dashboard-hero-accent: rgba(14, 165, 233, 0.13);
+  }
+
+  .dashboard-hero-emerald {
+    --dashboard-hero-accent: rgba(16, 185, 129, 0.12);
+  }
+
+  .dashboard-hero-green {
+    --dashboard-hero-accent: rgba(34, 197, 94, 0.12);
+  }
+
+  .dashboard-hero-amber {
+    --dashboard-hero-accent: rgba(250, 204, 21, 0.14);
+  }
+
+  .dashboard-hero-pink {
+    --dashboard-hero-accent: rgba(244, 114, 182, 0.14);
+  }
+
+  .dashboard-preview-emerald {
+    --dashboard-preview-accent: rgba(16, 185, 129, 0.16);
+  }
+
+  .dark .dashboard-hero {
+    border-color: color-mix(in oklab, var(--border) 92%, transparent);
+    background:
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--card) 92%, black 8%),
+        color-mix(in oklab, var(--muted) 48%, var(--background) 52%)
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
+      0 26px 48px -38px color-mix(in oklab, black 70%, transparent);
+  }
+
+  .dark .dashboard-preview-surface {
+    border-color: color-mix(in oklab, var(--border) 92%, transparent);
+    background:
+      radial-gradient(circle at top, var(--dashboard-preview-accent, rgba(16, 185, 129, 0.2)), transparent 56%),
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--card) 94%, black 6%),
+        color-mix(in oklab, var(--background) 82%, var(--card) 18%)
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
+      0 22px 34px -28px color-mix(in oklab, black 70%, transparent);
+  }
 }
 
 @layer base {
