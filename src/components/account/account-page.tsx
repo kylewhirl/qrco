@@ -163,7 +163,7 @@ export function AccountPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="rounded-[32px] border border-border/70 bg-[linear-gradient(135deg,rgba(251,191,36,0.12),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-6 shadow-sm md:p-8">
+      <section className="dashboard-hero dashboard-hero-amber rounded-[32px] border p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Identity Control</p>
