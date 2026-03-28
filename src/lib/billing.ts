@@ -305,7 +305,6 @@ async function reconcileStripeSubscriptionForUser(
       customer: stored.stripeCustomerId,
       status: "all",
       limit: 10,
-      expand: ["data.items.data.price.product"],
     });
   } catch (error) {
     if (!isStripeResourceMissingError(error)) {

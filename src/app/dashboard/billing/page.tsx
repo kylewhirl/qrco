@@ -1,12 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, CreditCard, Gauge, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, CreditCard, Gauge, ShieldCheck, Sparkles } from "lucide-react";
 
-import { BillingCheckoutPanel } from "@/components/billing/checkout-panel";
 import { ManageBillingButton } from "@/components/billing/manage-billing-button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUserBillingState, getStripeCheckoutPlanCatalog } from "@/lib/billing";
-import type { BillingTier } from "@/lib/billing-definitions";
+import { getCurrentUserBillingState } from "@/lib/billing";
 import { stackServerApp } from "@/stack";
 
 function formatUsage(used: number, limit: number | null) {
@@ -27,14 +27,13 @@ export default async function DashboardBillingPage({
     redirect("/login");
   }
 
-  const [billingState, planCatalog, resolvedSearchParams] = await Promise.all([
+  const [billingState, resolvedSearchParams] = await Promise.all([
     getCurrentUserBillingState(),
-    getStripeCheckoutPlanCatalog(),
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
 
   const requestedTier = typeof resolvedSearchParams.plan === "string" ? resolvedSearchParams.plan : null;
-  const initialTier = requestedTier === "growth"
+  const checkoutTargetTier = requestedTier === "growth"
     ? "growth"
     : requestedTier === "creator"
       ? "creator"
@@ -46,19 +45,6 @@ export default async function DashboardBillingPage({
     { label: "API usage", value: billingState.plan.access.api_access ? formatUsage(billingState.usage.api_requests.used, billingState.usage.api_requests.limit) : "Locked", icon: Gauge },
     { label: "Support tier", value: billingState.plan.paid ? "Paid account" : "Self-serve free", icon: ShieldCheck },
   ];
-
-  const checkoutPlans = {
-    creator: {
-      ...planCatalog.creator,
-      label: "Creator",
-      headline: "Uploads, custom domains, API access, and 180 days of analytics",
-    },
-    growth: {
-      ...planCatalog.growth,
-      label: "Growth",
-      headline: "Full product access with unlimited API usage and full analytics retention",
-    },
-  };
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -121,16 +107,38 @@ export default async function DashboardBillingPage({
                 ))}
               </div>
 
-              {billingState.plan.paid ? <ManageBillingButton /> : null}
+              <div className="flex flex-wrap gap-3">
+                <Button asChild>
+                  <Link href={`/checkout?plan=${checkoutTargetTier}`}>
+                    {billingState.plan.paid ? "Change plan" : "Go to checkout"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                {billingState.plan.paid ? <ManageBillingButton /> : null}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <BillingCheckoutPanel
-          currentTier={billingState.tier as BillingTier}
-          initialTier={initialTier}
-          plans={checkoutPlans}
-        />
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle>Dedicated checkout</CardTitle>
+            <CardDescription>
+              Billing stays focused on account state and usage. Plan selection and payment details now live on the standalone checkout route.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-[24px] border border-border/70 bg-muted/15 p-5 text-sm text-muted-foreground">
+              Open the dedicated checkout for plan changes, payment entry, and confirmation. The dashboard no longer mixes checkout UI into the billing surface.
+            </div>
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/checkout?plan=${checkoutTargetTier}`}>
+                Open checkout
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

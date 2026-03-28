@@ -24,7 +24,7 @@ export function FeatureLockCard({
       </CardHeader>
       <CardContent>
         <Button asChild variant="outline">
-          <Link href="/dashboard/billing?plan=creator">{ctaLabel}</Link>
+          <Link href="/checkout?plan=creator">{ctaLabel}</Link>
         </Button>
       </CardContent>
     </Card>

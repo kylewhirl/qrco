@@ -96,7 +96,6 @@ export async function POST(request: NextRequest) {
           stackUserId: user.id,
           targetTier: parsed.data.tier,
         },
-        expand: ["items.data.price.product"],
       })
     : await stripe.subscriptions.create({
         customer: customerId,
@@ -109,7 +108,6 @@ export async function POST(request: NextRequest) {
           stackUserId: user.id,
           targetTier: parsed.data.tier,
         },
-        expand: ["items.data.price.product"],
       });
 
   const snapshot = getSubscriptionSnapshot(subscription);

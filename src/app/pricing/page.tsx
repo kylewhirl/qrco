@@ -37,7 +37,7 @@ const plans = [
     subtitle: '/mo',
     highlighted: false,
     cta: 'Subscribe',
-    href: '/dashboard/billing?plan=creator',
+    href: '/checkout?plan=creator',
     features: [
       'Everything in Free',
       'Unlimited AI-generated QR codes',
@@ -54,7 +54,7 @@ const plans = [
     subtitle: '/mo',
     highlighted: true,
     cta: 'Go Growth',
-    href: '/dashboard/billing?plan=growth',
+    href: '/checkout?plan=growth',
     features: [
       'Everything in Creator',
       'Unlimited API usage',

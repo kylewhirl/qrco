@@ -8,48 +8,45 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { CheckCircle2, CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import type { BillingTier } from "@/lib/billing-definitions";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type PaidTier = Exclude<BillingTier, "free">;
 
-type PlanCatalog = Record<PaidTier, {
-  amount: number | null;
-  currency: string;
-  interval: string;
-  label: string;
-  headline: string;
-}>;
+export type CheckoutFormState = {
+  alreadyOnPlan: boolean;
+  loading: boolean;
+  ready: boolean;
+  submitting: boolean;
+  error: string | null;
+};
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
-function formatPrice(amount: number | null, currency: string) {
-  if (amount === null) {
-    return "Custom";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(amount / 100);
-}
-
 function CheckoutForm({
   selectedTier,
   onSuccess,
+  onStateChange,
 }: {
   selectedTier: PaidTier;
   onSuccess: () => void;
+  onStateChange: (state: Partial<CheckoutFormState>) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    onStateChange({
+      ready: Boolean(stripe && elements),
+      submitting: isSubmitting,
+      error,
+    });
+  }, [elements, error, isSubmitting, onStateChange, stripe]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,6 +56,7 @@ function CheckoutForm({
 
     setError(null);
     setIsSubmitting(true);
+    onStateChange({ error: null, submitting: true });
 
     try {
       const confirmed = await stripe.confirmSetup({
@@ -93,68 +91,82 @@ function CheckoutForm({
       toast.success("Subscription updated");
       onSuccess();
     } catch (submitError) {
-      console.error("Billing submit failed:", submitError);
       const message = submitError instanceof Error ? submitError.message : "Unable to complete checkout";
+      console.error("Billing submit failed:", submitError);
       setError(message);
+      onStateChange({ error: message });
       toast.error(message);
     } finally {
       setIsSubmitting(false);
+      onStateChange({ submitting: false });
     }
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
+    <form id="checkout-payment-form" className="space-y-4" onSubmit={handleSubmit}>
+      <div className="rounded-[20px] border border-white/10 bg-[#252525] px-4 py-3">
         <PaymentElement />
       </div>
-
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-      <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !stripe || !elements}>
-        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-        {isSubmitting ? "Processing..." : `Subscribe to ${selectedTier === "creator" ? "Creator" : "Growth"}`}
-      </Button>
+      {error ? <p className="text-sm text-[#ff7b7b]">{error}</p> : null}
     </form>
   );
 }
 
 export function BillingCheckoutPanel({
   currentTier,
-  initialTier,
-  plans,
+  selectedTier,
+  customerEmail,
+  onStateChange,
 }: {
   currentTier: BillingTier;
-  initialTier: PaidTier;
-  plans: PlanCatalog;
+  selectedTier: PaidTier;
+  customerEmail: string | null;
+  onStateChange: (state: CheckoutFormState) => void;
 }) {
-  const [selectedTier, setSelectedTier] = useState<PaidTier>(initialTier);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
   const alreadyOnPlan = currentTier === selectedTier;
 
-  const selectedPlan = useMemo(() => plans[selectedTier], [plans, selectedTier]);
+  useEffect(() => {
+    onStateChange({
+      alreadyOnPlan,
+      loading: loadingSecret,
+      ready: Boolean(clientSecret && stripePromise),
+      submitting: false,
+      error: setupError,
+    });
+  }, [alreadyOnPlan, clientSecret, loadingSecret, onStateChange, setupError]);
 
   useEffect(() => {
     let ignore = false;
 
     async function loadSetupIntent() {
       if (!publishableKey) {
-        setSetupError("Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-        setClientSecret(null);
+        if (!ignore) {
+          setSetupError("Missing Stripe publishable key");
+          setClientSecret(null);
+          setLoadingSecret(false);
+        }
         return;
       }
 
       if (alreadyOnPlan) {
-        setSetupError(null);
-        setClientSecret(null);
+        if (!ignore) {
+          setSetupError(null);
+          setClientSecret(null);
+          setLoadingSecret(false);
+        }
         return;
       }
 
       try {
-        setLoadingSecret(true);
-        setSetupError(null);
+        if (!ignore) {
+          setLoadingSecret(true);
+          setSetupError(null);
+        }
+
         const response = await fetch("/api/billing/setup-intent", {
           method: "POST",
           headers: {
@@ -172,7 +184,6 @@ export function BillingCheckoutPanel({
           setClientSecret(payload.clientSecret);
         }
       } catch (error) {
-        console.error("Failed to prepare checkout:", error);
         if (!ignore) {
           setClientSecret(null);
           setSetupError(error instanceof Error ? error.message : "Unable to prepare checkout");
@@ -191,92 +202,124 @@ export function BillingCheckoutPanel({
     };
   }, [alreadyOnPlan, selectedTier]);
 
-  const appearance = {
-    theme: "stripe" as const,
+  const appearance = useMemo(() => ({
+    theme: "night" as const,
     variables: {
-      colorPrimary: "#111827",
-      colorBackground: "#ffffff",
-      colorText: "#111827",
-      colorDanger: "#b91c1c",
+      colorPrimary: "#f4f4f4",
+      colorBackground: "#252525",
+      colorText: "#f4f4f4",
+      colorTextSecondary: "#9d9d9d",
+      colorDanger: "#ff7b7b",
+      colorSuccess: "#b39cff",
+      colorIcon: "#bdbdbd",
+      colorTextPlaceholder: "#777777",
       borderRadius: "18px",
+      spacingUnit: "4px",
+      fontFamily: "var(--font-montserrat)",
     },
-  };
+    rules: {
+      ".Input": {
+        backgroundColor: "#252525",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "none",
+      },
+      ".Input:focus": {
+        border: "1px solid rgba(255,255,255,0.24)",
+        boxShadow: "none",
+      },
+      ".Tab": {
+        backgroundColor: "#252525",
+        border: "1px solid rgba(255,255,255,0.08)",
+      },
+      ".Tab:hover": {
+        color: "#f4f4f4",
+      },
+      ".Tab--selected": {
+        backgroundColor: "#303030",
+        border: "1px solid rgba(255,255,255,0.18)",
+      },
+      ".Block": {
+        backgroundColor: "#252525",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "none",
+      },
+      ".Label": {
+        color: "#9d9d9d",
+      },
+      ".CodeInput": {
+        backgroundColor: "#2a2a2a",
+        border: "1px solid rgba(255,255,255,0.08)",
+      },
+    },
+  }), []);
 
   return (
-    <Card className="border-border/70 bg-background/70 backdrop-blur">
-      <CardHeader>
-        <CardTitle>Checkout</CardTitle>
-        <CardDescription>
-          Secure on-site billing powered by Stripe Elements.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {(["creator", "growth"] as PaidTier[]).map((tier) => {
-            const plan = plans[tier];
-            const isActive = selectedTier === tier;
-
-            return (
-              <button
-                key={tier}
-                type="button"
-                className={`rounded-[22px] border p-4 text-left transition ${
-                  isActive ? "border-foreground bg-foreground text-background" : "border-border/70 bg-muted/20"
-                }`}
-                onClick={() => setSelectedTier(tier)}
-              >
-                <p className="text-sm font-medium">{plan.label}</p>
-                <p className="mt-2 text-2xl font-semibold">{formatPrice(plan.amount, plan.currency)}</p>
-                <p className={`mt-2 text-sm ${isActive ? "text-zinc-200" : "text-muted-foreground"}`}>
-                  {plan.headline}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rounded-[24px] border border-border/70 bg-muted/15 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">{selectedPlan.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{selectedPlan.headline}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-semibold">{formatPrice(selectedPlan.amount, selectedPlan.currency)}</p>
-              <p className="text-sm text-muted-foreground">per {selectedPlan.interval}</p>
-            </div>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <p className="text-[12px] font-medium text-[#d8d8d8]">Payment method</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 rounded-[16px] border border-white/20 bg-[#252525] px-4 py-3 text-sm text-white">
+            <CreditCard className="h-4 w-4" />
+            <span>Card</span>
           </div>
-
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4" />
-            Access updates immediately after a successful Stripe subscription.
+          <div className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-[#252525] px-4 py-3 text-sm text-[#9d9d9d]">
+            <Wallet className="h-4 w-4" />
+            <span>Wallets in Stripe</span>
           </div>
         </div>
+      </div>
 
-        {alreadyOnPlan ? (
-          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-            This account is already on the {selectedPlan.label} tier.
-          </div>
-        ) : null}
+      <div className="rounded-[20px] border border-white/8 bg-[#252525] p-4">
+        <div className="space-y-1 border-b border-white/8 pb-4">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#8a8a8a]">Contact</p>
+          <p className="text-sm text-white">{customerEmail ?? "No email available"}</p>
+        </div>
 
-        {loadingSecret ? <p className="text-sm text-muted-foreground">Preparing checkout…</p> : null}
-        {setupError ? <p className="text-sm text-destructive">{setupError}</p> : null}
+        <div className="pt-4">
+          {alreadyOnPlan ? (
+            <div className="rounded-[18px] border border-white/8 bg-[#1f1f1f] px-4 py-3 text-sm text-[#cfcfcf]">
+              This account is already on the {selectedTier === "creator" ? "Creator" : "Growth"} plan.
+            </div>
+          ) : null}
 
-        {!alreadyOnPlan && clientSecret && stripePromise ? (
-          <Elements
-            stripe={stripePromise}
-            options={{
-              clientSecret,
-              appearance,
-            }}
-          >
-            <CheckoutForm
-              selectedTier={selectedTier}
-              onSuccess={() => window.location.assign("/dashboard/billing?success=1")}
-            />
-          </Elements>
-        ) : null}
-      </CardContent>
-    </Card>
+          {loadingSecret ? (
+            <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#1f1f1f] px-4 py-3 text-sm text-[#bdbdbd]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Preparing payment form
+            </div>
+          ) : null}
+
+          {setupError && !alreadyOnPlan ? (
+            <div className="rounded-[18px] border border-[#5e2a2a] bg-[#2b1717] px-4 py-3 text-sm text-[#ff9f9f]">
+              {setupError}
+            </div>
+          ) : null}
+
+          {!alreadyOnPlan && clientSecret && stripePromise ? (
+            <Elements
+              stripe={stripePromise}
+              options={{
+                clientSecret,
+                appearance,
+              }}
+            >
+              <CheckoutForm
+                selectedTier={selectedTier}
+                onSuccess={() => window.location.assign("/dashboard/billing?success=1")}
+                onStateChange={(partialState) =>
+                  onStateChange({
+                    alreadyOnPlan,
+                    loading: loadingSecret,
+                    ready: Boolean((partialState.ready ?? false) && clientSecret && stripePromise),
+                    submitting: partialState.submitting ?? false,
+                    error: partialState.error ?? setupError,
+                  })
+                }
+              />
+            </Elements>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
