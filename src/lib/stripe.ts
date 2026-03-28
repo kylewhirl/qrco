@@ -6,6 +6,15 @@ import type { BillingTier } from "@/lib/billing-definitions";
 let stripeInstance: Stripe | null = null;
 const priceIdCache = new Map<Exclude<BillingTier, "free">, string>();
 
+function isStripeResourceMissingError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "resource_missing"
+  );
+}
+
 export function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error("Missing STRIPE_SECRET_KEY");
@@ -48,6 +57,34 @@ async function lookupMonthlyPriceIdByProduct(productId: string) {
   return monthlyPrice.id;
 }
 
+async function resolveExistingConfiguredPriceId(
+  tier: Exclude<BillingTier, "free">,
+  configuredPriceId: string,
+  productId: string | null,
+) {
+  const stripe = getStripe();
+
+  try {
+    const price = await stripe.prices.retrieve(configuredPriceId);
+    if (!price.deleted) {
+      priceIdCache.set(tier, price.id);
+      return price.id;
+    }
+  } catch (error) {
+    if (!isStripeResourceMissingError(error)) {
+      throw error;
+    }
+  }
+
+  if (!productId) {
+    throw new Error(`Configured Stripe price ${configuredPriceId} was not found for tier ${tier}`);
+  }
+
+  const fallbackPriceId = await lookupMonthlyPriceIdByProduct(productId);
+  priceIdCache.set(tier, fallbackPriceId);
+  return fallbackPriceId;
+}
+
 export async function getStripePriceIdForTier(tier: Exclude<BillingTier, "free">) {
   const cached = priceIdCache.get(tier);
   if (cached) {
@@ -58,13 +95,12 @@ export async function getStripePriceIdForTier(tier: Exclude<BillingTier, "free">
     tier === "creator"
       ? process.env.STRIPE_CREATOR_PRICE_ID
       : process.env.STRIPE_GROWTH_PRICE_ID ?? process.env.STRIPE_BUSINESS_PRICE_ID;
+  const productId = resolveProductIdForTier(tier);
 
   if (configuredPriceId) {
-    priceIdCache.set(tier, configuredPriceId);
-    return configuredPriceId;
+    return resolveExistingConfiguredPriceId(tier, configuredPriceId, productId);
   }
 
-  const productId = resolveProductIdForTier(tier);
   if (!productId) {
     throw new Error(`Missing Stripe product configuration for tier ${tier}`);
   }

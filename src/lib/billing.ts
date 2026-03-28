@@ -83,6 +83,15 @@ function isStripeSubscriptionSnapshot(value: unknown): value is StripeSubscripti
   return typeof value === "object" && value !== null;
 }
 
+function isStripeResourceMissingError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "resource_missing"
+  );
+}
+
 function getCurrentPeriodKey(date = new Date()) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -290,12 +299,32 @@ async function reconcileStripeSubscriptionForUser(
     return stored;
   }
 
-  const subscriptions = await getStripe().subscriptions.list({
-    customer: stored.stripeCustomerId,
-    status: "all",
-    limit: 10,
-    expand: ["data.items.data.price.product"],
-  });
+  let subscriptions: Awaited<ReturnType<ReturnType<typeof getStripe>["subscriptions"]["list"]>>;
+  try {
+    subscriptions = await getStripe().subscriptions.list({
+      customer: stored.stripeCustomerId,
+      status: "all",
+      limit: 10,
+      expand: ["data.items.data.price.product"],
+    });
+  } catch (error) {
+    if (!isStripeResourceMissingError(error)) {
+      throw error;
+    }
+
+    await user.update({
+      serverMetadata: buildBillingMetadataUpdate(user.serverMetadata, {
+        stripeCustomerId: null,
+        stripeSubscription: null,
+      }),
+    });
+
+    return {
+      ...stored,
+      stripeCustomerId: null,
+      stripeSubscription: null,
+    };
+  }
 
   const activeSubscription =
     subscriptions.data.find((subscription) => stripeSyncableStatuses.has(subscription.status)) ?? null;
@@ -438,7 +467,16 @@ export async function hasAdvancedAnalyticsForUser(userId: string) {
 export async function ensureStripeCustomerForUser(user: Pick<ServerUser, "id" | "primaryEmail" | "displayName" | "serverMetadata" | "update">) {
   const stored = getStoredBillingMetadata(user.serverMetadata);
   if (stored.stripeCustomerId) {
-    return stored.stripeCustomerId;
+    try {
+      const existingCustomer = await getStripe().customers.retrieve(stored.stripeCustomerId);
+      if (!existingCustomer.deleted) {
+        return existingCustomer.id;
+      }
+    } catch (error) {
+      if (!isStripeResourceMissingError(error)) {
+        throw error;
+      }
+    }
   }
 
   const customer = await getStripe().customers.create({
@@ -452,6 +490,7 @@ export async function ensureStripeCustomerForUser(user: Pick<ServerUser, "id" | 
   await user.update({
     serverMetadata: buildBillingMetadataUpdate(user.serverMetadata, {
       stripeCustomerId: customer.id,
+      stripeSubscription: stored.stripeCustomerId ? null : undefined,
     }),
   });
 
