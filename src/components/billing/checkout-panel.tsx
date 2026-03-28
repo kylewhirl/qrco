@@ -142,17 +142,7 @@ export function BillingCheckoutPanel({
 
   const alreadyOnPlan = currentTier === selectedTier;
 
-  useEffect(() => {
-    onStateChange({
-      alreadyOnPlan,
-      loading: loadingSecret,
-      ready: Boolean(clientSecret && stripePromise && appearance),
-      submitting: false,
-      error: setupError,
-    });
-  }, [alreadyOnPlan, appearance, clientSecret, loadingSecret, onStateChange, setupError]);
-
-  useEffect(() => {
+  function updateAppearanceFromTheme() {
     if (
       !cardToneRef.current ||
       !mutedToneRef.current ||
@@ -168,9 +158,10 @@ export function BillingCheckoutPanel({
     const primaryStyles = getComputedStyle(primaryToneRef.current);
     const destructiveStyles = getComputedStyle(destructiveToneRef.current);
     const fontStyles = getComputedStyle(fontToneRef.current);
+    const isDark = document.documentElement.classList.contains("dark");
 
     setAppearance({
-      theme: "stripe",
+      theme: isDark ? "night" : "stripe",
       variables: {
         colorPrimary: primaryStyles.backgroundColor,
         colorBackground: cardStyles.backgroundColor,
@@ -178,12 +169,21 @@ export function BillingCheckoutPanel({
         colorTextSecondary: mutedStyles.color,
         colorDanger: destructiveStyles.color,
         colorSuccess: primaryStyles.backgroundColor,
-        colorIcon: mutedStyles.color,
         colorTextPlaceholder: mutedStyles.color,
+        iconColor: mutedStyles.color,
+        tabIconColor: mutedStyles.color,
+        tabIconSelectedColor: cardStyles.color,
+        accessibleColorOnColorPrimary: primaryStyles.color,
+        accessibleColorOnColorBackground: cardStyles.color,
         borderRadius: "18px",
         spacingUnit: "4px",
         fontFamily: fontStyles.fontFamily,
-        fontSizeBase: "14px",
+        fontSizeBase: "16px",
+        fontLineHeight: "1.4",
+        logoColor: isDark ? "light" : "dark",
+        tabLogoColor: isDark ? "light" : "dark",
+        tabLogoSelectedColor: isDark ? "light" : "dark",
+        blockLogoColor: isDark ? "light" : "dark",
       },
       rules: {
         ".Input": {
@@ -194,7 +194,19 @@ export function BillingCheckoutPanel({
         },
         ".Input:focus": {
           border: `1px solid ${primaryStyles.backgroundColor}`,
-          boxShadow: "none",
+          boxShadow: `0 0 0 1px ${primaryStyles.backgroundColor}`,
+        },
+        ".Input::placeholder": {
+          color: mutedStyles.color,
+        },
+        ".Input--invalid": {
+          boxShadow: `0 0 0 1px ${destructiveStyles.color}`,
+        },
+        ".Label": {
+          color: mutedStyles.color,
+        },
+        ".Label--invalid": {
+          color: destructiveStyles.color,
         },
         ".Tab": {
           backgroundColor: mutedStyles.backgroundColor,
@@ -202,10 +214,13 @@ export function BillingCheckoutPanel({
           boxShadow: "none",
           color: mutedStyles.color,
         },
+        ".Tab:hover": {
+          color: cardStyles.color,
+        },
         ".Tab--selected": {
           backgroundColor: cardStyles.backgroundColor,
           border: `1px solid ${primaryStyles.backgroundColor}`,
-          boxShadow: "none",
+          boxShadow: `0 0 0 1px ${primaryStyles.backgroundColor}`,
           color: cardStyles.color,
         },
         ".Block": {
@@ -215,9 +230,6 @@ export function BillingCheckoutPanel({
         },
         ".BlockDivider": {
           backgroundColor: cardStyles.borderColor,
-        },
-        ".Label": {
-          color: mutedStyles.color,
         },
         ".CodeInput": {
           backgroundColor: mutedStyles.backgroundColor,
@@ -231,13 +243,37 @@ export function BillingCheckoutPanel({
         },
         ".AccordionItem--selected": {
           border: `1px solid ${primaryStyles.backgroundColor}`,
-          boxShadow: "none",
-        },
-        ".TabIcon, .AccordionItemIcon": {
-          color: mutedStyles.color,
+          boxShadow: `0 0 0 1px ${primaryStyles.backgroundColor}`,
         },
       },
     });
+  }
+
+  useEffect(() => {
+    onStateChange({
+      alreadyOnPlan,
+      loading: loadingSecret,
+      ready: Boolean(clientSecret && stripePromise && appearance),
+      submitting: false,
+      error: setupError,
+    });
+  }, [alreadyOnPlan, appearance, clientSecret, loadingSecret, onStateChange, setupError]);
+
+  useEffect(() => {
+    updateAppearanceFromTheme();
+
+    const observer = new MutationObserver(() => {
+      updateAppearanceFromTheme();
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
