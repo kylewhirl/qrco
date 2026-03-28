@@ -40,7 +40,8 @@ export async function generateQRCodeWithAI(text: string): Promise<QrPreviewProps
   });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+    const payload = await response.json().catch(() => null) as { error?: string } | null;
+    throw new Error(payload?.error || `API error: ${response.statusText}`);
   }
 
   return (await response.json()) as QrPreviewProps;

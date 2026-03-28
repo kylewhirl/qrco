@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
+import { BillingAccessError } from "@/lib/billing";
 import { deleteQRForUser, getQRByIdForUser, updateQRDataForUser } from "@/lib/qr-service";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
@@ -67,6 +68,16 @@ export async function PATCH(
     return NextResponse.json({ data: qrCode }, { headers: authorization.value.corsHeaders });
   } catch (error) {
     console.error("Failed to update QR code:", error);
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        {
+          status: error.status,
+          headers: authorization.value.corsHeaders,
+        },
+      );
+    }
+
     return NextResponse.json({ error: "Failed to update QR code" }, {
       status: 500,
       headers: authorization.value.corsHeaders,

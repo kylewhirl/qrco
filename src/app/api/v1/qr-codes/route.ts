@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
+import { BillingAccessError } from "@/lib/billing";
 import { createQRCodeForUser, getAllQRCodesForUser } from "@/lib/qr-service";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
@@ -47,6 +48,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to create QR code:", error);
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        {
+          status: error.status,
+          headers: authorization.value.corsHeaders,
+        },
+      );
+    }
+
     return NextResponse.json({ error: "Failed to create QR code" }, {
       status: 500,
       headers: authorization.value.corsHeaders,

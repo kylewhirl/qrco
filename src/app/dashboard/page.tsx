@@ -1,5 +1,7 @@
 import { Suspense } from "react"
 import { BarChart, Clock, MapPin, QrCode } from "lucide-react"
+import { redirect } from "next/navigation"
+import { FeatureLockCard } from "@/components/billing/feature-lock-card"
 import { MetricsCard } from "@/components/dashboard/metrics-card"
 import { ScanActivityChart } from "@/components/dashboard/scan-activity-chart"
 import { TopLocationsList } from "@/components/dashboard/top-locations-list"
@@ -18,17 +20,25 @@ import {
   getRecentQRCodes,
   getTopLocations,
 } from "@/lib/qr-service"
+import { getCurrentUserBillingState } from "@/lib/billing"
 import type { DailyScanCount, DashboardMetrics, LatestScan, QR, TopLocation } from "@/lib/types"
 import { formatNumber } from "@/lib/utils"
+import { stackServerApp } from "@/stack"
 import { DashboardClient } from "./client"
 
 export const dynamic = "force-dynamic"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await stackServerApp.getUser()
+  if (!user) {
+    redirect("/login")
+  }
+
+  const billingState = await getCurrentUserBillingState()
   const metricsPromise = getDashboardMetrics()
   const dailyScanCountsPromise = getDailyScanCounts()
   const qrCodesPromise = getRecentQRCodes()
-  const topLocationsPromise = getTopLocations()
+  const topLocationsPromise = billingState.plan.access.advanced_analytics ? getTopLocations() : Promise.resolve([])
   const latestScansPromise = getLatestScans()
 
   return (
@@ -53,7 +63,10 @@ export default function DashboardPage() {
         </div>
         <div className="flex w-full flex-col gap-4 md:col-span-2 lg:col-span-3">
           <Suspense fallback={<TopLocationsListSkeleton />}>
-            <TopLocationsSection topLocationsPromise={topLocationsPromise} />
+            <TopLocationsSection
+              topLocationsPromise={topLocationsPromise}
+              locked={!billingState.plan.access.advanced_analytics}
+            />
           </Suspense>
           <Suspense fallback={<LatestScansListSkeleton />}>
             <LatestScansSection latestScansPromise={latestScansPromise} />
@@ -142,9 +155,20 @@ async function RecentQRCodesSection({ qrCodesPromise }: { qrCodesPromise: Promis
 
 async function TopLocationsSection({
   topLocationsPromise,
+  locked,
 }: {
   topLocationsPromise: Promise<TopLocation[]>
+  locked: boolean
 }) {
+  if (locked) {
+    return (
+      <FeatureLockCard
+        title="Advanced analytics are locked"
+        description="Upgrade to Creator to unlock top locations and the rest of the extended analytics views."
+      />
+    )
+  }
+
   try {
     const topLocations = await topLocationsPromise
     return <TopLocationsList locations={topLocations} />

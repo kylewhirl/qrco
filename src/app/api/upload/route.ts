@@ -1,6 +1,7 @@
 export const runtime = 'nodejs';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
+import { BillingAccessError, requireBillingFeatureForUserId } from "@/lib/billing";
 import { stackServerApp } from "@/stack";
 import { attachUploadedFileToQrForUser, attachUploadedImageToQrForUser, getQRByCodeForUser, getQRByIdForUser } from "@/lib/qr-service";
 import { buildUploadObjectKey, createStorageClient, MAX_UPLOAD_SIZE_BYTES } from "@/lib/storage";
@@ -29,6 +30,24 @@ export async function POST(request: Request) {
   }
 
   const isImageUpload = purpose === "image";
+
+  try {
+    await requireBillingFeatureForUserId(user.id, "file_uploads");
+  } catch (error) {
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          requiredTier: error.requiredTier,
+        },
+        { status: error.status },
+      );
+    }
+
+    throw error;
+  }
+
   const qr = isImageUpload
     ? typeof qrId === "string"
       ? await getQRByIdForUser(user.id, qrId)

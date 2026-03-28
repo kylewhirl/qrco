@@ -142,6 +142,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
   const [brand, setBrand] = useState<BrandProfile | null>(null)
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([])
   const [domainsLoading, setDomainsLoading] = useState(true)
+  const [domainsLocked, setDomainsLocked] = useState(false)
   const [stylesLoading, setStylesLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -163,11 +164,18 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
     setDomainsLoading(true)
     try {
       const response = await fetch("/api/dashboard/domains")
+      if (response.status === 402) {
+        setDomains([])
+        setDomainsLocked(true)
+        return
+      }
+
       if (!response.ok) {
         throw new Error("Failed to load domains")
       }
 
       const data = await response.json() as { domains?: CustomDomain[] }
+      setDomainsLocked(false)
       setDomains((data.domains ?? []).filter((domain) => domain.status === "ready"))
     } catch (error) {
       console.error("Failed to load domains:", error)
@@ -515,10 +523,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                 <Select
                   value={newCustomDomainId ?? "default"}
                   onValueChange={(value) => setNewCustomDomainId(value === "default" ? null : value)}
-                  disabled={domainsLoading}
+                  disabled={domainsLoading || domainsLocked}
                 >
                   <SelectTrigger id="custom-domain" className="w-full">
-                    <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                    <SelectValue placeholder={domainsLoading ? "Loading domains..." : domainsLocked ? "Upgrade required" : "Use default domain"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="default">Use default domain</SelectItem>
@@ -529,6 +537,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                     ))}
                   </SelectContent>
                 </Select>
+                {domainsLocked ? (
+                  <p className="text-xs text-muted-foreground">Upgrade to Creator to assign custom domains.</p>
+                ) : null}
               </div>
             </div>
             <DialogFooter>
@@ -765,10 +776,10 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               <Select
                                 value={editCustomDomainId ?? "default"}
                                 onValueChange={(value) => setEditCustomDomainId(value === "default" ? null : value)}
-                                disabled={domainsLoading}
+                                disabled={domainsLoading || domainsLocked}
                               >
                                 <SelectTrigger id="edit-custom-domain-full" className="w-full">
-                                  <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                                  <SelectValue placeholder={domainsLoading ? "Loading domains..." : domainsLocked ? "Upgrade required" : "Use default domain"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="default">Use default domain</SelectItem>
@@ -779,6 +790,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                   ))}
                                 </SelectContent>
                               </Select>
+                              {domainsLocked ? (
+                                <p className="text-xs text-muted-foreground">Upgrade to Creator to assign custom domains.</p>
+                              ) : null}
                             </div>
                             <div className="space-y-1">
                               <Label htmlFor="name">Name</Label>

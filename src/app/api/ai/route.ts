@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { BillingAccessError, consumeBillingMeter } from "@/lib/billing";
+import { stackServerApp } from "@/stack";
 
 export async function GET() {
     return NextResponse.json({ ok: true });
@@ -11,6 +13,28 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await stackServerApp.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      await consumeBillingMeter(user.id, "ai_generations");
+    } catch (error) {
+      if (error instanceof BillingAccessError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            code: error.code,
+            requiredTier: error.requiredTier,
+          },
+          { status: error.status },
+        );
+      }
+
+      throw error;
+    }
+
     const { text } = await request.json();
     const apiKey = process.env.MISTRAL_API_KEY;
     const agentId = process.env.MISTRAL_AGENT_ID;

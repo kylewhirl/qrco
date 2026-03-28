@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ShieldCheck, KeyRound, DatabaseZap, ArrowUpRight, ScanLine, Route } from "lucide-react";
+import { FeatureLockCard } from "@/components/billing/feature-lock-card";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
 import { CustomDomainsManager } from "@/components/dashboard/custom-domains-manager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getCurrentUserBillingState } from "@/lib/billing";
+import { stackServerApp } from "@/stack";
 
 const integrationSteps = [
   "Use a bearer API key generated below.",
@@ -30,7 +34,14 @@ const developerNotes = [
   },
 ];
 
-export default function DashboardSettingsPage() {
+export default async function DashboardSettingsPage() {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  const billingState = await getCurrentUserBillingState();
+
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
       <section className="dashboard-hero dashboard-hero-slate rounded-[28px] border p-6 md:p-8">
@@ -70,8 +81,23 @@ export default function DashboardSettingsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_380px]">
         <div className="space-y-6">
-          <CustomDomainsManager />
-          <ApiKeyManager />
+          {billingState.plan.access.custom_domains ? (
+            <CustomDomainsManager />
+          ) : (
+            <FeatureLockCard
+              title="Custom domains are locked"
+              description="Upgrade to Creator to connect branded redirect domains and manage fallback routing."
+            />
+          )}
+
+          {billingState.plan.access.api_access ? (
+            <ApiKeyManager />
+          ) : (
+            <FeatureLockCard
+              title="API access is locked"
+              description="Upgrade to Creator to create secret keys, publishable tokens, and use the versioned API."
+            />
+          )}
 
           <Card className="border-border/70">
             <CardHeader>

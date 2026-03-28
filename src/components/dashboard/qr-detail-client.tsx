@@ -6,6 +6,7 @@ import { ArrowUpRight, Globe, Link2, MapPin, QrCode, Save, ScanLine } from "luci
 import { toast } from "sonner";
 
 import { LatestScansList } from "@/components/dashboard/latest-scans-list";
+import { FeatureLockCard } from "@/components/billing/feature-lock-card";
 import { QRImageSquare } from "@/components/qr-image-square";
 import { ScanActivityChart } from "@/components/dashboard/scan-activity-chart";
 import { TopLocationsList } from "@/components/dashboard/top-locations-list";
@@ -75,6 +76,7 @@ interface QRDetailClientProps {
   dailyScanCounts: DailyScanCount[]
   latestScans: LatestScan[]
   topLocations: TopLocation[]
+  advancedAnalyticsEnabled: boolean
 }
 
 export function QRDetailClient({
@@ -82,12 +84,14 @@ export function QRDetailClient({
   dailyScanCounts,
   latestScans,
   topLocations,
+  advancedAnalyticsEnabled,
 }: QRDetailClientProps) {
   const [qr, setQr] = useState(initialQR);
   const [draftData, setDraftData] = useState<QRData>(initialQR.data);
   const [customDomainId, setCustomDomainId] = useState<string | null>(initialQR.customDomainId ?? null);
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [domainsLoading, setDomainsLoading] = useState(true);
+  const [domainsLocked, setDomainsLocked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -97,12 +101,21 @@ export function QRDetailClient({
       try {
         setDomainsLoading(true);
         const response = await fetch("/api/dashboard/domains");
+        if (response.status === 402) {
+          if (!ignore) {
+            setDomains([]);
+            setDomainsLocked(true);
+          }
+          return;
+        }
+
         if (!response.ok) {
           throw new Error("Failed to load domains");
         }
 
         const payload = await response.json() as { domains?: CustomDomain[] };
         if (!ignore) {
+          setDomainsLocked(false);
           setDomains((payload.domains ?? []).filter((domain) => domain.status === "ready"));
         }
       } catch (error) {
@@ -271,10 +284,10 @@ export function QRDetailClient({
                 <Select
                   value={customDomainId ?? "default"}
                   onValueChange={(value) => setCustomDomainId(value === "default" ? null : value)}
-                  disabled={domainsLoading}
+                  disabled={domainsLoading || domainsLocked}
                 >
                   <SelectTrigger id="qr-domain">
-                    <SelectValue placeholder={domainsLoading ? "Loading domains..." : "Use default domain"} />
+                    <SelectValue placeholder={domainsLoading ? "Loading domains..." : domainsLocked ? "Upgrade required" : "Use default domain"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="default">Use default domain</SelectItem>
@@ -285,6 +298,9 @@ export function QRDetailClient({
                     ))}
                   </SelectContent>
                 </Select>
+                {domainsLocked ? (
+                  <p className="text-xs text-muted-foreground">Upgrade to Creator to assign a custom domain to this QR code.</p>
+                ) : null}
               </div>
             </div>
 
@@ -563,10 +579,21 @@ export function QRDetailClient({
               <div className="flex items-start gap-3 rounded-2xl border bg-muted/30 p-4">
                 <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">{topLocations[0]?.location || "No location data yet"}</p>
-                  <p className="text-muted-foreground">
-                    {topLocations[0] ? `${topLocations[0].count} scans from the top location.` : "Location analytics will appear after the first tracked scans."}
-                  </p>
+                  {advancedAnalyticsEnabled ? (
+                    <>
+                      <p className="font-medium">{topLocations[0]?.location || "No location data yet"}</p>
+                      <p className="text-muted-foreground">
+                        {topLocations[0] ? `${topLocations[0].count} scans from the top location.` : "Location analytics will appear after the first tracked scans."}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium">Advanced analytics locked</p>
+                      <p className="text-muted-foreground">
+                        Upgrade to Creator to view top scan locations for this QR code.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-2xl border bg-muted/30 p-4">
@@ -586,7 +613,14 @@ export function QRDetailClient({
       <ScanActivityChart data={dailyScanCounts} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <TopLocationsList locations={topLocations} />
+        {advancedAnalyticsEnabled ? (
+          <TopLocationsList locations={topLocations} />
+        ) : (
+          <FeatureLockCard
+            title="Top locations are locked"
+            description="Upgrade to Creator to unlock geographic analytics for individual QR codes."
+          />
+        )}
         <LatestScansList scans={latestScans} />
       </div>
     </div>

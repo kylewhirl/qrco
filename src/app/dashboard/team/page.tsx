@@ -4,25 +4,10 @@ import { Crown, KeyRound, Mail, ShieldCheck, Users, Globe2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { listApiKeysForUser } from "@/lib/api-keys";
+import { getCurrentUserBillingState } from "@/lib/billing";
 import { listCustomDomainsForUser } from "@/lib/custom-domains";
 import { getDashboardMetricsForUser } from "@/lib/qr-service";
 import { stackServerApp } from "@/stack";
-
-function resolvePlan(user: { serverMetadata?: Record<string, unknown> } | null) {
-  const subscription = user?.serverMetadata?.stripeSubscription as
-    | { status?: string; priceId?: string }
-    | undefined;
-
-  if (!subscription || subscription.status !== "active") {
-    return { name: "Free", seats: 1, status: "No paid seats" };
-  }
-
-  if (subscription.priceId && subscription.priceId === process.env.STRIPE_CREATOR_PRICE_ID) {
-    return { name: "Creator", seats: 3, status: "Active subscription" };
-  }
-
-  return { name: "Paid", seats: 10, status: "Active subscription" };
-}
 
 export default async function DashboardTeamPage() {
   const user = await stackServerApp.getUser();
@@ -30,13 +15,18 @@ export default async function DashboardTeamPage() {
     redirect("/login");
   }
 
-  const [metrics, apiKeys, domains] = await Promise.all([
+  const [metrics, apiKeys, domains, billingState] = await Promise.all([
     getDashboardMetricsForUser(user.id),
     listApiKeysForUser(user.id),
     listCustomDomainsForUser(user.id),
+    getCurrentUserBillingState(),
   ]);
 
-  const plan = resolvePlan(user);
+  const plan = {
+    name: billingState.plan.label,
+    seats: billingState.plan.limits.teamSeats,
+    status: billingState.plan.paid ? "Active paid access" : "No paid seats",
+  };
   const displayName = user.displayName || user.primaryEmail || "Workspace owner";
   const activeKeys = apiKeys.filter((key) => !key.revokedAt).length;
   const readyDomains = domains.filter((domain) => domain.status === "ready").length;

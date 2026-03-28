@@ -11,6 +11,8 @@
     "dev:site": "npm run dev",
     "dev:docs": "npm --prefix apps/docs run dev -- --port 3003",
     "dev:all": "sh -c 'trap \"kill 0\" INT TERM EXIT; npm run dev:site & npm run dev:docs & wait'",
+    "seed:billing-users": "node --env-file=.env.local scripts/seed-billing-users.cjs",
+    "verify:billing-users": "node --env-file=.env.local scripts/verify-billing-users.cjs",
     "build:sdk": "npm --prefix packages/tqrco run build",
     "build": "next build",
     "start": "next start",
@@ -18,6 +20,8 @@
     "deploy": "git add . && git commit -m \"Update code with new changes\" && git push origin main --force"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.1",
     "@aws-sdk/client-s3": "^3.810.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",

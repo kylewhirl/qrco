@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKeyRecord, touchApiKeyLastUsed } from "@/lib/api-keys";
+import { BillingAccessError, consumeBillingMeter, requireBillingFeatureForUserId } from "@/lib/billing";
 import type { ApiAccessScope, ApiTokenKind } from "@/lib/types";
 
 export interface ApiKeyAuthResult {
@@ -127,6 +128,30 @@ export async function authorizeApiRequest(
         headers: buildCorsHeaders(auth.origin),
       }),
     };
+  }
+
+  try {
+    await requireBillingFeatureForUserId(auth.userId, "api_access");
+    await consumeBillingMeter(auth.userId, "api_requests");
+  } catch (error) {
+    if (error instanceof BillingAccessError) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: error.message,
+            code: error.code,
+            requiredTier: error.requiredTier,
+          },
+          {
+            status: error.status,
+            headers: buildCorsHeaders(auth.origin),
+          },
+        ),
+      };
+    }
+
+    throw error;
   }
 
   return {

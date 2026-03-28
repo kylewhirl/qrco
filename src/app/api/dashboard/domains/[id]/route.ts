@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { StackServerApp } from "@stackframe/stack";
+import { BillingAccessError, requireBillingFeatureForUserId } from "@/lib/billing";
 import { deleteCustomDomainForUser, updateCustomDomainFallbackForUser } from "@/lib/custom-domains";
 import { getDomainConnectState } from "@/lib/domain-connect";
 import { customDomainFallbackSchema } from "@/lib/qr-validation";
@@ -18,6 +19,19 @@ export async function DELETE(
   const user = await stackServerApp.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await requireBillingFeatureForUserId(user.id, "custom_domains");
+  } catch (error) {
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        { status: error.status },
+      );
+    }
+
+    throw error;
   }
 
   try {
@@ -44,6 +58,19 @@ export async function PATCH(
   const user = await stackServerApp.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await requireBillingFeatureForUserId(user.id, "custom_domains");
+  } catch (error) {
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        { status: error.status },
+      );
+    }
+
+    throw error;
   }
 
   try {

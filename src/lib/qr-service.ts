@@ -6,6 +6,11 @@ import { buildPublicQrUrl, isPrimaryAppHost, normalizeHostname } from "./qr-url"
 import { ensureCustomDomainOwnedByUser, ensureCustomDomainSchema } from "./custom-domains";
 import { buildQrImageUrl } from "./qr-images";
 import { getBrandProfileForUser, getDefaultRenderConfig, getTypeDefaultRenderConfig, mergeRenderConfig } from "./brand-styles";
+import {
+  ensureQrMutationAllowed,
+  getAnalyticsHistoryWindowDaysForUser,
+  hasAdvancedAnalyticsForUser,
+} from "./billing";
 
 const stackServerApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
@@ -141,6 +146,7 @@ async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null
 }
 
 export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null): Promise<QR> {
+  await ensureQrMutationAllowed(userId, { data, customDomainId });
   const code = await generateUniqueCode();
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
   const dataWithDefaults = await applyCreateDefaultsToQrData(userId, data);
@@ -199,6 +205,7 @@ export async function getQRById(id: string): Promise<QR | null> {
 }
 
 export async function updateQRDataForUser(userId: string, id: string, data: QRData, customDomainId?: string | null): Promise<QR | null> {
+  await ensureQrMutationAllowed(userId, { data, customDomainId });
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
   const result = await queryNoAuth<{ id: string }[]>(
     'UPDATE "QR" SET data = $1::jsonb, "customDomainId" = $2 WHERE id = $3 AND user_id = $4 RETURNING id',
@@ -339,18 +346,31 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
 export async function getDailyScanCountsForUser(userId: string): Promise<DailyScanCount[]> {
   await ensureQrDataAccess();
-  const result = await queryNoAuth<{ date: string; count: string }[]>(
-    `SELECT
-       TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
-       COUNT(*)::text as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND s."scannedAt" > NOW() - INTERVAL '30 days'
-     GROUP BY date
-     ORDER BY date ASC`,
-    [userId],
-  );
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
+  const result = historyDays === null
+    ? await queryNoAuth<{ date: string; count: string }[]>(
+        `SELECT
+           TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+           COUNT(*)::text as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+         GROUP BY date
+         ORDER BY date ASC`,
+        [userId],
+      )
+    : await queryNoAuth<{ date: string; count: string }[]>(
+        `SELECT
+           TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+           COUNT(*)::text as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND s."scannedAt" > NOW() - make_interval(days => $2)
+         GROUP BY date
+         ORDER BY date ASC`,
+        [userId, historyDays],
+      );
 
   return result.map((item) => ({
     date: item.date,
@@ -365,19 +385,33 @@ export async function getDailyScanCounts(): Promise<DailyScanCount[]> {
 
 export async function getDailyScanCountsByQRCodeForUser(userId: string, qrId: string): Promise<DailyScanCount[]> {
   await ensureQrDataAccess();
-  const result = await queryNoAuth<{ date: string; count: string }[]>(
-    `SELECT
-       TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
-       COUNT(*)::text as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND q.id = $2
-       AND s."scannedAt" > NOW() - INTERVAL '30 days'
-     GROUP BY date
-     ORDER BY date ASC`,
-    [userId, qrId],
-  );
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
+  const result = historyDays === null
+    ? await queryNoAuth<{ date: string; count: string }[]>(
+        `SELECT
+           TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+           COUNT(*)::text as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND q.id = $2
+         GROUP BY date
+         ORDER BY date ASC`,
+        [userId, qrId],
+      )
+    : await queryNoAuth<{ date: string; count: string }[]>(
+        `SELECT
+           TO_CHAR(s."scannedAt"::date, 'YYYY-MM-DD') as date,
+           COUNT(*)::text as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND q.id = $2
+           AND s."scannedAt" > NOW() - make_interval(days => $3)
+         GROUP BY date
+         ORDER BY date ASC`,
+        [userId, qrId, historyDays],
+      );
 
   return result.map((item) => ({
     date: item.date,
@@ -392,17 +426,36 @@ export async function getDailyScanCountsByQRCode(qrId: string): Promise<DailySca
 
 export async function getTopLocationsForUser(userId: string, limit = 5): Promise<TopLocation[]> {
   await ensureQrDataAccess();
-  return queryNoAuth<TopLocation[]>(
-    `SELECT s.location, COUNT(*)::int as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND s.location IS NOT NULL
-     GROUP BY s.location
-     ORDER BY count DESC
-     LIMIT $2`,
-    [userId, limit],
-  );
+  const hasAdvancedAnalytics = await hasAdvancedAnalyticsForUser(userId);
+  if (!hasAdvancedAnalytics) {
+    return [];
+  }
+
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
+  return historyDays === null
+    ? queryNoAuth<TopLocation[]>(
+        `SELECT s.location, COUNT(*)::int as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND s.location IS NOT NULL
+         GROUP BY s.location
+         ORDER BY count DESC
+         LIMIT $2`,
+        [userId, limit],
+      )
+    : queryNoAuth<TopLocation[]>(
+        `SELECT s.location, COUNT(*)::int as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND s.location IS NOT NULL
+           AND s."scannedAt" > NOW() - make_interval(days => $3)
+         GROUP BY s.location
+         ORDER BY count DESC
+         LIMIT $2`,
+        [userId, limit, historyDays],
+      );
 }
 
 export async function getTopLocations(limit = 5): Promise<TopLocation[]> {
@@ -412,18 +465,38 @@ export async function getTopLocations(limit = 5): Promise<TopLocation[]> {
 
 export async function getTopLocationsByQRCodeForUser(userId: string, qrId: string, limit = 5): Promise<TopLocation[]> {
   await ensureQrDataAccess();
-  return queryNoAuth<TopLocation[]>(
-    `SELECT s.location, COUNT(*)::int as count
-     FROM "Scan" s
-     JOIN "QR" q ON q.id = s."qrId"
-     WHERE q.user_id = $1
-       AND q.id = $2
-       AND s.location IS NOT NULL
-     GROUP BY s.location
-     ORDER BY count DESC
-     LIMIT $3`,
-    [userId, qrId, limit],
-  );
+  const hasAdvancedAnalytics = await hasAdvancedAnalyticsForUser(userId);
+  if (!hasAdvancedAnalytics) {
+    return [];
+  }
+
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
+  return historyDays === null
+    ? queryNoAuth<TopLocation[]>(
+        `SELECT s.location, COUNT(*)::int as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND q.id = $2
+           AND s.location IS NOT NULL
+         GROUP BY s.location
+         ORDER BY count DESC
+         LIMIT $3`,
+        [userId, qrId, limit],
+      )
+    : queryNoAuth<TopLocation[]>(
+        `SELECT s.location, COUNT(*)::int as count
+         FROM "Scan" s
+         JOIN "QR" q ON q.id = s."qrId"
+         WHERE q.user_id = $1
+           AND q.id = $2
+           AND s.location IS NOT NULL
+           AND s."scannedAt" > NOW() - make_interval(days => $4)
+         GROUP BY s.location
+         ORDER BY count DESC
+         LIMIT $3`,
+        [userId, qrId, limit, historyDays],
+      );
 }
 
 export async function getTopLocationsByQRCode(qrId: string, limit = 5): Promise<TopLocation[]> {
@@ -433,15 +506,27 @@ export async function getTopLocationsByQRCode(qrId: string, limit = 5): Promise<
 
 export async function getLatestScansForUser(userId: string, limit = 10): Promise<LatestScan[]> {
   await ensureQrDataAccess();
-  return queryNoAuth<LatestScan[]>(
-    `SELECT s.id, q.code, q.data, s."scannedAt", s.location
-     FROM "Scan" s
-     JOIN "QR" q ON s."qrId" = q.id
-     WHERE q.user_id = $1
-     ORDER BY s."scannedAt" DESC
-     LIMIT $2`,
-    [userId, limit],
-  );
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
+  return historyDays === null
+    ? queryNoAuth<LatestScan[]>(
+        `SELECT s.id, q.code, q.data, s."scannedAt", s.location
+         FROM "Scan" s
+         JOIN "QR" q ON s."qrId" = q.id
+         WHERE q.user_id = $1
+         ORDER BY s."scannedAt" DESC
+         LIMIT $2`,
+        [userId, limit],
+      )
+    : queryNoAuth<LatestScan[]>(
+        `SELECT s.id, q.code, q.data, s."scannedAt", s.location
+         FROM "Scan" s
+         JOIN "QR" q ON s."qrId" = q.id
+         WHERE q.user_id = $1
+           AND s."scannedAt" > NOW() - make_interval(days => $3)
+         ORDER BY s."scannedAt" DESC
+         LIMIT $2`,
+        [userId, limit, historyDays],
+      );
 }
 
 export async function getLatestScans(limit = 10): Promise<LatestScan[]> {
@@ -451,17 +536,30 @@ export async function getLatestScans(limit = 10): Promise<LatestScan[]> {
 
 export async function getLatestScansByQRCodeForUser(userId: string, qrId?: string, limit = 100): Promise<LatestScan[]> {
   await ensureQrDataAccess();
+  const historyDays = await getAnalyticsHistoryWindowDaysForUser(userId);
   if (qrId) {
-    return queryNoAuth<LatestScan[]>(
-      `SELECT s.id, q.code, q.data, s."scannedAt", s.location
-       FROM "Scan" s
-       JOIN "QR" q ON s."qrId" = q.id
-       WHERE q.user_id = $1
-         AND q.id = $2
-       ORDER BY s."scannedAt" DESC
-       LIMIT $3`,
-      [userId, qrId, limit],
-    );
+    return historyDays === null
+      ? queryNoAuth<LatestScan[]>(
+          `SELECT s.id, q.code, q.data, s."scannedAt", s.location
+           FROM "Scan" s
+           JOIN "QR" q ON s."qrId" = q.id
+           WHERE q.user_id = $1
+             AND q.id = $2
+           ORDER BY s."scannedAt" DESC
+           LIMIT $3`,
+          [userId, qrId, limit],
+        )
+      : queryNoAuth<LatestScan[]>(
+          `SELECT s.id, q.code, q.data, s."scannedAt", s.location
+           FROM "Scan" s
+           JOIN "QR" q ON s."qrId" = q.id
+           WHERE q.user_id = $1
+             AND q.id = $2
+             AND s."scannedAt" > NOW() - make_interval(days => $4)
+           ORDER BY s."scannedAt" DESC
+           LIMIT $3`,
+          [userId, qrId, limit, historyDays],
+        );
   }
 
   return getLatestScansForUser(userId, limit);

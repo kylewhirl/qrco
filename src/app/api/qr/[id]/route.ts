@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { StackServerApp } from "@stackframe/stack";
+import { BillingAccessError } from "@/lib/billing";
 import { deleteQR, getQRById, updateQRData } from "@/lib/qr-service"
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
@@ -40,6 +41,13 @@ export async function PATCH(
     return NextResponse.json(updatedQR)
   } catch (error) {
     console.error("Error updating QR code:", error)
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        { status: error.status },
+      )
+    }
+
     return NextResponse.json({ error: "Failed to update QR code" }, { status: 500 })
   }
 }

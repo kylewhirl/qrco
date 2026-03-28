@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createQRCode, getAllQRCodes, getRecentQRCodes } from "@/lib/qr-service"
 import { StackServerApp } from "@stackframe/stack";
+import { BillingAccessError } from "@/lib/billing";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 const stackServerApp = new StackServerApp({
@@ -31,6 +32,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(qr);
   } catch (error) {
     console.error("Error creating QR code:", error);
+    if (error instanceof BillingAccessError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        { status: error.status },
+      );
+    }
+
     return NextResponse.json({ error: "Failed to create QR code" }, { status: 500 });
   }
 }

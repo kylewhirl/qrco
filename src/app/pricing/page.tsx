@@ -1,9 +1,9 @@
-
-
 'use client';
 
 import Link from 'next/link';
-import { Check, X } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
+import { useUser } from '@stackframe/stack';
+
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,65 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 
+const plans = [
+  {
+    name: 'Free',
+    price: '$0',
+    subtitle: '/mo',
+    highlighted: false,
+    cta: 'Get Started',
+    href: '/sign-up',
+    features: [
+      'Unlimited QR codes',
+      'PNG and SVG downloads',
+      '10 AI-generated QR codes per month',
+      '30 days of analytics history',
+    ],
+  },
+  {
+    name: 'Creator',
+    price: '$4.99',
+    subtitle: '/mo',
+    highlighted: false,
+    cta: 'Subscribe',
+    href: '/dashboard/billing?plan=creator',
+    features: [
+      'Everything in Free',
+      'Unlimited AI-generated QR codes',
+      'Uploads for QR images and file destinations',
+      'Custom domains',
+      'API access up to 5,000 requests per month',
+      '180 days of analytics history',
+      'Advanced analytics including top locations',
+    ],
+  },
+  {
+    name: 'Growth',
+    price: '$9.99',
+    subtitle: '/mo',
+    highlighted: true,
+    cta: 'Go Growth',
+    href: '/dashboard/billing?plan=growth',
+    features: [
+      'Everything in Creator',
+      'Unlimited API usage',
+      'Unlimited analytics history',
+      'Highest access tier in the current app',
+    ],
+  },
+];
+
 export default function PricingPage() {
+  const user = useUser();
+
+  function resolvePlanHref(href: string) {
+    if (href === '/sign-up') {
+      return href;
+    }
+
+    return user ? href : '/sign-up';
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -27,163 +85,44 @@ export default function PricingPage() {
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold font-brand tracking-tight">
                 Pricing
               </h1>
-              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-                Choose the plan that fits your needs. Upgrade or downgrade
-                anytime.
+              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+                Real plan enforcement now controls uploads, domains, API usage, AI limits, and analytics retention.
               </p>
             </div>
 
             <div className="grid gap-8 mt-12 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Free */}
-              <Card className="flex flex-col">
-                <CardHeader className="text-center">
-                  <CardTitle>Free</CardTitle>
-                  <CardDescription className="mt-1 text-3xl font-semibold">
-                    $0<span className="text-base font-medium"> / mo</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <ul className="space-y-3 text-sm text-left">
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Unlimited Scans
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Unlimited QR Codes
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      No ads ever
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      No expiration
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Advanced Customization
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      PNG&nbsp;&amp;&nbsp;SVG Downloads
-                    </li>
-                    <li className="flex items-start text-muted-foreground line-through">
-                      <X className="h-4 w-4 mr-2 mt-0.5" />
-                      File Uploads
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Limited AI‑Generated Codes
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Basic Analytics
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Community Support
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      1 Month Analytics History
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                      Bulk QR Code Creation
-                    </li>
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/login" passHref>
-                    <Button className="w-full" variant="outline">
-                      Get Started
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-
-              {/* Creator */}
-              <Card className="flex flex-col border-2 border-primary shadow-lg">
-                <CardHeader className="text-center">
-                  <CardTitle>Creator</CardTitle>
-                  <CardDescription className="mt-1 text-3xl font-semibold">
-                    $9<span className="text-base font-medium"> / mo</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <ul className="space-y-3 text-sm text-left">
-                    {[
-                      'Everything in Free',
-                      'Unlimited AI‑Generated Codes',
-                      'File Uploads (SVG, PNG, PDF)',
-                      'High‑Resolution PDF Downloads',
-                      'Custom Domains',
-                      '6 Months Analytics History',
-                      'Advanced Analytics (geo & device)',
-                      'API Access (5 k req/mo)',
-                      'Email & Community Support',
-                      'Team Collaboration (3 seats)',
-                    ].map((feature) => (
-                      <li key={feature} className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                <Button
-                    className="w-full"
-                    onClick={async () => {
-                        const res = await fetch('/api/checkout', { method: 'POST' });
-                        if (res.status === 401) {
-                            window.location.assign('/sign-up');
-                            return;
-                        }
-                        const { url } = await res.json();
-                        window.location.assign(url);
-                    }}
+              {plans.map((plan) => (
+                <Card
+                  key={plan.name}
+                  className={`flex flex-col ${plan.highlighted ? 'border-2 border-primary shadow-lg' : ''}`}
                 >
-                    Subscribe
-                </Button>  </CardFooter>
-              </Card>
-
-              {/* Business */}
-              <Card className="flex flex-col">
-                <CardHeader className="text-center">
-                  <CardTitle>Business</CardTitle>
-                  <CardDescription className="mt-1 text-3xl font-semibold">
-                    $29<span className="text-base font-medium"> / mo</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <ul className="space-y-3 text-sm text-left">
-                    {[
-                      'Everything in Pro',
-                      'Unlimited API Access',
-                      'Unlimited Analytics History',
-                      'White‑label QR Codes',
-                      'Priority Email Support & SLAs',
-                      'Team Collaboration (10 seats)',
-                      'Single Sign‑On (SSO)',
-                      'Webhooks & Zapier Integration',
-                    ].map((feature) => (
-                      <li key={feature} className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/contact" passHref>
-                    <Button className="w-full" variant="outline">
-                      Contact Sales
+                  <CardHeader className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <CardTitle>{plan.name}</CardTitle>
+                      {plan.highlighted ? <Sparkles className="h-4 w-4 text-primary" /> : null}
+                    </div>
+                    <CardDescription className="mt-1 text-3xl font-semibold">
+                      {plan.price}
+                      <span className="text-base font-medium"> {plan.subtitle}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <ul className="space-y-3 text-sm text-left">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start">
+                          <Check className="h-4 w-4 mr-2 mt-0.5 text-primary" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button asChild className="w-full" variant={plan.highlighted ? 'default' : 'outline'}>
+                      <Link href={resolvePlanHref(plan.href)}>{plan.cta}</Link>
                     </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
