@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useEffect, useRef, useState } from "react";
+import { type Appearance, loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -104,10 +104,10 @@ function CheckoutForm({
 
   return (
     <form id="checkout-payment-form" className="space-y-4" onSubmit={handleSubmit}>
-      <div className="rounded-[20px] border border-white/10 bg-[#252525] px-4 py-3">
+      <div className="rounded-[20px] border border-border bg-card px-4 py-3">
         <PaymentElement />
       </div>
-      {error ? <p className="text-sm text-[#ff7b7b]">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </form>
   );
 }
@@ -126,6 +126,11 @@ export function BillingCheckoutPanel({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [appearance, setAppearance] = useState<Appearance | null>(null);
+  const cardToneRef = useRef<HTMLDivElement | null>(null);
+  const mutedToneRef = useRef<HTMLDivElement | null>(null);
+  const primaryToneRef = useRef<HTMLDivElement | null>(null);
+  const destructiveToneRef = useRef<HTMLDivElement | null>(null);
 
   const alreadyOnPlan = currentTier === selectedTier;
 
@@ -133,11 +138,73 @@ export function BillingCheckoutPanel({
     onStateChange({
       alreadyOnPlan,
       loading: loadingSecret,
-      ready: Boolean(clientSecret && stripePromise),
+      ready: Boolean(clientSecret && stripePromise && appearance),
       submitting: false,
       error: setupError,
     });
-  }, [alreadyOnPlan, clientSecret, loadingSecret, onStateChange, setupError]);
+  }, [alreadyOnPlan, appearance, clientSecret, loadingSecret, onStateChange, setupError]);
+
+  useEffect(() => {
+    if (!cardToneRef.current || !mutedToneRef.current || !primaryToneRef.current || !destructiveToneRef.current) {
+      return;
+    }
+
+    const cardStyles = getComputedStyle(cardToneRef.current);
+    const mutedStyles = getComputedStyle(mutedToneRef.current);
+    const primaryStyles = getComputedStyle(primaryToneRef.current);
+    const destructiveStyles = getComputedStyle(destructiveToneRef.current);
+
+    setAppearance({
+      theme: "stripe",
+      variables: {
+        colorPrimary: primaryStyles.backgroundColor,
+        colorBackground: cardStyles.backgroundColor,
+        colorText: cardStyles.color,
+        colorTextSecondary: mutedStyles.color,
+        colorDanger: destructiveStyles.color,
+        colorSuccess: primaryStyles.backgroundColor,
+        colorIcon: mutedStyles.color,
+        colorTextPlaceholder: mutedStyles.color,
+        borderRadius: "18px",
+        spacingUnit: "4px",
+        fontFamily: "var(--font-montserrat)",
+      },
+      rules: {
+        ".Input": {
+          backgroundColor: cardStyles.backgroundColor,
+          border: `1px solid ${cardStyles.borderColor}`,
+          boxShadow: "none",
+        },
+        ".Input:focus": {
+          border: `1px solid ${primaryStyles.backgroundColor}`,
+          boxShadow: "none",
+        },
+        ".Tab": {
+          backgroundColor: mutedStyles.backgroundColor,
+          border: `1px solid ${cardStyles.borderColor}`,
+          boxShadow: "none",
+        },
+        ".Tab--selected": {
+          backgroundColor: cardStyles.backgroundColor,
+          border: `1px solid ${primaryStyles.backgroundColor}`,
+          boxShadow: "none",
+        },
+        ".Block": {
+          backgroundColor: cardStyles.backgroundColor,
+          border: `1px solid ${cardStyles.borderColor}`,
+          boxShadow: "none",
+        },
+        ".Label": {
+          color: mutedStyles.color,
+        },
+        ".CodeInput": {
+          backgroundColor: mutedStyles.backgroundColor,
+          border: `1px solid ${cardStyles.borderColor}`,
+          boxShadow: "none",
+        },
+      },
+    });
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -202,100 +269,59 @@ export function BillingCheckoutPanel({
     };
   }, [alreadyOnPlan, selectedTier]);
 
-  const appearance = useMemo(() => ({
-    theme: "night" as const,
-    variables: {
-      colorPrimary: "#f4f4f4",
-      colorBackground: "#252525",
-      colorText: "#f4f4f4",
-      colorTextSecondary: "#9d9d9d",
-      colorDanger: "#ff7b7b",
-      colorSuccess: "#b39cff",
-      colorIcon: "#bdbdbd",
-      colorTextPlaceholder: "#777777",
-      borderRadius: "18px",
-      spacingUnit: "4px",
-      fontFamily: "var(--font-montserrat)",
-    },
-    rules: {
-      ".Input": {
-        backgroundColor: "#252525",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "none",
-      },
-      ".Input:focus": {
-        border: "1px solid rgba(255,255,255,0.24)",
-        boxShadow: "none",
-      },
-      ".Tab": {
-        backgroundColor: "#252525",
-        border: "1px solid rgba(255,255,255,0.08)",
-      },
-      ".Tab:hover": {
-        color: "#f4f4f4",
-      },
-      ".Tab--selected": {
-        backgroundColor: "#303030",
-        border: "1px solid rgba(255,255,255,0.18)",
-      },
-      ".Block": {
-        backgroundColor: "#252525",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "none",
-      },
-      ".Label": {
-        color: "#9d9d9d",
-      },
-      ".CodeInput": {
-        backgroundColor: "#2a2a2a",
-        border: "1px solid rgba(255,255,255,0.08)",
-      },
-    },
-  }), []);
-
   return (
     <div className="space-y-4">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[9999px] top-0 opacity-0"
+      >
+        <div ref={cardToneRef} className="border border-border bg-card text-foreground" />
+        <div ref={mutedToneRef} className="bg-muted text-muted-foreground" />
+        <div ref={primaryToneRef} className="bg-primary text-primary-foreground" />
+        <div ref={destructiveToneRef} className="text-destructive" />
+      </div>
+
       <div className="space-y-3">
-        <p className="text-[12px] font-medium text-[#d8d8d8]">Payment method</p>
+        <p className="text-[12px] font-medium text-foreground">Payment method</p>
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-3 rounded-[16px] border border-white/20 bg-[#252525] px-4 py-3 text-sm text-white">
+          <div className="flex items-center gap-3 rounded-[16px] border border-primary bg-card px-4 py-3 text-sm text-foreground">
             <CreditCard className="h-4 w-4" />
             <span>Card</span>
           </div>
-          <div className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-[#252525] px-4 py-3 text-sm text-[#9d9d9d]">
+          <div className="flex items-center gap-3 rounded-[16px] border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4" />
             <span>Wallets in Stripe</span>
           </div>
         </div>
       </div>
 
-      <div className="rounded-[20px] border border-white/8 bg-[#252525] p-4">
-        <div className="space-y-1 border-b border-white/8 pb-4">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#8a8a8a]">Contact</p>
-          <p className="text-sm text-white">{customerEmail ?? "No email available"}</p>
+      <div className="rounded-[20px] border border-border bg-card p-4">
+        <div className="space-y-1 border-b border-border pb-4">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Contact</p>
+          <p className="text-sm text-foreground">{customerEmail ?? "No email available"}</p>
         </div>
 
         <div className="pt-4">
           {alreadyOnPlan ? (
-            <div className="rounded-[18px] border border-white/8 bg-[#1f1f1f] px-4 py-3 text-sm text-[#cfcfcf]">
+            <div className="rounded-[18px] border border-border bg-muted/60 px-4 py-3 text-sm text-foreground">
               This account is already on the {selectedTier === "creator" ? "Creator" : "Growth"} plan.
             </div>
           ) : null}
 
           {loadingSecret ? (
-            <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#1f1f1f] px-4 py-3 text-sm text-[#bdbdbd]">
+            <div className="flex items-center gap-2 rounded-[18px] border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Preparing payment form
             </div>
           ) : null}
 
           {setupError && !alreadyOnPlan ? (
-            <div className="rounded-[18px] border border-[#5e2a2a] bg-[#2b1717] px-4 py-3 text-sm text-[#ff9f9f]">
+            <div className="rounded-[18px] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {setupError}
             </div>
           ) : null}
 
-          {!alreadyOnPlan && clientSecret && stripePromise ? (
+          {!alreadyOnPlan && clientSecret && stripePromise && appearance ? (
             <Elements
               stripe={stripePromise}
               options={{
@@ -310,7 +336,7 @@ export function BillingCheckoutPanel({
                   onStateChange({
                     alreadyOnPlan,
                     loading: loadingSecret,
-                    ready: Boolean((partialState.ready ?? false) && clientSecret && stripePromise),
+                    ready: Boolean((partialState.ready ?? false) && clientSecret && appearance),
                     submitting: partialState.submitting ?? false,
                     error: partialState.error ?? setupError,
                   })
