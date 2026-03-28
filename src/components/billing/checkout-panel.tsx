@@ -8,7 +8,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { CreditCard, Loader2, Wallet } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { BillingTier } from "@/lib/billing-definitions";
@@ -105,7 +105,14 @@ function CheckoutForm({
   return (
     <form id="checkout-payment-form" className="space-y-4" onSubmit={handleSubmit}>
       <div className="rounded-[20px] border border-border bg-card px-4 py-3">
-        <PaymentElement />
+        <PaymentElement
+          options={{
+            layout: {
+              type: "tabs",
+              defaultCollapsed: false,
+            },
+          }}
+        />
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </form>
@@ -168,12 +175,14 @@ export function BillingCheckoutPanel({
         borderRadius: "18px",
         spacingUnit: "4px",
         fontFamily: "var(--font-montserrat)",
+        fontSizeBase: "14px",
       },
       rules: {
         ".Input": {
           backgroundColor: cardStyles.backgroundColor,
           border: `1px solid ${cardStyles.borderColor}`,
           boxShadow: "none",
+          color: cardStyles.color,
         },
         ".Input:focus": {
           border: `1px solid ${primaryStyles.backgroundColor}`,
@@ -183,16 +192,21 @@ export function BillingCheckoutPanel({
           backgroundColor: mutedStyles.backgroundColor,
           border: `1px solid ${cardStyles.borderColor}`,
           boxShadow: "none",
+          color: mutedStyles.color,
         },
         ".Tab--selected": {
           backgroundColor: cardStyles.backgroundColor,
           border: `1px solid ${primaryStyles.backgroundColor}`,
           boxShadow: "none",
+          color: cardStyles.color,
         },
         ".Block": {
           backgroundColor: cardStyles.backgroundColor,
           border: `1px solid ${cardStyles.borderColor}`,
           boxShadow: "none",
+        },
+        ".BlockDivider": {
+          backgroundColor: cardStyles.borderColor,
         },
         ".Label": {
           color: mutedStyles.color,
@@ -201,6 +215,18 @@ export function BillingCheckoutPanel({
           backgroundColor: mutedStyles.backgroundColor,
           border: `1px solid ${cardStyles.borderColor}`,
           boxShadow: "none",
+        },
+        ".AccordionItem": {
+          border: `1px solid ${cardStyles.borderColor}`,
+          borderRadius: "18px",
+          boxShadow: "none",
+        },
+        ".AccordionItem--selected": {
+          border: `1px solid ${primaryStyles.backgroundColor}`,
+          boxShadow: "none",
+        },
+        ".TabIcon, .AccordionItemIcon": {
+          color: mutedStyles.color,
         },
       },
     });
@@ -283,16 +309,6 @@ export function BillingCheckoutPanel({
 
       <div className="space-y-3">
         <p className="text-[12px] font-medium text-foreground">Payment method</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-3 rounded-[16px] border border-primary bg-card px-4 py-3 text-sm text-foreground">
-            <CreditCard className="h-4 w-4" />
-            <span>Card</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-[16px] border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4" />
-            <span>Wallets in Stripe</span>
-          </div>
-        </div>
       </div>
 
       <div className="rounded-[20px] border border-border bg-card p-4">
