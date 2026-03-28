@@ -25,6 +25,11 @@ export type CheckoutFormState = {
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
+const stripeFonts = [
+  {
+    cssSrc: "https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400;700;800&display=swap",
+  },
+];
 
 function CheckoutForm({
   selectedTier,
@@ -138,7 +143,6 @@ export function BillingCheckoutPanel({
   const mutedToneRef = useRef<HTMLDivElement | null>(null);
   const primaryToneRef = useRef<HTMLDivElement | null>(null);
   const destructiveToneRef = useRef<HTMLDivElement | null>(null);
-  const fontToneRef = useRef<HTMLDivElement | null>(null);
 
   const alreadyOnPlan = currentTier === selectedTier;
 
@@ -147,8 +151,7 @@ export function BillingCheckoutPanel({
       !cardToneRef.current ||
       !mutedToneRef.current ||
       !primaryToneRef.current ||
-      !destructiveToneRef.current ||
-      !fontToneRef.current
+      !destructiveToneRef.current
     ) {
       return;
     }
@@ -157,7 +160,6 @@ export function BillingCheckoutPanel({
     const mutedStyles = getComputedStyle(mutedToneRef.current);
     const primaryStyles = getComputedStyle(primaryToneRef.current);
     const destructiveStyles = getComputedStyle(destructiveToneRef.current);
-    const fontStyles = getComputedStyle(fontToneRef.current);
     const isDark = document.documentElement.classList.contains("dark");
 
     setAppearance({
@@ -177,7 +179,7 @@ export function BillingCheckoutPanel({
         accessibleColorOnColorBackground: cardStyles.color,
         borderRadius: "18px",
         spacingUnit: "4px",
-        fontFamily: fontStyles.fontFamily,
+        fontFamily: "Montserrat, ui-sans-serif, system-ui, sans-serif",
         fontSizeBase: "16px",
         fontLineHeight: "1.4",
         logoColor: isDark ? "light" : "dark",
@@ -349,7 +351,6 @@ export function BillingCheckoutPanel({
         <div ref={mutedToneRef} className="bg-muted text-muted-foreground" />
         <div ref={primaryToneRef} className="bg-primary text-primary-foreground" />
         <div ref={destructiveToneRef} className="text-destructive" />
-        <div ref={fontToneRef} className="font-sans" />
       </div>
 
       <div className="space-y-3">
@@ -388,6 +389,7 @@ export function BillingCheckoutPanel({
               options={{
                 clientSecret,
                 appearance,
+                fonts: stripeFonts,
               }}
             >
               <CheckoutForm
