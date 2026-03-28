@@ -138,6 +138,7 @@ export function BillingCheckoutPanel({
   const mutedToneRef = useRef<HTMLDivElement | null>(null);
   const primaryToneRef = useRef<HTMLDivElement | null>(null);
   const destructiveToneRef = useRef<HTMLDivElement | null>(null);
+  const fontToneRef = useRef<HTMLDivElement | null>(null);
 
   const alreadyOnPlan = currentTier === selectedTier;
 
@@ -152,7 +153,13 @@ export function BillingCheckoutPanel({
   }, [alreadyOnPlan, appearance, clientSecret, loadingSecret, onStateChange, setupError]);
 
   useEffect(() => {
-    if (!cardToneRef.current || !mutedToneRef.current || !primaryToneRef.current || !destructiveToneRef.current) {
+    if (
+      !cardToneRef.current ||
+      !mutedToneRef.current ||
+      !primaryToneRef.current ||
+      !destructiveToneRef.current ||
+      !fontToneRef.current
+    ) {
       return;
     }
 
@@ -160,6 +167,7 @@ export function BillingCheckoutPanel({
     const mutedStyles = getComputedStyle(mutedToneRef.current);
     const primaryStyles = getComputedStyle(primaryToneRef.current);
     const destructiveStyles = getComputedStyle(destructiveToneRef.current);
+    const fontStyles = getComputedStyle(fontToneRef.current);
 
     setAppearance({
       theme: "stripe",
@@ -174,7 +182,7 @@ export function BillingCheckoutPanel({
         colorTextPlaceholder: mutedStyles.color,
         borderRadius: "18px",
         spacingUnit: "4px",
-        fontFamily: "var(--font-montserrat)",
+        fontFamily: fontStyles.fontFamily,
         fontSizeBase: "14px",
       },
       rules: {
@@ -305,6 +313,7 @@ export function BillingCheckoutPanel({
         <div ref={mutedToneRef} className="bg-muted text-muted-foreground" />
         <div ref={primaryToneRef} className="bg-primary text-primary-foreground" />
         <div ref={destructiveToneRef} className="text-destructive" />
+        <div ref={fontToneRef} className="font-sans" />
       </div>
 
       <div className="space-y-3">
