@@ -33,8 +33,8 @@ export interface TqrcoClient {
   qr: {
     list(): Promise<QR[]>;
     get(id: string): Promise<QR>;
-    create(input: QRData | { data: QRData; customDomainId?: string | null }): Promise<QR>;
-    update(id: string, input: QRData | { data: QRData; customDomainId?: string | null }): Promise<QR>;
+    create(input: QRData | { data: QRData; customDomainId?: string | null; customSlug?: string | null }): Promise<QR>;
+    update(id: string, input: QRData | { data: QRData; customDomainId?: string | null; customSlug?: string | null }): Promise<QR>;
     delete(id: string): Promise<{ success: true }>;
     uploadImage(id: string, file: File): Promise<QR>;
     renderUrl(id: string, options?: RenderUrlOptions): string;

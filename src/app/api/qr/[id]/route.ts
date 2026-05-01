@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { StackServerApp } from "@stackframe/stack";
 import { BillingAccessError } from "@/lib/billing";
-import { deleteQR, getQRById, updateQRData } from "@/lib/qr-service"
+import { deleteQR, getQRById, QRSlugUnavailableError, QRSlugValidationError, updateQRData } from "@/lib/qr-service"
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 const stackServerApp = new StackServerApp({
@@ -28,7 +28,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const { data, customDomainId } = parsed.data;
+    const { data, customDomainId, customSlug } = parsed.data;
 
     // Check if QR code exists
     const qr = await getQRById(id)
@@ -37,7 +37,7 @@ export async function PATCH(
     }
 
     // Update QR code
-    const updatedQR = await updateQRData(id, data, customDomainId)
+    const updatedQR = await updateQRData(id, data, customDomainId, customSlug)
     return NextResponse.json(updatedQR)
   } catch (error) {
     console.error("Error updating QR code:", error)
@@ -46,6 +46,9 @@ export async function PATCH(
         { error: error.message, code: error.code, requiredTier: error.requiredTier },
         { status: error.status },
       )
+    }
+    if (error instanceof QRSlugUnavailableError || error instanceof QRSlugValidationError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
     }
 
     return NextResponse.json({ error: "Failed to update QR code" }, { status: 500 })

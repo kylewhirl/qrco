@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
 import { BillingAccessError } from "@/lib/billing";
-import { createQRCodeForUser, getAllQRCodesForUser } from "@/lib/qr-service";
+import { createQRCodeForUser, getAllQRCodesForUser, QRSlugUnavailableError, QRSlugValidationError } from "@/lib/qr-service";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 export async function GET(request: NextRequest) {
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       authorization.value.auth.userId,
       parsed.data.data,
       parsed.data.customDomainId,
+      parsed.data.customSlug,
     );
     return NextResponse.json({ data: qrCode }, {
       status: 201,
@@ -51,6 +52,15 @@ export async function POST(request: NextRequest) {
     if (error instanceof BillingAccessError) {
       return NextResponse.json(
         { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        {
+          status: error.status,
+          headers: authorization.value.corsHeaders,
+        },
+      );
+    }
+    if (error instanceof QRSlugUnavailableError || error instanceof QRSlugValidationError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
         {
           status: error.status,
           headers: authorization.value.corsHeaders,

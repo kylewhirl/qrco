@@ -74,5 +74,10 @@ export function getPrimaryAppUrl(pathname = "/"): URL {
 
 export function buildPublicQrUrl(code: string, customHostname?: string | null): string {
   const hostname = normalizeHostname(customHostname) || DEFAULT_APP_HOST;
-  return `https://${hostname}/${code}`;
+  const encodedCode = code
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+
+  return `https://${hostname}/${encodedCode}`;
 }

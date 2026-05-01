@@ -56,6 +56,7 @@ import { flattenAndDownloadSvg, prepareSvgForExport } from "@/lib/flatten-svg";
 interface QRMutationInput {
   data: QRData
   customDomainId: string | null
+  customSlug?: string | null
 }
 
 interface QRCodeListProps {
@@ -134,10 +135,12 @@ function mergeRenderConfig(
 export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImageUploaded }: QRCodeListProps) {
   const [newData, setNewData] = useState<QRData>(createDefaultQuickCreateData("url"))
   const [newCustomDomainId, setNewCustomDomainId] = useState<string | null>(null)
+  const [newCustomSlug, setNewCustomSlug] = useState("")
   const [editingQR, setEditingQR] = useState<QR | null>(null)
   const [editData, setEditData] = useState<QRData | null>(null)
   const [designData, setDesignData] = useState<QRData | null>(null)
   const [editCustomDomainId, setEditCustomDomainId] = useState<string | null>(null)
+  const [editCustomSlug, setEditCustomSlug] = useState("")
   const [domains, setDomains] = useState<CustomDomain[]>([])
   const [brand, setBrand] = useState<BrandProfile | null>(null)
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([])
@@ -272,18 +275,21 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
       const createdQR = await onCreateQR({
         data: newData,
         customDomainId: newCustomDomainId,
+        customSlug: newCustomDomainId ? newCustomSlug : null,
       })
       setNewData(createDefaultQuickCreateData("url"))
       setNewCustomDomainId(null)
+      setNewCustomSlug("")
       setCreateDialogOpen(false)
       setEditingQR(createdQR)
       setEditData(createdQR.data)
       setEditCustomDomainId(createdQR.customDomainId ?? null)
+      setEditCustomSlug(createdQR.code)
       setViewDialogOpen(true)
       toast.success("QR code created successfully")
     } catch (error) {
       console.error("Error creating QR code:", error)
-      toast.error("Failed to create QR code")
+      toast.error(error instanceof Error ? error.message : "Failed to create QR code")
     } finally {
       setIsCreating(false)
     }
@@ -303,15 +309,17 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
       await onUpdateQR(editingQR.id, {
         data: editData,
         customDomainId: editCustomDomainId,
+        customSlug: editCustomDomainId ? editCustomSlug : null,
       });
       setEditingQR(null);
       setEditData(null);
       setEditCustomDomainId(null);
+      setEditCustomSlug("");
       setEditDialogOpen(false);
       toast.success("QR code updated successfully");
     } catch (error) {
       console.error("Error updating QR code:", error);
-      toast.error("Failed to update QR code");
+      toast.error(error instanceof Error ? error.message : "Failed to update QR code");
     } finally {
       setIsUpdating(false);
     }
@@ -522,7 +530,12 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                 <Label htmlFor="custom-domain">Custom domain</Label>
                 <Select
                   value={newCustomDomainId ?? "default"}
-                  onValueChange={(value) => setNewCustomDomainId(value === "default" ? null : value)}
+                  onValueChange={(value) => {
+                    setNewCustomDomainId(value === "default" ? null : value)
+                    if (value === "default") {
+                      setNewCustomSlug("")
+                    }
+                  }}
                   disabled={domainsLoading || domainsLocked}
                 >
                   <SelectTrigger id="custom-domain" className="w-full">
@@ -541,6 +554,17 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                   <p className="text-xs text-muted-foreground">Upgrade to Creator to assign custom domains.</p>
                 ) : null}
               </div>
+              {newCustomDomainId ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="custom-slug">Custom slug</Label>
+                  <Input
+                    id="custom-slug"
+                    value={newCustomSlug}
+                    onChange={(event) => setNewCustomSlug(event.target.value)}
+                    placeholder="spring-campaign"
+                  />
+                </div>
+              ) : null}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -608,6 +632,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                           if (!open) {
                             setViewDialogOpen(false)
                             setEditCustomDomainId(null)
+                            setEditCustomSlug("")
                           }
                         }}
                         
@@ -620,6 +645,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               setEditingQR(qr)
                               setEditData(qr.data)
                               setEditCustomDomainId(qr.customDomainId ?? null)
+                              setEditCustomSlug(qr.code)
                               setViewDialogOpen(true)
                             }}
                           >
@@ -737,6 +763,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                           if (!open) {
                             setEditingQR(null)
                             setEditCustomDomainId(null)
+                            setEditCustomSlug("")
                           }
                         }}
                       >
@@ -748,6 +775,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               setEditingQR(qr)
                               setEditData(qr.data)
                               setEditCustomDomainId(qr.customDomainId ?? null)
+                              setEditCustomSlug(qr.code)
                               setEditDialogOpen(true)
                             }}
                           >
@@ -768,14 +796,17 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               <Input
                                 id="qr-public-url"
                                 readOnly
-                                value={editingQR ? buildPublicQrUrl(editingQR.code, domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null) : ""}
+                                value={editingQR ? buildPublicQrUrl(editCustomDomainId ? editCustomSlug : editingQR.code, domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null) : ""}
                               />
                             </div>
                             <div className="space-y-1">
                               <Label htmlFor="edit-custom-domain-full">Public domain</Label>
                               <Select
                                 value={editCustomDomainId ?? "default"}
-                                onValueChange={(value) => setEditCustomDomainId(value === "default" ? null : value)}
+                                onValueChange={(value) => {
+                                  setEditCustomDomainId(value === "default" ? null : value)
+                                  setEditCustomSlug(editingQR?.code ?? "")
+                                }}
                                 disabled={domainsLoading || domainsLocked}
                               >
                                 <SelectTrigger id="edit-custom-domain-full" className="w-full">
@@ -794,6 +825,17 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                 <p className="text-xs text-muted-foreground">Upgrade to Creator to assign custom domains.</p>
                               ) : null}
                             </div>
+                            {editCustomDomainId ? (
+                              <div className="space-y-1">
+                                <Label htmlFor="edit-custom-slug">Custom slug</Label>
+                                <Input
+                                  id="edit-custom-slug"
+                                  value={editCustomSlug}
+                                  onChange={(event) => setEditCustomSlug(event.target.value)}
+                                  placeholder="spring-campaign"
+                                />
+                              </div>
+                            ) : null}
                             <div className="space-y-1">
                               <Label htmlFor="name">Name</Label>
                               <Input

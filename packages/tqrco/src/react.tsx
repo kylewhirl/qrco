@@ -132,12 +132,12 @@ export function useQRCode(qrId: string | null | undefined) {
 
 export function useCreateQRCode() {
   const client = useTqrcoClient();
-  return useMutation((input: QRData | { data: QRData; customDomainId?: string | null }) => client.qr.create(input));
+  return useMutation((input: QRData | { data: QRData; customDomainId?: string | null; customSlug?: string | null }) => client.qr.create(input));
 }
 
 export function useUpdateQRCode() {
   const client = useTqrcoClient();
-  return useMutation((id: string, input: QRData | { data: QRData; customDomainId?: string | null }) => client.qr.update(id, input));
+  return useMutation((id: string, input: QRData | { data: QRData; customDomainId?: string | null; customSlug?: string | null }) => client.qr.update(id, input));
 }
 
 export function useDeleteQRCode() {

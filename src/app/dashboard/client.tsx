@@ -7,6 +7,7 @@ import { QRCodeList } from "@/components/my-qr-codes"
 interface QRMutationInput {
   data: QRData
   customDomainId: string | null
+  customSlug?: string | null
 }
 
 interface DashboardClientProps {
@@ -16,14 +17,14 @@ interface DashboardClientProps {
 export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
   const [qrCodes, setQRCodes] = useState<QR[]>(initialQRCodes)
 
-  const handleCreateQR = async ({ data, customDomainId }: QRMutationInput): Promise<QR> => {
+  const handleCreateQR = async ({ data, customDomainId, customSlug }: QRMutationInput): Promise<QR> => {
     try {
       const response = await fetch("/api/qr", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data, customDomainId }),
+        body: JSON.stringify({ data, customDomainId, customSlug }),
       })
 
       if (!response.ok) {
@@ -40,14 +41,14 @@ export function DashboardClient({ initialQRCodes }: DashboardClientProps) {
     }
   }
 
-  const handleUpdateQR = async (id: string, { data, customDomainId }: QRMutationInput) => {
+  const handleUpdateQR = async (id: string, { data, customDomainId, customSlug }: QRMutationInput) => {
     try {
       const response = await fetch(`/api/qr/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data, customDomainId }),
+        body: JSON.stringify({ data, customDomainId, customSlug }),
       })
 
       if (!response.ok) {

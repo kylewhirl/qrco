@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createQRCode, getAllQRCodes, getRecentQRCodes } from "@/lib/qr-service"
+import { createQRCode, getAllQRCodes, getRecentQRCodes, QRSlugUnavailableError, QRSlugValidationError } from "@/lib/qr-service"
 import { StackServerApp } from "@stackframe/stack";
 import { BillingAccessError } from "@/lib/billing";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const { data, customDomainId } = parsed.data;
+    const { data, customDomainId, customSlug } = parsed.data;
 
     // Create QR code
-    const qr = await createQRCode(data, customDomainId);
+    const qr = await createQRCode(data, customDomainId, customSlug);
     return NextResponse.json(qr);
   } catch (error) {
     console.error("Error creating QR code:", error);
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
         { error: error.message, code: error.code, requiredTier: error.requiredTier },
         { status: error.status },
       );
+    }
+    if (error instanceof QRSlugUnavailableError || error instanceof QRSlugValidationError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     }
 
     return NextResponse.json({ error: "Failed to create QR code" }, { status: 500 });

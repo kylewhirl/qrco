@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
 import { BillingAccessError } from "@/lib/billing";
-import { deleteQRForUser, getQRByIdForUser, updateQRDataForUser } from "@/lib/qr-service";
+import { deleteQRForUser, getQRByIdForUser, QRSlugUnavailableError, QRSlugValidationError, updateQRDataForUser } from "@/lib/qr-service";
 import { qrMutationRequestSchema } from "@/lib/qr-validation";
 
 export async function GET(
@@ -57,6 +57,7 @@ export async function PATCH(
       id,
       parsed.data.data,
       parsed.data.customDomainId,
+      parsed.data.customSlug,
     );
     if (!qrCode) {
       return NextResponse.json({ error: "QR code not found" }, {
@@ -71,6 +72,15 @@ export async function PATCH(
     if (error instanceof BillingAccessError) {
       return NextResponse.json(
         { error: error.message, code: error.code, requiredTier: error.requiredTier },
+        {
+          status: error.status,
+          headers: authorization.value.corsHeaders,
+        },
+      );
+    }
+    if (error instanceof QRSlugUnavailableError || error instanceof QRSlugValidationError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
         {
           status: error.status,
           headers: authorization.value.corsHeaders,

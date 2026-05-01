@@ -376,7 +376,12 @@ function normalizeHostname(hostname: string | null | undefined): string {
 
 function buildPublicQrUrl(code: string, customHostname?: string | null): string {
   const hostname = normalizeHostname(customHostname) || DEFAULT_QR_HOST;
-  return `https://${hostname}/${code}`;
+  const encodedCode = code
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+
+  return `https://${hostname}/${encodedCode}`;
 }
 
 function getPublicUrl(qr: QR) {
@@ -1655,10 +1660,12 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [newUrl, setNewUrl] = useState("");
   const [newCustomDomainId, setNewCustomDomainId] = useState<string | null>(null);
+  const [newCustomSlug, setNewCustomSlug] = useState("");
   const [activeQr, setActiveQr] = useState<QR | null>(null);
   const [designData, setDesignData] = useState<QRData | null>(null);
   const [editData, setEditData] = useState<QRData | null>(null);
   const [editCustomDomainId, setEditCustomDomainId] = useState<string | null>(null);
+  const [editCustomSlug, setEditCustomSlug] = useState("");
   const viewPreviewRef = useRef<HTMLDivElement>(null);
 
   const readyDomains = useMemo(() => (domains.data ?? []).filter((domain) => domain.status === "ready"), [domains.data]);
@@ -1685,6 +1692,7 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
     setDesignData(null);
     setEditData(null);
     setEditCustomDomainId(null);
+    setEditCustomSlug("");
   }
 
   function openView(qr: QR) {
@@ -1708,6 +1716,7 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
     setActiveQr(qr);
     setEditData(qr.data);
     setEditCustomDomainId(qr.customDomainId ?? null);
+    setEditCustomSlug(qr.code);
     setEditOpen(true);
     setViewOpen(false);
     setDesignOpen(false);
@@ -1736,9 +1745,11 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
       await createQRCode.mutate({
         data: { type: "url", url: newUrl.trim() },
         customDomainId: newCustomDomainId,
+        customSlug: newCustomDomainId ? newCustomSlug : null,
       });
       setNewUrl("");
       setNewCustomDomainId(null);
+      setNewCustomSlug("");
       setCreateOpen(false);
       pushSuccess("QR code created successfully.");
       await refreshAll();
@@ -1834,6 +1845,7 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
       await updateQRCode.mutate(activeQr.id, {
         data: editData,
         customDomainId: editCustomDomainId,
+        customSlug: editCustomDomainId ? editCustomSlug : null,
       });
       setEditOpen(false);
       resetSelection();
@@ -1886,7 +1898,7 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
 
   const currentPublicUrl =
     activeQr && editOpen
-      ? buildPublicQrUrl(activeQr.code, readyDomains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? activeQr.customHostname ?? null)
+      ? buildPublicQrUrl(editCustomDomainId ? editCustomSlug : activeQr.code, readyDomains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? activeQr.customHostname ?? null)
       : activeQr
         ? getPublicUrl(activeQr)
         : "";
@@ -2052,7 +2064,12 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
             <Select
               id="create-domain"
               value={newCustomDomainId ?? "default"}
-              onChange={(event) => setNewCustomDomainId(event.target.value === "default" ? null : event.target.value)}
+              onChange={(event) => {
+                setNewCustomDomainId(event.target.value === "default" ? null : event.target.value);
+                if (event.target.value === "default") {
+                  setNewCustomSlug("");
+                }
+              }}
               disabled={domains.isLoading}
             >
               <option value="default">Use default domain</option>
@@ -2063,6 +2080,16 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
               ))}
             </Select>
           </Field>
+          {newCustomDomainId ? (
+            <Field label="Custom slug" htmlFor="create-slug">
+              <Input
+                id="create-slug"
+                placeholder="spring-campaign"
+                value={newCustomSlug}
+                onChange={(event) => setNewCustomSlug(event.target.value)}
+              />
+            </Field>
+          ) : null}
         </div>
       </OverlayDialog>
 
@@ -2178,7 +2205,10 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
               <Select
                 id="edit-domain"
                 value={editCustomDomainId ?? "default"}
-                onChange={(event) => setEditCustomDomainId(event.target.value === "default" ? null : event.target.value)}
+                onChange={(event) => {
+                  setEditCustomDomainId(event.target.value === "default" ? null : event.target.value);
+                  setEditCustomSlug(activeQr.code);
+                }}
                 disabled={domains.isLoading}
               >
                 <option value="default">Use default domain</option>
@@ -2189,6 +2219,16 @@ export function QRCodesManager({ className, onSuccess, onError }: QRCodesManager
                 ))}
               </Select>
             </Field>
+            {editCustomDomainId ? (
+              <Field label="Custom slug" htmlFor="edit-slug">
+                <Input
+                  id="edit-slug"
+                  placeholder="spring-campaign"
+                  value={editCustomSlug}
+                  onChange={(event) => setEditCustomSlug(event.target.value)}
+                />
+              </Field>
+            ) : null}
             <Field label="Name" htmlFor="qr-name">
               <Input
                 id="qr-name"

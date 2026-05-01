@@ -206,13 +206,27 @@ export const stylePresetUpdateSchema = stylePresetCreateSchema.partial().refine(
 export const qrMutationSchema = z.object({
   data: qrDataSchema,
   customDomainId: z.string().uuid().nullable().optional(),
+  customSlug: z.preprocess((value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed;
+  }, z.string()
+    .min(1)
+    .max(120)
+    .refine((value) => !/[/?#\u0000-\u001F\u007F]/u.test(value), "Custom slug must be one URL path segment")
+    .nullable()
+    .optional()),
 });
 
 export const qrMutationRequestSchema = z.union([
-  qrDataSchema.transform((data) => ({ data, customDomainId: null })),
+  qrDataSchema.transform((data) => ({ data, customDomainId: null, customSlug: null })),
   qrMutationSchema.transform((payload) => ({
     data: payload.data,
     customDomainId: payload.customDomainId ?? null,
+    customSlug: payload.customSlug ?? null,
   })),
 ]);
 

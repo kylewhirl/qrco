@@ -90,6 +90,65 @@ async function generateUniqueCode() {
 
 type QRRow = QR & { customHostname?: string | null };
 
+export class QRSlugUnavailableError extends Error {
+  readonly status = 409;
+  readonly code = "slug_unavailable";
+
+  constructor(message = "That custom slug is already in use for this domain") {
+    super(message);
+    this.name = "QRSlugUnavailableError";
+  }
+}
+
+export class QRSlugValidationError extends Error {
+  readonly status = 400;
+  readonly code = "invalid_slug";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "QRSlugValidationError";
+  }
+}
+
+function normalizeCustomSlug(customSlug: string | null | undefined): string | null {
+  if (customSlug === null || customSlug === undefined) {
+    return null;
+  }
+
+  const trimmed = customSlug.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.length > 120 || /[/?#\u0000-\u001F\u007F]/u.test(trimmed)) {
+    throw new QRSlugValidationError("Custom slug must be 1-120 characters and one URL path segment");
+  }
+
+  return trimmed;
+}
+
+async function assertCodeAvailableForDomain(code: string, customDomainId: string | null, excludeQrId?: string): Promise<void> {
+  const params: unknown[] = [code];
+  let where = "code = $1";
+
+  if (customDomainId) {
+    params.push(customDomainId);
+    where += ` AND "customDomainId" = $${params.length}`;
+  } else {
+    where += ' AND "customDomainId" IS NULL';
+  }
+
+  if (excludeQrId) {
+    params.push(excludeQrId);
+    where += ` AND id <> $${params.length}`;
+  }
+
+  const existing = await queryNoAuth<{ id: string }[]>(`SELECT id FROM "QR" WHERE ${where} LIMIT 1`, params);
+  if (existing.length > 0) {
+    throw new QRSlugUnavailableError();
+  }
+}
+
 function mapQR(record: QRRow): QR {
   return {
     ...record,
@@ -145,10 +204,17 @@ async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null
   return result[0] ? mapQR(result[0]) : null;
 }
 
-export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null): Promise<QR> {
+export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR> {
   await ensureQrMutationAllowed(userId, { data, customDomainId });
-  const code = await generateUniqueCode();
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
+  const normalizedCustomSlug = normalizeCustomSlug(customSlug);
+
+  if (normalizedCustomSlug && !resolvedCustomDomainId) {
+    throw new QRSlugValidationError("Custom slug requires a custom domain");
+  }
+
+  const code = normalizedCustomSlug ?? await generateUniqueCode();
+  await assertCodeAvailableForDomain(code, resolvedCustomDomainId);
   const dataWithDefaults = await applyCreateDefaultsToQrData(userId, data);
   const result = await queryNoAuth<{ id: string }[]>(
     'INSERT INTO "QR" (code, data, user_id, "customDomainId") VALUES ($1, $2::jsonb, $3, $4) RETURNING id',
@@ -163,9 +229,9 @@ export async function createQRCodeForUser(userId: string, data: QRData, customDo
   return qr;
 }
 
-export async function createQRCode(data: QRData, customDomainId?: string | null): Promise<QR> {
+export async function createQRCode(data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR> {
   const userId = await requireCurrentUserId();
-  return createQRCodeForUser(userId, data, customDomainId);
+  return createQRCodeForUser(userId, data, customDomainId, customSlug);
 }
 
 export async function getQRByHostAndCode(hostname: string, code: string): Promise<QR | null> {
@@ -178,6 +244,7 @@ export async function getQRByHostAndCode(hostname: string, code: string): Promis
          FROM "QR" q
          LEFT JOIN "CustomDomain" d ON d.id = q."customDomainId"
          WHERE q.code = $1
+           AND q."customDomainId" IS NULL
          LIMIT 1`,
         [code],
       )
@@ -204,20 +271,32 @@ export async function getQRById(id: string): Promise<QR | null> {
   return getQRByIdForUser(userId, id);
 }
 
-export async function updateQRDataForUser(userId: string, id: string, data: QRData, customDomainId?: string | null): Promise<QR | null> {
+export async function updateQRDataForUser(userId: string, id: string, data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR | null> {
   await ensureQrMutationAllowed(userId, { data, customDomainId });
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
+  const existingQr = await getQRByIdInternal(id, userId);
+  if (!existingQr) {
+    return null;
+  }
+
+  const normalizedCustomSlug = normalizeCustomSlug(customSlug);
+  if (normalizedCustomSlug && !resolvedCustomDomainId) {
+    throw new QRSlugValidationError("Custom slug requires a custom domain");
+  }
+
+  const nextCode = normalizedCustomSlug ?? existingQr.code;
+  await assertCodeAvailableForDomain(nextCode, resolvedCustomDomainId, id);
   const result = await queryNoAuth<{ id: string }[]>(
-    'UPDATE "QR" SET data = $1::jsonb, "customDomainId" = $2 WHERE id = $3 AND user_id = $4 RETURNING id',
-    [JSON.stringify(data), resolvedCustomDomainId, id, userId],
+    'UPDATE "QR" SET code = $1, data = $2::jsonb, "customDomainId" = $3 WHERE id = $4 AND user_id = $5 RETURNING id',
+    [nextCode, JSON.stringify(data), resolvedCustomDomainId, id, userId],
   );
 
   return result[0] ? getQRByIdInternal(result[0].id, userId) : null;
 }
 
-export async function updateQRData(id: string, data: QRData, customDomainId?: string | null): Promise<QR | null> {
+export async function updateQRData(id: string, data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR | null> {
   const userId = await requireCurrentUserId();
-  return updateQRDataForUser(userId, id, data, customDomainId);
+  return updateQRDataForUser(userId, id, data, customDomainId, customSlug);
 }
 
 export async function deleteQRForUser(userId: string, id: string): Promise<boolean> {

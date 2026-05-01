@@ -89,6 +89,7 @@ export function QRDetailClient({
   const [qr, setQr] = useState(initialQR);
   const [draftData, setDraftData] = useState<QRData>(initialQR.data);
   const [customDomainId, setCustomDomainId] = useState<string | null>(initialQR.customDomainId ?? null);
+  const [customSlug, setCustomSlug] = useState(initialQR.code);
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [domainsLoading, setDomainsLoading] = useState(true);
   const [domainsLocked, setDomainsLocked] = useState(false);
@@ -142,8 +143,8 @@ export function QRDetailClient({
   }, [customDomainId, domains, qr.customHostname]);
 
   const publicUrl = useMemo(() => {
-    return buildPublicQrUrl(qr.code, resolvedHostname);
-  }, [qr.code, resolvedHostname]);
+    return buildPublicQrUrl(customDomainId ? customSlug : qr.code, resolvedHostname);
+  }, [customDomainId, customSlug, qr.code, resolvedHostname]);
 
   async function handleSave() {
     try {
@@ -156,6 +157,7 @@ export function QRDetailClient({
         body: JSON.stringify({
           data: draftData,
           customDomainId,
+          customSlug: customDomainId ? customSlug : null,
         }),
       });
 
@@ -168,6 +170,7 @@ export function QRDetailClient({
       setQr(updated);
       setDraftData(updated.data);
       setCustomDomainId(updated.customDomainId ?? null);
+      setCustomSlug(updated.code);
       toast.success("QR code updated");
     } catch (error) {
       console.error("Failed to update QR code:", error);
@@ -283,7 +286,10 @@ export function QRDetailClient({
                 <Label htmlFor="qr-domain">Public domain</Label>
                 <Select
                   value={customDomainId ?? "default"}
-                  onValueChange={(value) => setCustomDomainId(value === "default" ? null : value)}
+                  onValueChange={(value) => {
+                    setCustomDomainId(value === "default" ? null : value);
+                    setCustomSlug(qr.code);
+                  }}
                   disabled={domainsLoading || domainsLocked}
                 >
                   <SelectTrigger id="qr-domain">
@@ -302,6 +308,17 @@ export function QRDetailClient({
                   <p className="text-xs text-muted-foreground">Upgrade to Creator to assign a custom domain to this QR code.</p>
                 ) : null}
               </div>
+              {customDomainId ? (
+                <div className="space-y-2">
+                  <Label htmlFor="qr-custom-slug">Custom slug</Label>
+                  <Input
+                    id="qr-custom-slug"
+                    value={customSlug}
+                    onChange={(event) => setCustomSlug(event.target.value)}
+                    placeholder="spring-campaign"
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-2">
