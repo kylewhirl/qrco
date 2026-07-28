@@ -523,39 +523,6 @@ function applyRenderConfigToData(data: QRData, config?: Partial<QrRenderConfig> 
   };
 }
 
-function ensureBorderSettings(data: QRData): QrBorderSettings {
-  return {
-    shape: data.borderSettings?.shape ?? "square",
-    colorType: data.borderSettings?.colorType ?? "solid",
-    colors: data.borderSettings?.colors?.length ? data.borderSettings.colors : ["#111827", "#111827"],
-    gradientType: data.borderSettings?.gradientType ?? "linear",
-    rotation: data.borderSettings?.rotation ?? 0,
-    preset: data.borderSettings?.preset ?? "default",
-    text: data.borderSettings?.text ?? "",
-    textStyle: data.borderSettings?.textStyle,
-  };
-}
-
-function setStyleColor(data: QRData, key: "dotColors" | "eyeColors" | "bgColors", color: string): QRData {
-  const nextStyle = {
-    ...(data.styleSettings ?? {}),
-    [key]: [color, color],
-  };
-  if (key === "dotColors") {
-    nextStyle.dotColorType = "solid";
-  }
-  if (key === "eyeColors") {
-    nextStyle.eyeColorType = "solid";
-  }
-  if (key === "bgColors") {
-    nextStyle.bgColorType = "solid";
-  }
-  return {
-    ...data,
-    styleSettings: nextStyle,
-  };
-}
-
 function serializeSvg(svg: SVGElement) {
   if (!svg.getAttribute("xmlns")) {
     svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");

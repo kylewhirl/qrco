@@ -128,6 +128,14 @@ const QrPreview: React.FC<QrPreviewProps> = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!data.trim()) {
+      if (ref.current) {
+        ref.current.innerHTML = "";
+      }
+      onScanabilityChange?.(0);
+      return;
+    }
+
     // Ensure at least two colors
     const [c0, c1] = styleSettings.bgColors;
     const colors: [string, string] = [c0, c1 ?? c0];
@@ -244,10 +252,7 @@ const QrPreview: React.FC<QrPreviewProps> = ({
           : {}),
       },
     };
-    // Optionally compute scanability for debugging
     const scanability = calculateScanability(styleSettings, errorLevel, logoSettings);
-    console.log("options:", options);
-    console.log("QR scanability:", scanability);
     if (onScanabilityChange) {
       onScanabilityChange(scanability);
     }

@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 function SectionHeaderSkeleton() {
   return (
-    <CardHeader className="space-y-2">
+    <CardHeader className="space-y-2 px-3 py-2">
       <Skeleton className="h-5 w-36" />
       <Skeleton className="h-4 w-52" />
     </CardHeader>
@@ -12,14 +12,14 @@ function SectionHeaderSkeleton() {
 
 export function MetricsGridSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <Card key={index}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card key={index} className="gap-0 rounded-none border-2 border-foreground py-0 shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 bg-[var(--brand-blue)] px-3 py-1">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-4 w-4 rounded-full" />
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 px-3 py-2">
             <Skeleton className="h-8 w-24" />
             <Skeleton className="h-3 w-20" />
           </CardContent>
@@ -31,9 +31,9 @@ export function MetricsGridSkeleton() {
 
 export function ScanActivityChartSkeleton() {
   return (
-    <Card className="col-span-4">
+    <Card className="col-span-4 gap-0 rounded-none border-2 border-foreground py-0 shadow-none">
       <SectionHeaderSkeleton />
-      <CardContent className="h-[300px]">
+      <CardContent className="h-[270px] px-3 pb-2">
         <Skeleton className="h-full w-full" />
       </CardContent>
     </Card>
@@ -42,9 +42,9 @@ export function ScanActivityChartSkeleton() {
 
 export function QRCodeListSkeleton() {
   return (
-    <Card>
+    <Card className="gap-0 rounded-none border-2 border-foreground py-0 shadow-none">
       <SectionHeaderSkeleton />
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-3 pb-2">
         <div className="flex items-center justify-between gap-3">
           <Skeleton className="h-10 w-44" />
           <Skeleton className="h-10 w-28" />
@@ -75,12 +75,12 @@ function TableCardSkeleton({
   rowCount: number
 }) {
   return (
-    <Card>
+    <Card className="gap-0 rounded-none border-2 border-foreground py-0 shadow-none">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-3 pb-2">
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
           {Array.from({ length: columnCount }).map((_, index) => (
             <Skeleton key={index} className="h-4 w-full" />
@@ -126,7 +126,7 @@ export function LatestScansListSkeleton() {
 
 export function DashboardPageSkeleton() {
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-3 px-3 py-4 sm:px-4 lg:px-5">
       <div className="flex items-center justify-between">
         <Skeleton className="h-9 w-40" />
       </div>

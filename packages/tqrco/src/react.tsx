@@ -86,6 +86,8 @@ function useAsyncResource<T>(loader: () => Promise<T>, deps: React.DependencyLis
 
   useEffect(() => {
     void reload();
+    // The hook API accepts dependencies from callers so resources can reload on the same boundaries as their loader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { data, error, isLoading, reload };

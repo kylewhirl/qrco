@@ -14,16 +14,16 @@ export function FeatureLockCard({
   ctaLabel?: string;
 }) {
   return (
-    <Card className="border-dashed border-border/70 bg-muted/20">
-      <CardHeader>
+    <Card className="gap-0 rounded-2xl border border-dashed border-border bg-card py-0 shadow-none">
+      <CardHeader className="px-3 py-3">
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-muted-foreground" />
           <CardTitle>{title}</CardTitle>
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Button asChild variant="outline">
+      <CardContent className="px-3 pb-3">
+        <Button asChild variant="outline" className="rounded-xl border border-border">
           <Link href="/checkout?plan=creator">{ctaLabel}</Link>
         </Button>
       </CardContent>

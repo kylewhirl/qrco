@@ -5,9 +5,13 @@ const FramePage = () => {
     const qrValue = "https://example.com";
 
     return (
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 40 }}>
-            <h1>QR Code Preview</h1>
-            <QRPreview 
+        <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+          <section className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Design Preview</p>
+            <h1 className="text-3xl tracking-tight md:text-4xl">QR Code Preview</h1>
+          </section>
+          <div className="flex min-h-[420px] items-center justify-center border-2 border-foreground bg-card p-6">
+            <QRPreview
                 data={qrValue}
                 errorLevel="H"
                 margin={4}
@@ -35,7 +39,8 @@ const FramePage = () => {
                   bgColors: ["#ffffff", "#eeeeee"],
                 }}
             />
-        </main>
+          </div>
+        </div>
     );
 };
 

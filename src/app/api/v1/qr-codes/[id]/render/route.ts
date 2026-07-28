@@ -73,7 +73,7 @@ export async function GET(
     }
 
     const rendered = await renderQRCodeBinary(qr, config, format);
-    return new NextResponse(rendered.body, {
+    return new NextResponse(new Uint8Array(rendered.body), {
       headers: {
         ...authorization.value.corsHeaders,
         "Content-Type": rendered.contentType,

@@ -75,21 +75,22 @@ export default function BorderSettings({
           .join(", ")})`;
 
   return (
-    <Card className={`p-4${className ? ` ${className}` : ""}`}>
-      <h3 className="text-lg font-medium">Border Settings</h3>
-      <div className="flex flex-wrap gap-2">
+    <Card className={`w-full min-w-0 gap-4 rounded-2xl border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Frame</h3>
+      <div className="grid grid-cols-2 gap-2">
         {presets.map(({ id, render }) => (
-          <div
+          <button
+            type="button"
             key={id}
             onClick={() => onChange({ ...settings, preset: id })}
-            className={`p-1 rounded ${settings.preset === id ? "ring-2 ring-blue-500" : ""}`}
+            className={`flex min-w-0 items-center justify-center rounded-xl border p-2 transition ${settings.preset === id ? "border-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_9%,var(--card))] shadow-[0_8px_18px_-14px_var(--brand-blue)]" : "border-border bg-background hover:border-[var(--brand-blue)]"}`}
           >
             {render()}
-          </div>
+          </button>
         ))}
       </div>
-      <div className ="flex flex-row space-x-6">
-        <div className="flex flex-col space-y-1">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+        <div className="flex min-w-0 flex-col space-y-1">
             <Label htmlFor="shape">Shape</Label>
             <Select
                 value={settings.shape}
@@ -97,9 +98,7 @@ export default function BorderSettings({
                     onChange({ ...settings, shape: value as "square" | "circle" })
                 }
                 >
-                <SelectTrigger
-                    id="shape"
-                >
+                <SelectTrigger id="shape" className="w-full rounded-xl border-border">
                     <SelectValue placeholder="Select style" />
                 </SelectTrigger>
                 <SelectContent>
@@ -155,7 +154,7 @@ export default function BorderSettings({
           onChange={(e) =>
             onChange({ ...settings, text: e.target.value })
           }
-          className="rounded-md border px-2 py-1"
+          className="w-full min-w-0 rounded-xl border-border px-3 py-1"
         />
       </div>
     </Card>

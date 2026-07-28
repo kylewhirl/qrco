@@ -11,13 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ShimmerButton } from "@/components/magicui/shimmer-button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogTitle,
-  DialogOverlay
 } from "@/components/ui/dialog";
 import AICreateQr from "@/components/ai-create-qr";
 import { QrCode, WandSparkles } from "lucide-react";
@@ -36,7 +35,7 @@ export function NavMain({
   const pathname = usePathname();
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="px-3 py-3">
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
@@ -44,14 +43,13 @@ export function NavMain({
               <DialogTrigger asChild>
                 <SidebarMenuButton
                   tooltip="Quick Create"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
+                  className="h-10 min-w-8 rounded-xl border border-[var(--brand-blue)] bg-[var(--brand-blue)] px-3 font-bold !text-white shadow-[0_12px_24px_-16px_var(--brand-blue)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-blue)]/92 hover:!text-white active:translate-y-0 active:bg-[var(--brand-blue)] active:!text-white"
                 >
                   <IconCirclePlusFilled />
                   <span>Create QR Code</span>
                 </SidebarMenuButton>
               </DialogTrigger>
-              <DialogOverlay className="backdrop-blur bg-background/30">
-              <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-7xl">
+              <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto border-none bg-transparent p-0 shadow-none sm:max-h-[calc(100dvh-2rem)] sm:max-w-7xl">
                 <DialogTitle className="sr-only">
                   <div className="flex flex-row items-center">
                   <QrCode className="mr-2 h-4 w-4" />
@@ -59,20 +57,20 @@ export function NavMain({
                 </DialogTitle>
                 <QrCodeCreator variant="hero" />
               </DialogContent>
-              </DialogOverlay>
             </Dialog>
             <Dialog>
               <DialogTrigger asChild>
-                <ShimmerButton
+                <Button
+                  type="button"
                   size="icon"
-                  className="size-8 group-data-[collapsible=icon]:opacity-0"
                   variant="outline"
+                  className="size-10 shrink-0 rounded-xl border border-sidebar-border bg-card text-[var(--brand-blue)] shadow-none transition-colors hover:bg-accent hover:text-[var(--brand-blue)] group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0"
                 >
                   <IconSparkles />
                   <span className="sr-only">AI Create</span>
-                </ShimmerButton>
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[min(92vh,900px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
+              <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto border-none bg-transparent p-0 shadow-none sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl">
                 <DialogTitle className="sr-only">
                   <div className="flex flex-row items-center">
                   <WandSparkles className="mr-2 h-4 w-4" />
@@ -83,14 +81,17 @@ export function NavMain({
             </Dialog>
           </SidebarMenuItem>
         </SidebarMenu>
-        <SidebarMenu>
+        <SidebarMenu className="mt-2 gap-1">
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
                 isActive={pathname === item.url}
-                className={cn(pathname === item.url && "bg-sidebar-accent text-sidebar-accent-foreground")}
+                className={cn(
+                  "h-9 rounded-xl px-2.5 font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  pathname === item.url && "bg-sidebar-accent text-[var(--brand-blue)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--brand-blue)_12%,transparent)] hover:bg-sidebar-accent hover:text-[var(--brand-blue)]"
+                )}
               >
                 <Link href={item.url}>
                   {item.icon && <item.icon />}

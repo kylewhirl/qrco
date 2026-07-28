@@ -9,18 +9,18 @@ interface LatestScansListProps {
 
 export function LatestScansList({ scans }: LatestScansListProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Latest Scans</CardTitle>
-        <CardDescription>Recent QR code scans</CardDescription>
+    <Card className="min-w-0 gap-0 border border-border bg-card py-0">
+      <CardHeader className="px-5 pt-5">
+        <CardTitle className="font-display text-lg">Latest scans</CardTitle>
+        <CardDescription className="text-xs">Recent QR code scans</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0 overflow-x-auto px-5 pb-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Scanned At</TableHead>
-              <TableHead>Location</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.1em]">Code</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.1em]">Scanned At</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.1em]">Location</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="w-full overflow-x-auto">

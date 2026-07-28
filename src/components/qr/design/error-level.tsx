@@ -18,12 +18,12 @@ export default function ErrorLevelSettings({
   className,
 }: ErrorLevelSettingsProps) {
   return (
-    <Card className={`p-4${className ? ` ${className}` : ""}`}>
-      <h3 className="text-lg font-medium">Error Correction Level</h3>
+    <Card className={`w-full min-w-0 gap-4 rounded-2xl border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Error correction</h3>
       <div className="flex flex-col space-y-1">
         <Label htmlFor="error-level-select">Select Level</Label>
         <Select value={value} onValueChange={(v) => onChange(v as "L" | "M" | "Q" | "H")}>
-          <SelectTrigger id="error-level-select">
+          <SelectTrigger id="error-level-select" className="w-full rounded-xl border-border">
             <SelectValue placeholder="Select level" />
           </SelectTrigger>
           <SelectContent>

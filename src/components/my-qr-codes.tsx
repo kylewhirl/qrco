@@ -69,6 +69,11 @@ interface QRCodeListProps {
 
 type QuickCreateType = Exclude<QRData["type"], "file">;
 
+const MODAL_FRAME_CLASS_NAME = "grid max-h-[calc(100dvh-1rem)] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden p-0 sm:max-h-[calc(100dvh-2rem)]"
+const MODAL_HEADER_CLASS_NAME = "px-4 pb-3 pt-4 sm:px-6 sm:pt-6"
+const MODAL_BODY_CLASS_NAME = "min-h-0 overflow-y-auto px-4 py-4 sm:px-6"
+const MODAL_FOOTER_CLASS_NAME = "border-t bg-background/95 px-4 py-3 sm:px-6 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto"
+
 const QUICK_CREATE_OPTIONS: Array<{
   value: QuickCreateType;
   label: string;
@@ -460,25 +465,26 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
 
   
   return (
-    <Card className="col-span-4 w-full max-w-9xl">
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="col-span-4 min-w-0 gap-0 overflow-hidden border border-border bg-card py-0">
+      <CardHeader className="flex flex-col items-start justify-between gap-3 px-5 pt-5 sm:flex-row sm:items-center">
         <div>
-          <CardTitle>QR Codes</CardTitle>
-          <CardDescription>Manage your QR codes</CardDescription>
+          <CardTitle className="font-display text-lg">QR codes</CardTitle>
+          <CardDescription className="text-xs">Manage your QR codes</CardDescription>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" className="w-full rounded-xl bg-[var(--brand-blue)] font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-blue)] hover:bg-[var(--brand-blue)]/90 sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Quick Create
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className={MODAL_FRAME_CLASS_NAME}>
+            <DialogHeader className={MODAL_HEADER_CLASS_NAME}>
               <DialogTitle>Create QR Code</DialogTitle>
               <DialogDescription>Choose a QR type and enter the content to create it quickly.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className={MODAL_BODY_CLASS_NAME}>
+              <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="quick-create-type">QR type</Label>
                 <Select
@@ -565,8 +571,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                   />
                 </div>
               ) : null}
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className={MODAL_FOOTER_CLASS_NAME}>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
@@ -577,18 +584,18 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0 overflow-x-auto px-3 pb-2">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Image</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Public URL</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Total Scans</TableHead>
-              <TableHead>Last Scanned</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Image</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Code</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Public URL</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Type</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Total Scans</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Last Scanned</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.08em]">Created</TableHead>
+              <TableHead className="h-8 text-right text-[0.64rem] font-black uppercase tracking-[0.08em]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -653,15 +660,16 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             <span className="sr-only">View QR Code</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
+                        <DialogContent className={MODAL_FRAME_CLASS_NAME}>
+                          <DialogHeader className={MODAL_HEADER_CLASS_NAME}>
                             <DialogTitle>View QR Code</DialogTitle>
                             <DialogDescription>
                               {editingQR ? getPublicUrl(editingQR) : ""}
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="flex items-center flex-col gap-4">
-                            <div ref={viewPreviewRef} className="flex w-full items-center justify-center">
+                          <div className={MODAL_BODY_CLASS_NAME}>
+                            <div className="flex flex-col items-center gap-4">
+                            <div ref={viewPreviewRef} className="flex w-full max-w-[320px] items-center justify-center">
                               <QrPreview
                                 data={editingQR ? getPublicUrl(editingQR) : ""}
                                 errorLevel={getViewPreviewConfig(editingQR).errorLevel}
@@ -680,8 +688,9 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                     ? editingQR.data.type.charAt(0).toUpperCase() + editingQR.data.type.slice(1)
                                     : ""}
                             </span>
+                            </div>
                           </div>
-                          <DialogFooter>
+                          <DialogFooter className={MODAL_FOOTER_CLASS_NAME}>
                             <Button variant="outline" onClick={handleDownloadViewedSvg}>
                               Download SVG
                             </Button>
@@ -729,24 +738,26 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             <span className="sr-only">Design</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
-                          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+                        <DialogContent className="grid max-h-[calc(100dvh-1rem)] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl">
+                          <DialogHeader className="rounded-t-[28px] border-x border-t bg-card px-4 pt-4 sm:px-6 sm:pt-6">
                             <DialogTitle>Design QR Code</DialogTitle>
                             <DialogDescription>
                               Customize this QR, apply a saved style, and download the result.
                             </DialogDescription>
                           </DialogHeader>
-                          {editingQR && designData ? (
-                            <QrDesignDialog
-                              qr={editingQR}
-                              value={designData}
-                              brand={brand}
-                              presets={stylePresets}
-                              stylesLoading={stylesLoading}
-                              onChange={setDesignData}
-                            />
-                          ) : null}
-                          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
+                          <div className="min-h-0 overflow-y-auto border-x bg-card px-3 py-3 sm:px-4">
+                            {editingQR && designData ? (
+                              <QrDesignDialog
+                                qr={editingQR}
+                                value={designData}
+                                brand={brand}
+                                presets={stylePresets}
+                                stylesLoading={stylesLoading}
+                                onChange={setDesignData}
+                              />
+                            ) : null}
+                          </div>
+                          <DialogFooter className="rounded-b-[28px] border-x border-b bg-card px-4 pb-4 pt-3 sm:px-6 sm:pb-6 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
                             <Button onClick={() => setDesignDialogOpen(false)}>
                               Cancel
                             </Button>
@@ -783,14 +794,15 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             <span className="sr-only">Edit</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
+                        <DialogContent className={MODAL_FRAME_CLASS_NAME}>
+                          <DialogHeader className={MODAL_HEADER_CLASS_NAME}>
                             <DialogTitle>Edit QR Code</DialogTitle>
                             <DialogDescription>
                               Update the data for QR code: {editingQR?.code}
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="mt-4 space-y-4">
+                          <div className={MODAL_BODY_CLASS_NAME}>
+                          <div className="space-y-4">
                             <div className="space-y-1">
                               <Label htmlFor="qr-public-url">Public URL</Label>
                               <Input
@@ -1005,7 +1017,8 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               />
                             )}
                           </div>
-                          <DialogFooter>
+                          </div>
+                          <DialogFooter className={MODAL_FOOTER_CLASS_NAME}>
                             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                               Cancel
                             </Button>
@@ -1031,14 +1044,14 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                             <span className="sr-only">Delete</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
+                        <DialogContent className="p-0 sm:max-w-md">
+                          <DialogHeader className={MODAL_HEADER_CLASS_NAME}>
                             <DialogTitle>Delete QR Code</DialogTitle>
                             <DialogDescription>
                               Are you sure you want to delete QR code: {editingQR?.code}? This action cannot be undone.
                             </DialogDescription>
                           </DialogHeader>
-                          <DialogFooter>
+                          <DialogFooter className={MODAL_FOOTER_CLASS_NAME}>
                             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                               Cancel
                             </Button>

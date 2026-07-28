@@ -19,7 +19,6 @@ export interface ColorPickerProps extends React.InputHTMLAttributes<HTMLInputEle
 export const ColorPicker: React.FC<ColorPickerProps> = ({ color, className, disabled = false, disableGradient = false, disableMobilePicker = false, ...props }) => {
   
   const { resolvedTheme } = useTheme();
-  console.log(resolvedTheme);
   // Determine if the current color string is a gradient
   const isGradient = !disableGradient && (color.startsWith("linear-gradient") || color.startsWith("radial-gradient"));
   // Compute button background style
@@ -50,7 +49,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, className, disa
           <Button
             size="icon"
             variant="outline"
-            className={className}
+            className={`rounded-xl border-border ${className ?? ""}`}
             disabled={disabled}
             style={buttonStyle}
           >

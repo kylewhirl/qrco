@@ -47,15 +47,15 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="h-12 rounded-xl px-1 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
+              <Avatar className="h-8 w-8 rounded-full border border-sidebar-border">
                 <AvatarImage src={user.profileImageUrl ?? undefined} alt={user.displayName ?? undefined} />
                 <AvatarFallback className="rounded-lg">{user.displayName ? getInitials(user.displayName): "QR"}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.displayName}</span>
-                <span className="text-muted-foreground truncate text-xs">
+                <span className="truncate text-xs text-current opacity-70">
                   {user.primaryEmail}
                 </span>
               </div>

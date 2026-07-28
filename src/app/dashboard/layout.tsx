@@ -25,23 +25,24 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider
+      className="dashboard-shell bg-[var(--brand-paper)]"
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
+          "--sidebar-width": "15.25rem",
+          "--header-height": "2.625rem",
         } as React.CSSProperties
       }
     >
       <QrBar/>
-      <AppSidebar variant="inset" />
-      <SidebarInset className="md:h-[calc(100vh-1rem)] h-[100dvh] ">
+      <AppSidebar variant="sidebar" />
+      <SidebarInset className="h-[100dvh] min-w-0 overflow-hidden bg-[var(--brand-paper)]">
 
           <SiteHeader />
 
         <div
-          className="overflow-y-auto overscroll-contain"
+          className="min-h-0 overflow-y-auto overscroll-contain"
           style={{
-            height: 'calc(100vh - (var(--header-height) + 0.5rem))'
+            height: "calc(100dvh - var(--header-height))"
           }}
         >
           <div className="@container/main flex flex-1 flex-col gap-2">

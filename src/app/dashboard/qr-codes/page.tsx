@@ -3,6 +3,8 @@ import {
 } from "@/lib/qr-service"
 import { DashboardClient } from "./client"
 
+export const dynamic = "force-dynamic"
+
 export default async function DashboardPage() {
   // Check authentication
 

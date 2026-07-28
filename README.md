@@ -1,17 +1,75 @@
-## tqrco
+# tqrco
 
-This repo contains the main app, the `/api/v1` REST API, and the publishable `tqrco` TypeScript SDK in [packages/tqrco](/Users/kyle/tqrco/packages/tqrco).
+tqrco is a Next.js QR-code platform with a public REST API, dashboard UI, docs site, and a publishable TypeScript SDK.
 
-Canonical API origin: [https://tqrco.de](https://tqrco.de)  
-Marketing domain: [https://theqrcode.co](https://theqrcode.co)
+## What is in this repo
 
-### SDK install
+- `src/app`: main Next.js app, dashboard, public pages, and API routes
+- `src/lib`: service-layer code for QR rendering, storage, billing, domains, and API auth
+- `packages/tqrco`: TypeScript SDK, React hooks, and reusable QR components
+- `apps/docs`: Fumadocs-powered documentation site
+- `scripts`: local operational scripts for style assets and billing test data
+
+The SDK defaults to `https://tqrco.de` as the API origin. The marketing domain is `https://theqrcode.co`.
+
+## Requirements
+
+- Node.js 20 or newer
+- npm 10 or newer
+- Accounts and credentials for the external services you enable locally
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in the values needed for the features you plan to run. Many dashboard and API flows require external services such as Stack Auth, Neon/Postgres, Stripe, Cloudflare R2, Vercel, and Mistral.
+
+Start the main app:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3002`.
+
+Start the docs site:
+
+```bash
+npm run dev:docs
+```
+
+Open `http://localhost:3003`.
+
+## Useful Scripts
+
+- `npm run dev`: run the main app on port 3002
+- `npm run dev:docs`: run the docs app on port 3003
+- `npm run dev:all`: run both apps
+- `npm run lint`: run ESLint
+- `npm run check`: run lint, TypeScript, and SDK build checks
+- `npm run check:docs`: build the docs app
+- `npm run build:sdk`: build the `tqrco` package
+- `npm run build`: production build for the main app
+
+## SDK
+
+Install:
 
 ```bash
 npm install tqrco
 ```
 
-### SDK usage
+Server-side usage:
 
 ```ts
 import { createTqrcoClient } from "tqrco";
@@ -23,12 +81,15 @@ const client = createTqrcoClient({
 const qrCodes = await client.qr.list();
 ```
 
+React usage:
+
 ```tsx
-import { TqrcoProvider, useQRCodes } from "tqrco/react";
 import { QRCode } from "tqrco/components";
+import { TqrcoProvider, useQRCodes } from "tqrco/react";
 
 function QRList() {
   const { data } = useQRCodes();
+
   return (
     <div>
       {data?.map((qr) => <QRCode key={qr.id} qrId={qr.id} />)}
@@ -45,41 +106,27 @@ export function App() {
 }
 ```
 
-Secret keys are for server-only usage. Publishable tokens are for browser apps and are restricted by origins and scopes.
+Secret API keys are for server-only usage. Publishable tokens are intended for browser apps and should be restricted by origins and scopes.
 
-## Local app development
+## Security
 
-## Getting Started
+Do not commit `.env.local`, `.vercel`, private keys, production exports, or generated build output. Use `.env.example` for documenting configuration without secrets.
 
-First, run the development server:
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Project Documentation
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Asset license review](docs/ASSET_LICENSES.md)
+- [Dependency audit](docs/DEPENDENCY_AUDIT.md)
+- [Open source release checklist](docs/OPEN_SOURCE_RELEASE.md)
+- [Maintainer operations](docs/maintainers/OPERATIONS.md)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { IconBell, IconUserCircle } from "@tabler/icons-react"
 import { ThemeToggle } from "./ui/theme-toggle"
 
 const LABELS: Record<string, string> = {
@@ -55,15 +56,15 @@ export function SiteHeader() {
   const dashboardSegments = segments[0] === "dashboard" ? segments : ["dashboard"]
 
   return (
-    <header className="sticky top-0 z-10 flex h-(--header-height) shrink-0 items-center gap-2 rounded-t-lg border-b bg-background transition-[width,height] ease-linear md:top-2 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
+    <header className="sticky top-0 z-20 flex h-(--header-height) shrink-0 items-center gap-2 border-b border-border bg-[color-mix(in_srgb,var(--card)_88%,transparent)] backdrop-blur-xl transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+      <div className="flex w-full min-w-0 items-center gap-1 px-3 lg:gap-2 lg:px-4">
+        <SidebarTrigger className="-ml-1 rounded-lg hover:bg-accent" />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
 
-        <Breadcrumb>
+        <Breadcrumb className="min-w-0">
           <BreadcrumbList>
             {dashboardSegments.map((segment, index) => {
               const href = `/${dashboardSegments.slice(0, index + 1).join("/")}`
@@ -94,6 +95,20 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
+          <Link
+            href="/dashboard/notifications"
+            aria-label="Notifications"
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <IconBell className="size-4" />
+          </Link>
+          <Link
+            href="/dashboard/account"
+            aria-label="Account"
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <IconUserCircle className="size-5" />
+          </Link>
         </div>
       </div>
     </header>

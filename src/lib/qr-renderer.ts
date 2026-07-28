@@ -4,13 +4,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { JSDOM } from "jsdom";
 import nodeCanvas from "canvas";
+import type QRCodeStyling from "qr-code-styling";
 import type { Options } from "qr-code-styling";
 import { serialize } from "@/lib/utils";
 import { resolveSafeServerLogoSrc } from "@/lib/storage";
 import type { QR, QrBorderSettings, QrRenderConfig, QrStyleSettings, QRData } from "@/lib/types";
 
-const SVG_MODULE_PATH = "qr-code-styling/lib/qr-code-styling.common.js";
 type RenderWindow = InstanceType<typeof JSDOM>["window"];
+type QRCodeStylingConstructor = typeof QRCodeStyling;
 
 export class UnsafeServerLogoSourceError extends Error {
   constructor() {
@@ -240,9 +241,9 @@ function composeFramedSvg(window: RenderWindow, qrSvgText: string, frameSvgText:
   return serializer.serializeToString(frameSvg);
 }
 
-async function loadQRCodeStyling() {
-  const qrCodeStylingModule = await import(SVG_MODULE_PATH);
-  return qrCodeStylingModule.default;
+async function loadQRCodeStyling(): Promise<QRCodeStylingConstructor> {
+  const qrCodeStylingModule = await import("qr-code-styling/lib/qr-code-styling.common.js");
+  return (qrCodeStylingModule.default ?? qrCodeStylingModule) as unknown as QRCodeStylingConstructor;
 }
 
 function svgToPngBuffer(svgText: string, width: number, height: number) {

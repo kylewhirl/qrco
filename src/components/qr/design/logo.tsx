@@ -82,7 +82,7 @@ export default function LogoSettings({
   };
 
   return (
-    <Card className={`p-4${className ? ` ${className}` : ""}`}>
+    <Card className={`w-full min-w-0 gap-4 rounded-2xl border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
       {/* Hidden container to render and capture SVG */}
       <div ref={svgCaptureRef} style={{ position: "absolute", visibility: "hidden", pointerEvents: "none" }}>
         {selectedIconName && (
@@ -92,7 +92,7 @@ export default function LogoSettings({
           />
         )}
       </div>
-      <h3 className="text-lg font-medium">Logo Settings</h3>
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Logo</h3>
       <input
         type="file"
         accept="image/*"
@@ -101,11 +101,12 @@ export default function LogoSettings({
         onChange={handleFileChange}
       />
 
-      <div className="flex items-center space-x-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Button
           size="icon"
           variant="outline"
           onClick={() => inputRef.current?.click()}
+          className="rounded-xl border-border"
         >
           <Upload className="h-4 w-4" />
         </Button>
@@ -113,7 +114,7 @@ export default function LogoSettings({
         {logoSettings && (
           <button
             onClick={removeImage}
-            className="relative h-10 w-10 rounded-md overflow-hidden group border border-border"
+            className="group relative size-10 overflow-hidden border border-foreground/40"
             aria-label="Remove logo"
           >
             {logoSettings.src ? (
@@ -128,8 +129,8 @@ export default function LogoSettings({
         )}
       </div>
 
-      <div className="flex items-center space-x-4">
-        <label className="text-sm">Or select an icon</label>
+      <div className="grid min-w-0 grid-cols-1 gap-2">
+        <label className="text-xs font-bold uppercase tracking-wide text-foreground/60">Or select an icon</label>
         <IconPicker
           value={undefined}
           onValueChange={(iconName, hex) => {
@@ -173,9 +174,9 @@ export default function LogoSettings({
           }}
         />
         {logoSettings && (
-          <div className="flex items-center space-x-4">
-            <div className="flex flex-col">
-              <label className="text-sm">Color</label>
+          <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold">Color</label>
               <ColorPicker
                 id="logo-color"
                 color={logoSettings.color}
@@ -214,8 +215,8 @@ export default function LogoSettings({
                 disableGradient
               />
             </div>
-            <div className="flex flex-col">
-            <label className="text-sm">Stroke Width</label>
+            <div className="flex min-w-0 flex-col gap-1">
+            <label className="text-xs font-bold">Stroke width</label>
               <Input
                 type="number"
                 min={0}
@@ -253,7 +254,7 @@ export default function LogoSettings({
                     onChange?.(full);
                   }, 0);
                 }}
-                className="w-24"
+                className="w-full min-w-0 rounded-xl border-border"
                 disabled={(selectedIconName ?? "").startsWith("Si")}
                 title={(selectedIconName ?? "").startsWith("Si") 
                   ? "Stroke width not applicable for filled icons" 
@@ -265,9 +266,9 @@ export default function LogoSettings({
       </div>
 
       {logoSettings && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm">Hide Background Dots</label>
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <label className="text-xs font-bold">Hide background dots</label>
             <Switch
               checked={logoSettings.hideBackgroundDots}
               onCheckedChange={(checked) => {
@@ -277,13 +278,13 @@ export default function LogoSettings({
               }}
             />
           </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm">Margin</label>
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <label className="text-xs font-bold">Margin</label>
             <Slider
               value={[logoSettings.margin]}
               max={30}
               step={1}
-              className="w-24"
+              className="w-24 max-w-[55%]"
               onValueChange={(values) => {
                 const newMargin = values[0];
                 const updated = { ...logoSettings, margin: newMargin };
@@ -292,14 +293,14 @@ export default function LogoSettings({
               }}
             />
           </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm">Size</label>
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <label className="text-xs font-bold">Size</label>
             <Slider
               value={[logoSettings.size]}
               min={0.1}
               max={1}
               step={0.1}
-              className="w-24"
+              className="w-24 max-w-[55%]"
               onValueChange={(values) => {
                 const newSize = values[0];
                 const updated = { ...logoSettings, size: newSize };

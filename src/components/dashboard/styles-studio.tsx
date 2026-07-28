@@ -791,99 +791,101 @@ export function StylesStudio() {
       </div>
 
       <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
-        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
-          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <DialogContent className="grid max-h-[calc(100dvh-1rem)] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl">
+          <DialogHeader className="rounded-t-[28px] border-x border-t bg-card px-4 pt-4 sm:px-6 sm:pt-6">
             <DialogTitle>{presetDraft.id ? "Edit style" : "Create style"}</DialogTitle>
             <DialogDescription>
               Update the style details at the top, then fine-tune the QR appearance in the designer below.
             </DialogDescription>
           </DialogHeader>
 
-          <StyleDesignerPanel
-            topSection={
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Style details</div>
-                  <h3 className="text-lg font-semibold">Name, target, and default behavior</h3>
-                  <p className="text-sm text-muted-foreground">
-                    These settings control how the style shows up in your library and which QR codes it should be used for.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="style-name">Style name</Label>
-                    <Input
-                      id="style-name"
-                      value={presetDraft.name}
-                      onChange={(event) => setPresetDraft((current) => ({ ...current, name: event.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="style-type">QR type</Label>
-                    <Select
-                      value={presetDraft.qrType}
-                      onValueChange={(value) =>
-                        setPresetDraft((current) => ({ ...current, qrType: value as StylePresetQrType }))
-                      }
-                    >
-                      <SelectTrigger id="style-type">
-                        <SelectValue placeholder="Choose a QR type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STYLE_TARGET_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                  <div className="space-y-2">
-                    <Label htmlFor="style-description">Description</Label>
-                    <Textarea
-                      id="style-description"
-                      value={presetDraft.description}
-                      onChange={(event) => setPresetDraft((current) => ({ ...current, description: event.target.value }))}
-                      placeholder="What this style is for"
-                    />
+          <div className="min-h-0 overflow-y-auto border-x bg-card px-3 py-3 sm:px-4">
+            <StyleDesignerPanel
+              topSection={
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Style details</div>
+                    <h3 className="text-lg font-semibold">Name, target, and default behavior</h3>
+                    <p className="text-sm text-muted-foreground">
+                      These settings control how the style shows up in your library and which QR codes it should be used for.
+                    </p>
                   </div>
 
-                  <div className="rounded-2xl border px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium">Default style</p>
-                        <p className="text-sm text-muted-foreground">Exclusive per target</p>
-                      </div>
-                      <Switch
-                        checked={presetDraft.isDefault}
-                        onCheckedChange={(checked) =>
-                          setPresetDraft((current) => ({ ...current, isDefault: checked }))
-                        }
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="style-name">Style name</Label>
+                      <Input
+                        id="style-name"
+                        value={presetDraft.name}
+                        onChange={(event) => setPresetDraft((current) => ({ ...current, name: event.target.value }))}
                       />
                     </div>
-                    <p className="mt-3 text-sm text-muted-foreground">{getDefaultHelperText(presetDraft.qrType)}</p>
-                    {presetDraft.isDefault ? (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        If another saved style already owns this default target, saving will ask to replace it.
-                      </p>
-                    ) : null}
+                    <div className="space-y-2">
+                      <Label htmlFor="style-type">QR type</Label>
+                      <Select
+                        value={presetDraft.qrType}
+                        onValueChange={(value) =>
+                          setPresetDraft((current) => ({ ...current, qrType: value as StylePresetQrType }))
+                        }
+                      >
+                        <SelectTrigger id="style-type">
+                          <SelectValue placeholder="Choose a QR type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STYLE_TARGET_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="space-y-2">
+                      <Label htmlFor="style-description">Description</Label>
+                      <Textarea
+                        id="style-description"
+                        value={presetDraft.description}
+                        onChange={(event) => setPresetDraft((current) => ({ ...current, description: event.target.value }))}
+                        placeholder="What this style is for"
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">Default style</p>
+                          <p className="text-sm text-muted-foreground">Exclusive per target</p>
+                        </div>
+                        <Switch
+                          checked={presetDraft.isDefault}
+                          onCheckedChange={(checked) =>
+                            setPresetDraft((current) => ({ ...current, isDefault: checked }))
+                          }
+                        />
+                      </div>
+                      <p className="mt-3 text-sm text-muted-foreground">{getDefaultHelperText(presetDraft.qrType)}</p>
+                      {presetDraft.isDefault ? (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          If another saved style already owns this default target, saving will ask to replace it.
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            }
-            config={normalizeConfig(presetDraft.config)}
-            previewData={PREVIEW_DATA_BY_TYPE[presetDraft.qrType]}
-            previewLabel={`Previewing a sample ${getTypeLabel(presetDraft.qrType).toLowerCase()} QR.`}
-            designTab={presetDesignTab}
-            onDesignTabChange={setPresetDesignTab}
-            onChange={(config) => setPresetDraft((current) => ({ ...current, config: normalizeConfig(config) }))}
-          />
+              }
+              config={normalizeConfig(presetDraft.config)}
+              previewData={PREVIEW_DATA_BY_TYPE[presetDraft.qrType]}
+              previewLabel={`Previewing a sample ${getTypeLabel(presetDraft.qrType).toLowerCase()} QR.`}
+              designTab={presetDesignTab}
+              onDesignTabChange={setPresetDesignTab}
+              onChange={(config) => setPresetDraft((current) => ({ ...current, config: normalizeConfig(config) }))}
+            />
+          </div>
 
-          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
+          <DialogFooter className="rounded-b-[28px] border-x border-b bg-card px-4 pb-4 pt-3 sm:px-6 sm:pb-6 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
             {presetDraft.id ? (
               <Button
                 variant="destructive"
@@ -912,74 +914,76 @@ export function StylesStudio() {
       </Dialog>
 
       <Dialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen}>
-        <DialogContent className="max-h-[min(92vh,980px)] overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-w-6xl">
-          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <DialogContent className="grid max-h-[calc(100dvh-1rem)] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden border-none bg-transparent p-0 shadow-none sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl">
+          <DialogHeader className="rounded-t-[28px] border-x border-t bg-card px-4 pt-4 sm:px-6 sm:pt-6">
             <DialogTitle>Edit brand default appearance</DialogTitle>
             <DialogDescription>
               This controls the reusable fallback style for {getTypeLabel(brandTarget).toLowerCase()} QR codes.
             </DialogDescription>
           </DialogHeader>
 
-          <StyleDesignerPanel
-            topSection={
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Brand defaults</div>
-                  <h3 className="text-lg font-semibold">Choose the fallback target</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Use one all-types default or create a type-specific override for a single QR destination.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand-style-name">Brand style name</Label>
-                    <Input
-                      id="brand-style-name"
-                      value={brand.brandName}
-                      onChange={(event) => setBrand((current) => ({ ...current, brandName: event.target.value }))}
-                    />
+          <div className="min-h-0 overflow-y-auto border-x bg-card px-3 py-3 sm:px-4">
+            <StyleDesignerPanel
+              topSection={
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Brand defaults</div>
+                    <h3 className="text-lg font-semibold">Choose the fallback target</h3>
                     <p className="text-sm text-muted-foreground">
-                      This label is shown for your brand default row in the saved styles table.
+                      Use one all-types default or create a type-specific override for a single QR destination.
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="brand-dialog-target">Target</Label>
-                    <Select value={brandTarget} onValueChange={(value) => setBrandTarget(value as StylePresetQrType)}>
-                      <SelectTrigger id="brand-dialog-target">
-                        <SelectValue placeholder="Choose a target" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STYLE_TARGET_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="space-y-2">
+                      <Label htmlFor="brand-style-name">Brand style name</Label>
+                      <Input
+                        id="brand-style-name"
+                        value={brand.brandName}
+                        onChange={(event) => setBrand((current) => ({ ...current, brandName: event.target.value }))}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        This label is shown for your brand default row in the saved styles table.
+                      </p>
+                    </div>
 
-                  <div className="rounded-2xl border px-4 py-3 md:col-span-2">
-                    <p className="font-medium">{getTypeLabel(brandTarget)}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {brandTarget === "all"
-                        ? "This is the shared fallback when a QR type has no override."
-                        : "This override is only used for the selected QR type."}
-                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="brand-dialog-target">Target</Label>
+                      <Select value={brandTarget} onValueChange={(value) => setBrandTarget(value as StylePresetQrType)}>
+                        <SelectTrigger id="brand-dialog-target">
+                          <SelectValue placeholder="Choose a target" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STYLE_TARGET_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="rounded-2xl border px-4 py-3 md:col-span-2">
+                      <p className="font-medium">{getTypeLabel(brandTarget)}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {brandTarget === "all"
+                          ? "This is the shared fallback when a QR type has no override."
+                          : "This override is only used for the selected QR type."}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            }
-            config={brandDefaultConfig}
-            previewData={PREVIEW_DATA_BY_TYPE[brandTarget]}
-            previewLabel={`Previewing the brand default for ${getTypeLabel(brandTarget).toLowerCase()} QR codes.`}
-            designTab={brandDesignTab}
-            onDesignTabChange={setBrandDesignTab}
-            onChange={(config) => updateBrandConfig(() => normalizeConfig(config))}
-          />
+              }
+              config={brandDefaultConfig}
+              previewData={PREVIEW_DATA_BY_TYPE[brandTarget]}
+              previewLabel={`Previewing the brand default for ${getTypeLabel(brandTarget).toLowerCase()} QR codes.`}
+              designTab={brandDesignTab}
+              onDesignTabChange={setBrandDesignTab}
+              onChange={(config) => updateBrandConfig(() => normalizeConfig(config))}
+            />
+          </div>
 
-          <DialogFooter className="px-4 pb-4 sm:px-6 sm:pb-6">
+          <DialogFooter className="rounded-b-[28px] border-x border-b bg-card px-4 pb-4 pt-3 sm:px-6 sm:pb-6 [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
             <Button variant="outline" onClick={() => setBrandDialogOpen(false)}>
               Cancel
             </Button>

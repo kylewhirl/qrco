@@ -29,6 +29,13 @@ import {
   UserIcon,
   WifiIcon,
 } from "lucide-react";
+import {
+  IconExternalLink,
+  IconPencil,
+  IconQrcode,
+  IconSparkles,
+} from "@tabler/icons-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
 import { useUser } from "@stackframe/stack";
 
 import QrPreview from "./qr-preview";
@@ -436,8 +443,8 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
   };
 
   const renderDesignTabs = (tabListClassName?: string, tabTriggerClassName?: string) => (
-    <Tabs value={designTab} onValueChange={(value) => setDesignTab(value as DesignTab)} className="min-h-0">
-      <div className="overflow-x-auto">
+    <Tabs value={designTab} onValueChange={(value) => setDesignTab(value as DesignTab)} className="min-h-0 w-full min-w-0 overflow-hidden">
+      <div className="w-full min-w-0 overflow-hidden">
         <TabsList className={tabListClassName}>
           {DESIGN_OPTIONS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerClassName}>
@@ -447,13 +454,13 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           ))}
         </TabsList>
       </div>
-      <TabsContent value="style">
+      <TabsContent value="style" className="min-w-0 overflow-hidden">
         <StyleSettings settings={styleSettings} onChange={setStyleSettings} />
       </TabsContent>
-      <TabsContent value="border">
+      <TabsContent value="border" className="min-w-0 overflow-hidden">
         <BorderSettings settings={borderSettings} onChange={setBorderSettings} />
       </TabsContent>
-      <TabsContent value="logo">
+      <TabsContent value="logo" className="min-w-0 overflow-hidden">
         <LogoSettings
           settings={logoSettings}
           onChange={(logo) => {
@@ -471,141 +478,139 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           }}
         />
       </TabsContent>
-      <TabsContent value="error-level">
+      <TabsContent value="error-level" className="min-w-0 overflow-hidden">
         <ErrorLevelSettings value={errorLevel} onChange={setErrorLevel} />
       </TabsContent>
-      <TabsContent value="details">
+      <TabsContent value="details" className="min-w-0 overflow-hidden">
         <DetailsSettings />
       </TabsContent>
     </Tabs>
   );
 
   if (variant === "hero") {
-    return (
-      <div className="mx-auto w-full max-w-[1180px] rounded-[28px] border bg-card p-3 shadow-sm sm:p-4">
-        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0 max-w-full space-y-3">
-            <section className="rounded-[22px] border bg-background p-4 sm:p-5">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {CONTENT_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const active = contentTab === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          disabled={option.value === "file" && !user}
-                          onClick={() => setContentTab(option.value)}
-                          className={cn(
-                            "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium whitespace-nowrap transition",
-                            active
-                              ? "border-foreground/15 bg-muted/60 text-foreground shadow-sm"
-                              : "border-border bg-background text-muted-foreground hover:border-foreground/15 hover:bg-muted/35",
-                            option.value === "file" && !user && "cursor-not-allowed opacity-45"
-                          )}
-                        >
-                          <Icon className="size-3.5 shrink-0" />
-                          <span>{option.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+    const chartData = [
+      { day: "M", scans: 420 },
+      { day: "T", scans: 860 },
+      { day: "W", scans: 1420 },
+      { day: "T", scans: 930 },
+      { day: "F", scans: 1860 },
+      { day: "S", scans: 1410 },
+      { day: "S", scans: 2412 },
+    ];
 
-                <div className="border-t pt-4">
+    return (
+      <div className="w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--foreground)_42%,transparent)]">
+        <div className="grid lg:grid-cols-[minmax(280px,0.9fr)_minmax(350px,1.35fr)_minmax(280px,0.9fr)]">
+          <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
+            <div className="grid h-full grid-cols-[58px_minmax(0,1fr)]">
+              <nav className="flex flex-col items-center gap-2 border-r border-border bg-[color-mix(in_srgb,var(--brand-blue)_7%,var(--card))] px-2 py-4" aria-label="QR content types">
+                {CONTENT_OPTIONS.map((option) => {
+                  const Icon = option.icon;
+                  const active = contentTab === option.value;
+                  return (
+                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-blue)] text-white shadow-[0_8px_20px_-12px_var(--brand-blue)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
+                      <Icon className="size-[18px]" />
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="min-w-0">
+                <div className="border-b border-border p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Campaign</p>
+                  <div className="mt-1 flex items-center gap-2 text-lg font-bold tracking-[-0.025em]"><span>Summer launch</span><IconPencil className="size-4 text-muted-foreground" /></div>
+                </div>
+                <div className="border-b border-border p-5">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Destination URL</p>
                   {renderContentInput()}
                 </div>
-              </div>
-            </section>
-
-            <section className="rounded-[22px] border bg-muted/35 p-3">
-              <div className="mb-3 px-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Design</div>
-              <div className="min-w-0">
-                {renderDesignTabs(
-                  "grid h-auto w-full grid-cols-2 gap-2 rounded-2xl bg-transparent p-0 xl:grid-cols-5",
-                  "min-h-10 rounded-xl border bg-background px-3 data-[state=active]:border-foreground/15 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                )}
-              </div>
-            </section>
-          </div>
-
-          <aside className="relative lg:sticky lg:top-4 lg:self-start">
-            <div className="rounded-[22px] border bg-muted/35 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Preview</div>
-                  <Scanability score={scanability} className="flex items-center" />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="size-8 rounded-lg">
-                      <Download className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleDownloadSvg}>Download SVG</DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDownloadPng}>Download PNG</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div className="mb-3 flex items-center justify-between rounded-xl border bg-background px-3 py-2">
-                <span className="text-sm font-medium text-foreground">Dynamic</span>
-                <div className="flex items-center gap-3">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="scan-tracking-hero" className="cursor-pointer text-xs text-muted-foreground">
-                        Scan tracking
-                      </Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Track scans and update the destination anytime.
-                        <Link href="/pricing" className="ml-1 underline">
-                          More info
-                        </Link>
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Switch
-                    id="scan-tracking-hero"
-                    checked={scanTracking}
-                    disabled={!user}
-                    onCheckedChange={handleTrackingChange}
-                  />
-                </div>
-              </div>
-
-              <div className="relative flex min-h-[280px] items-center justify-center rounded-[20px] border bg-background p-4">
-                <div className="flex h-full w-full items-center justify-center" ref={previewRef}>
-                  <QrPreview
-                    data={qrString}
-                    errorLevel={errorLevel}
-                    size={200}
-                    styleSettings={styleSettings}
-                    borderSettings={borderSettings}
-                    logoSettings={logoSettings}
-                    onScanabilityChange={setScanability}
-                  />
-                </div>
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-background/80 backdrop-blur-xs">
-                    <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
+                <div className="p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Style</p>
+                    <IconSparkles className="size-4 text-[var(--brand-blue)]" />
                   </div>
-                )}
+                  <div className="min-w-0 overflow-x-clip overflow-y-visible">
+                    {renderDesignTabs(
+                      "grid h-auto w-full grid-cols-3 gap-1 bg-transparent p-0",
+                      "min-h-9 rounded-lg border border-border px-2 text-[10px] font-bold data-[state=active]:border-[color-mix(in_srgb,var(--brand-blue)_25%,var(--border))] data-[state=active]:bg-[color-mix(in_srgb,var(--brand-blue)_10%,var(--card))] data-[state=active]:text-[var(--brand-blue)] data-[state=active]:shadow-none"
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="qr-canvas-grid relative flex min-h-[520px] items-start justify-center overflow-hidden border-b border-border px-5 pt-14 lg:border-r lg:border-b-0">
+            <Scanability score={scanability} showScore className="absolute right-4 top-4 z-10" />
+            <div className="relative w-[78%] max-w-[340px]">
+              <span className="pointer-events-none absolute -left-3 -top-3 size-5 rounded-tl-md border-l-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
+              <span className="pointer-events-none absolute -right-3 -top-3 size-5 rounded-tr-md border-r-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
+              <span className="pointer-events-none absolute -bottom-3 -left-3 size-5 rounded-bl-md border-b-2 border-l-2 border-[var(--brand-blue)]" aria-hidden="true" />
+              <span className="pointer-events-none absolute -bottom-3 -right-3 size-5 rounded-br-md border-r-2 border-b-2 border-[var(--brand-blue)]" aria-hidden="true" />
+              <div data-qr-preview className="relative flex aspect-square w-full items-center justify-center rounded-3xl border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
+                <QrPreview data={qrString} errorLevel={errorLevel} size={270} styleSettings={styleSettings} borderSettings={borderSettings} logoSettings={logoSettings} onScanabilityChange={setScanability} />
+                {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-white/85"><Loader2Icon className="size-6 animate-spin text-[var(--brand-blue)]" /></div>}
+              </div>
+            </div>
+          </section>
+
+          <aside className="min-w-0">
+            <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">● Live</span></div>
+              <div className="text-right"><strong className="font-display text-3xl leading-none tracking-[-0.04em]">12,846</strong><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scans</p></div>
+            </div>
+            <div className="border-b border-border p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Scans over time</p>
+                <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">Demo · 7 days</span>
+              </div>
+              <div className="mt-4 h-[190px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 12, right: 8, left: -28, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)", fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
+                    <ChartTooltip contentStyle={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 11, fontWeight: 700, boxShadow: "0 12px 30px -18px rgba(0,0,0,.35)" }} />
+                    <Line type="monotone" dataKey="scans" stroke="var(--brand-blue)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--card)", stroke: "var(--brand-blue)", strokeWidth: 2 }} activeDot={{ r: 5, fill: "var(--brand-lime)", stroke: "var(--brand-blue)" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Top locations</p>
+              <div className="divide-y divide-border text-xs font-bold">
+                {[["US", "United States", "56.3%"], ["GB", "United Kingdom", "22.7%"], ["CA", "Canada", "8.9%"]].map(([code, country, percent]) => (
+                  <div key={code} className="grid grid-cols-[32px_1fr_auto] items-center gap-3 py-3"><span className="rounded-md bg-[color-mix(in_srgb,var(--brand-blue)_11%,var(--card))] py-1 text-center text-[9px] font-extrabold text-[var(--brand-blue)]">{code}</span><span>{country}</span><span>{percent}</span></div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                <div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-foreground/55">Scan quality</p><Scanability score={scanability} className="mt-1" /></div>
+                <div className="flex items-center gap-3">
+                  <Tooltip><TooltipTrigger asChild><Label htmlFor="scan-tracking-hero" className="cursor-pointer text-xs font-bold">Tracking</Label></TooltipTrigger><TooltipContent><p>Track scans and update the destination anytime.</p></TooltipContent></Tooltip>
+                  <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user} onCheckedChange={handleTrackingChange} />
+                </div>
               </div>
             </div>
           </aside>
+        </div>
+
+        <div className="flex flex-col items-stretch justify-between gap-3 border-t border-border bg-[color-mix(in_srgb,var(--muted)_32%,var(--card))] p-4 sm:flex-row sm:items-center">
+          <p className="flex items-center gap-2 text-xs font-bold text-foreground/60"><IconQrcode className="size-4 text-[var(--brand-blue)]" />Your code updates as you design</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="outline" className="h-11 rounded-xl border border-border bg-card px-5 font-bold" asChild><Link href="/dashboard">Preview <IconExternalLink className="size-4" /></Link></Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button className="h-11 rounded-xl border border-[var(--brand-blue)] bg-[var(--brand-blue)] px-6 font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-blue)] hover:bg-[var(--brand-blue)]/90"><Download className="size-4" />Download QR</Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end"><DropdownMenuItem onClick={handleDownloadSvg}>Download SVG</DropdownMenuItem><DropdownMenuItem onClick={handleDownloadPng}>Download PNG</DropdownMenuItem></DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-      <Card className="flex flex-col gap-4 p-8">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-8">
+      <Card className="flex flex-col gap-4 p-4 sm:p-6 lg:p-8">
         <h2 className="text-2xl font-bold">Settings</h2>
         <div className="mt-4 space-y-4">
           <div className="space-y-1">
@@ -635,8 +640,8 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
         {renderDesignTabs()}
       </Card>
 
-      <div className="order-first flex w-full flex-col items-start space-y-4 md:w-auto lg:order-last">
-        <Card className="sticky top-0 z-10 flex w-full flex-col items-center p-4 md:w-auto">
+      <div className="order-first flex w-full flex-col items-start space-y-4 lg:order-last">
+        <Card className="flex w-full flex-col items-center p-4 lg:sticky lg:top-4">
           <h2 className="text-2xl font-bold">Live Preview</h2>
           <div className="flex items-center space-x-2">
             <Switch
@@ -661,7 +666,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="relative flex h-64 w-64 items-center justify-center" ref={previewRef}>
+          <div className="relative flex aspect-square w-full max-w-64 items-center justify-center" ref={previewRef}>
             <QrPreview
               data={qrString}
               errorLevel={errorLevel}
@@ -677,7 +682,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
             )}
           </div>
           <Scanability score={scanability} className="absolute top-5 right-5" />
-          <div className="flex space-x-4">
+          <div className="grid w-full gap-2 sm:grid-cols-2">
             <Button onClick={handleDownloadSvg}>Download SVG</Button>
             <Button onClick={handleDownloadPng}>Download PNG</Button>
           </div>

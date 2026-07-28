@@ -50,9 +50,9 @@ export function NavDocuments({
   loading?: boolean
 }) {
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <div className="mb-2 flex items-center justify-between">
-        <SidebarGroupLabel>Recent QR Codes</SidebarGroupLabel>
+    <SidebarGroup className="border-t border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:hidden">
+      <div className="mb-1 flex items-center justify-between">
+        <SidebarGroupLabel className="h-6 px-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">Recent QR Codes</SidebarGroupLabel>
       </div>
 
       <SidebarMenu>
@@ -62,14 +62,14 @@ export function NavDocuments({
           ))
         ) : items.length === 0 ? (
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-auto py-2">
+            <SidebarMenuButton asChild className="h-auto rounded-xl py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
               <Link href="/dashboard/create" className="items-start">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-sidebar-border bg-sidebar-accent/40 text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-sidebar-border bg-muted text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                   New
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
                   <span className="truncate font-medium">No QR codes yet</span>
-                  <span className="truncate text-xs text-sidebar-foreground/60">
+                  <span className="truncate text-xs text-muted-foreground">
                     Create your first QR code
                   </span>
                 </div>
@@ -81,21 +81,21 @@ export function NavDocuments({
             <SidebarMenuItem key={item.id}>
               <SidebarMenuButton
                 asChild
-                className="h-auto min-h-14 items-start py-2 pr-10"
+                className="h-auto min-h-13 items-start rounded-xl py-1.5 pr-10 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 tooltip={getLabel(item)}
               >
                 <Link href={`/dashboard/${item.id}`} className="items-start gap-3">
-                  <QRImageSquare qr={item} className="h-10 w-10 rounded-xl border-sidebar-border" />
+                  <QRImageSquare qr={item} className="h-9 w-9 rounded-xl border-sidebar-border bg-white" />
 
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate font-medium">{getLabel(item)}</span>
-                    <span className="line-clamp-2 text-xs text-sidebar-foreground/60">
+                    <span className="line-clamp-2 text-[0.67rem] text-muted-foreground">
                       {getMeta(item)}
                     </span>
                   </div>
                 </Link>
               </SidebarMenuButton>
-              <SidebarMenuBadge>{item.totalScans}</SidebarMenuBadge>
+              <SidebarMenuBadge className="text-muted-foreground">{item.totalScans}</SidebarMenuBadge>
             </SidebarMenuItem>
           ))
         )}

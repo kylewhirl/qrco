@@ -6,9 +6,8 @@ import QrCodeCreator from "@/components/qr-code-creator";
 
 export default function CreateQRPage() {
   return (
-    <div className="container mx-auto p-6">
-      {/* Page header */}
-      <header className="mb-6 flex items-center justify-between">
+    <div className="container mx-auto p-4 sm:p-6">
+      <header className="mb-6 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <h1 className="text-2xl font-bold">Create QR Code</h1>
         <Link
           href="/dashboard"
@@ -18,7 +17,6 @@ export default function CreateQRPage() {
         </Link>
       </header>
 
-      {/* Main creator component */}
       <QrCodeCreator />
     </div>
   );

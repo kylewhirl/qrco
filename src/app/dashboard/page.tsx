@@ -1,5 +1,10 @@
 import { Suspense } from "react"
-import { BarChart, Clock, MapPin, QrCode } from "lucide-react"
+import {
+  IconActivity,
+  IconChartLine,
+  IconMapPin,
+  IconQrcode,
+} from "@tabler/icons-react"
 import { redirect } from "next/navigation"
 import { FeatureLockCard } from "@/components/billing/feature-lock-card"
 import { MetricsCard } from "@/components/dashboard/metrics-card"
@@ -42,35 +47,40 @@ export default async function DashboardPage() {
   const latestScansPromise = getLatestScans()
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+    <div className="relative flex-1 space-y-5 overflow-hidden px-3 py-5 sm:px-5 lg:px-7 lg:py-7">
+      <div className="relative z-10 flex items-end justify-between">
+        <div>
+          <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-blue)]">Overview</p>
+          <h1 className="font-display text-[clamp(2.2rem,5vw,3.25rem)] leading-none tracking-[-0.05em]">Dashboard</h1>
+        </div>
       </div>
 
-      <Suspense fallback={<MetricsGridSkeleton />}>
-        <MetricsSection metricsPromise={metricsPromise} />
-      </Suspense>
+      <div className="relative z-10 space-y-5">
+        <Suspense fallback={<MetricsGridSkeleton />}>
+          <MetricsSection metricsPromise={metricsPromise} />
+        </Suspense>
 
-      <Suspense fallback={<ScanActivityChartSkeleton />}>
-        <ScanActivitySection dailyScanCountsPromise={dailyScanCountsPromise} />
-      </Suspense>
+        <Suspense fallback={<ScanActivityChartSkeleton />}>
+          <ScanActivitySection dailyScanCountsPromise={dailyScanCountsPromise} />
+        </Suspense>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="box-border w-full max-w-full overflow-x-hidden md:col-span-2 lg:col-span-4">
-          <Suspense fallback={<QRCodeListSkeleton />}>
-            <RecentQRCodesSection qrCodesPromise={qrCodesPromise} />
-          </Suspense>
-        </div>
-        <div className="flex w-full flex-col gap-4 md:col-span-2 lg:col-span-3">
-          <Suspense fallback={<TopLocationsListSkeleton />}>
-            <TopLocationsSection
-              topLocationsPromise={topLocationsPromise}
-              locked={!billingState.plan.access.advanced_analytics}
-            />
-          </Suspense>
-          <Suspense fallback={<LatestScansListSkeleton />}>
-            <LatestScansSection latestScansPromise={latestScansPromise} />
-          </Suspense>
+        <div className="grid min-w-0 gap-5 lg:grid-cols-7">
+          <div className="box-border min-w-0 overflow-hidden lg:col-span-4">
+            <Suspense fallback={<QRCodeListSkeleton />}>
+              <RecentQRCodesSection qrCodesPromise={qrCodesPromise} />
+            </Suspense>
+          </div>
+          <div className="flex min-w-0 flex-col gap-5 lg:col-span-3">
+            <Suspense fallback={<TopLocationsListSkeleton />}>
+              <TopLocationsSection
+                topLocationsPromise={topLocationsPromise}
+                locked={!billingState.plan.access.advanced_analytics}
+              />
+            </Suspense>
+            <Suspense fallback={<LatestScansListSkeleton />}>
+              <LatestScansSection latestScansPromise={latestScansPromise} />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>
@@ -82,28 +92,28 @@ async function MetricsSection({ metricsPromise }: { metricsPromise: Promise<Dash
     const metrics = await metricsPromise
 
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricsCard
           title="Total Scans (7 days)"
           value={formatNumber(metrics.totalScansLast7Days)}
-          icon={<BarChart className="h-4 w-4" />}
+          icon={<IconChartLine className="h-4 w-4" />}
         />
         <MetricsCard
           title="Active QR Codes"
           value={formatNumber(metrics.activeQRCodesCount)}
-          icon={<QrCode className="h-4 w-4" />}
+          icon={<IconQrcode className="h-4 w-4" />}
         />
         <MetricsCard
           title="Top Location"
           value={metrics.topLocation?.location || "N/A"}
           description={metrics.topLocation ? `${formatNumber(metrics.topLocation.count)} scans` : "No data"}
-          icon={<MapPin className="h-4 w-4" />}
+          icon={<IconMapPin className="h-4 w-4" />}
         />
         <MetricsCard
           title="Most Active QR"
           value={metrics.mostActiveQR?.code || "N/A"}
           description={metrics.mostActiveQR ? `${formatNumber(metrics.mostActiveQR.scans)} scans` : "No data"}
-          icon={<Clock className="h-4 w-4" />}
+          icon={<IconActivity className="h-4 w-4" />}
         />
       </div>
     )
@@ -194,7 +204,7 @@ async function LatestScansSection({
 
 function DashboardSectionError({ title }: { title: string }) {
   return (
-    <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+    <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
       {title}
     </div>
   )

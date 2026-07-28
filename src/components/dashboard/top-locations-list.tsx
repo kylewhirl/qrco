@@ -9,17 +9,17 @@ interface TopLocationsListProps {
 
 export function TopLocationsList({ locations }: TopLocationsListProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Top Locations</CardTitle>
-        <CardDescription>Locations with the most scans</CardDescription>
+    <Card className="min-w-0 gap-0 border border-border bg-card py-0">
+      <CardHeader className="px-5 pt-5">
+        <CardTitle className="font-display text-lg">Top locations</CardTitle>
+        <CardDescription className="text-xs">Locations with the most scans</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0 overflow-x-auto px-5 pb-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Location</TableHead>
-              <TableHead className="text-right">Scans</TableHead>
+              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.1em]">Location</TableHead>
+              <TableHead className="h-8 text-right text-[0.64rem] font-black uppercase tracking-[0.1em]">Scans</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="w-full overflow-x-auto">

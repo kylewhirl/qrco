@@ -290,7 +290,7 @@ export function QrDesignDialog({
   };
 
   return (
-    <div className="max-h-[92vh] overflow-y-auto rounded-[28px] border bg-card p-3 shadow-xl sm:p-4">
+    <div className="rounded-[28px] border bg-card p-3 shadow-xl sm:p-4">
       <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 max-w-full space-y-3">
           <section className="rounded-[22px] border bg-background p-4 sm:p-5">

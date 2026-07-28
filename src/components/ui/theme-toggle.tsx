@@ -23,11 +23,11 @@ export function ThemeToggle() {
   return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Toggle theme">
-                {!mounted ? <Laptop size={18} /> : resolvedTheme === "dark" ? <Moon size={18} /> : resolvedTheme === "light" ? <Sun size={18} /> : <Laptop size={18} />}
+            <Button className="rounded-full border border-transparent hover:border-border hover:bg-accent" variant="ghost" size="icon" aria-label="Choose color theme">
+                {!mounted || theme === "system" ? <Laptop size={18} /> : resolvedTheme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
             </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent className="rounded-xl border shadow-xl" align="end">
             <DropdownMenuItem
                 onClick={() => setTheme("light")}
                 className={theme === "light" ? "font-semibold" : ""}

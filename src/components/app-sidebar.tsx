@@ -127,16 +127,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [])
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+      {...props}
+    >
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="h-10 rounded-xl !p-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Link href="/">
-                <Logo className="!size-5" />
+                <Logo className="!size-6 shrink-0" />
                 <TypingMorph
                   initialText="tqrco.de"
                   ops={[
@@ -149,7 +153,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     { type: "move", to: 11, delay: 100 },
                     { type: "insert", chars: " co.", speed: 100 },
                   ]}
-                  className="text-xl font-brand font-semibold"
+                  className="text-[1.05rem] font-brand font-semibold tracking-[-0.04em]"
                   hideCursor
                 />
               </Link>
@@ -157,12 +161,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="gap-0 overflow-x-hidden">
         <NavMain items={data.navMain} />
         <NavDocuments items={recentQRCodes} loading={isLoadingRecentQRCodes} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border px-3 py-2">
         <NavUser/>
       </SidebarFooter>
     </Sidebar>

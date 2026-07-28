@@ -117,8 +117,6 @@ export default function LogoSettings({
             aria-label="Remove logo"
           >
             {logoSettings.src ? (
-              // Use <img> for SVG data URLs
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={logoSettings.src} alt="Logo preview" className="h-full w-full object-cover" />
             ) : null}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">

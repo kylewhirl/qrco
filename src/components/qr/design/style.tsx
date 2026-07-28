@@ -55,11 +55,11 @@ function NoneSwatch({ active, label }: { active: boolean; label: string }) {
   return (
     <div
       className={cn(
-        "flex h-12 w-12 items-center justify-center rounded-xl border bg-background text-muted-foreground transition hover:border-foreground/20",
-        active ? "border-primary ring-2 ring-primary/15" : "border-border"
+        "flex size-10 items-center justify-center rounded-xl border bg-background text-muted-foreground transition hover:border-[var(--brand-blue)]",
+        active ? "border-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_9%,var(--card))] shadow-[0_8px_18px_-14px_var(--brand-blue)]" : "border-border"
       )}
     >
-      <svg viewBox="0 0 50 50" className="h-7 w-7" aria-hidden="true">
+      <svg viewBox="0 0 50 50" className="size-6" aria-hidden="true">
         <path d="M10 40 L40 10" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
       </svg>
       <span className="sr-only">{label}</span>
@@ -116,8 +116,8 @@ function StaticSwatch({
   return (
     <div
       className={cn(
-        "flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border bg-background transition hover:border-foreground/20",
-        active ? "border-primary ring-2 ring-primary/15" : "border-border"
+        "flex size-10 items-center justify-center overflow-hidden rounded-xl border bg-background transition hover:border-[var(--brand-blue)]",
+        active ? "border-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_9%,var(--card))] shadow-[0_8px_18px_-14px_var(--brand-blue)]" : "border-border"
       )}
       style={{
         color: swatchColor,
@@ -130,11 +130,11 @@ function StaticSwatch({
     >
       {markup ? (
         <div
-          className="flex h-12 w-12 items-center justify-center"
+          className="flex size-10 items-center justify-center"
           dangerouslySetInnerHTML={{ __html: markup }}
         />
       ) : (
-        <div className="h-12 w-12 animate-pulse bg-muted" />
+        <div className="size-10 animate-pulse bg-muted" />
       )}
     </div>
   );
@@ -156,21 +156,21 @@ function StyleOptionGrid<T extends string>({
   swatchBackground?: string;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+    <div className="grid min-w-0 grid-cols-3 gap-2">
       {options.map((option) =>
         option === "none" ? (
-          <div key={option} className="flex flex-col items-center gap-1">
-            <button type="button" onClick={() => onChange(option)} className="flex flex-col items-center gap-1">
+          <div key={option} className="flex min-w-0 flex-col items-center gap-1">
+            <button type="button" onClick={() => onChange(option)} className="flex min-w-0 flex-col items-center gap-1">
               <NoneSwatch active={value === option} label={formatStyleLabel(option)} />
             </button>
-            <span className="text-[11px] text-muted-foreground">{formatStyleLabel(option)}</span>
+            <span className="max-w-full truncate text-[9px] font-bold text-muted-foreground">{formatStyleLabel(option)}</span>
           </div>
         ) : (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className="flex flex-col items-center gap-1"
+            className="flex min-w-0 flex-col items-center gap-1"
           >
             <StaticSwatch
               kind={kind}
@@ -179,7 +179,7 @@ function StyleOptionGrid<T extends string>({
               swatchColor={swatchColor}
               swatchBackground={swatchBackground}
             />
-            <span className="text-[11px] text-muted-foreground">{formatStyleLabel(option)}</span>
+            <span className="max-w-full truncate text-[9px] font-bold text-muted-foreground">{formatStyleLabel(option)}</span>
           </button>
         )
       )}
@@ -275,14 +275,12 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
   const swatchBackground = bgValue || "#ffffff";
 
   return (
-    <Card className={`p-4 ${className ? ` ${className}` : ""}`}>
-      
-      <h3 className="text-lg font-medium">Style Settings</h3>
+    <Card className={`w-full min-w-0 gap-4 rounded-2xl border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Code style</h3>
 
-      
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 w-full">
-        <div className="flex flex-row space-x-6 w-full items-center">
-            <div className="flex flex-col space-y-1">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="flex min-w-0 flex-col space-y-1">
             <Label htmlFor="all-style">Style</Label>
             <div className={advancedOpen ? "pointer-events-none opacity-50" : ""}>
               <StyleOptionGrid
@@ -339,8 +337,8 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
             />
             </div>
         </div>
-        <div className="flex flex-row space-x-6 items-end">
-            <div className="flex flex-col space-y-1">
+        <div className="flex min-w-0 items-end">
+            <div className="flex min-w-0 flex-col space-y-1">
                 <div className="flex flex-col items-start space-y-1">
                     <Label htmlFor="background-color">Background Color</Label>
                     <ColorPicker
@@ -385,13 +383,13 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
         <AccordionItem value="advanced">
           <AccordionTrigger>Advanced</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 w-full">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-4">
               {/* Shape Settings */}
               <div className="space-y-4">
                 <h4 className="text-md font-semibold">Shape</h4>
             
-                <div className="flex flex-row space-x-6 items-center">
-                    <div className="flex flex-col space-y-1">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="flex min-w-0 flex-col space-y-1">
                     <Label htmlFor="dot-style">Dot Style</Label>
                     <StyleOptionGrid
                       options={DOT_STYLE_OPTIONS}
@@ -438,8 +436,8 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
                 <h4 className="text-md font-semibold">Eyes</h4>
 
                 {/* Eye Shape */}
-                <div className="flex flex-row space-x-6 items-center">
-                    <div className="flex flex-col space-y-1">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="flex min-w-0 flex-col space-y-1">
                     <Label htmlFor="eye-style">Eye Shape</Label>
                     <StyleOptionGrid
                       options={EYE_STYLE_OPTIONS}
@@ -478,8 +476,8 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
                 </div>
 
                 {/* Inner Eye Shape */}
-                <div className="flex flex-row space-x-6 items-center">
-                    <div className="flex flex-col space-y-1">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="flex min-w-0 flex-col space-y-1">
                     <Label htmlFor="inner-eye-style">Inner Eye Shape</Label>
                     <StyleOptionGrid
                       options={INNER_EYE_STYLE_OPTIONS}

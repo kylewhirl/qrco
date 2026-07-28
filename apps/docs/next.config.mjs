@@ -7,7 +7,7 @@ const docsRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const config = {
-  serverExternalPackages: ["@takumi-rs/image-response"],
+  serverExternalPackages: ["takumi-js"],
   reactStrictMode: true,
   turbopack: {
     root: docsRoot,
