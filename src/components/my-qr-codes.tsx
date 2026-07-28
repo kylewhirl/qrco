@@ -50,6 +50,7 @@ import { QRImageSquare } from "./qr-image-square";
 import { BrandProfile, QRData, StylePreset } from "@/lib/types"
 import QrPreview from "./qr-preview"
 import { buildPublicQrUrl } from "@/lib/qr-url"
+import { buildGs1DigitalLinkUrl } from "@/lib/gs1-digital-link"
 import { QrDesignDialog } from "./dashboard/qr-design-dialog";
 import { flattenAndDownloadSvg, prepareSvgForExport } from "@/lib/flatten-svg";
 
@@ -289,7 +290,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
       setEditingQR(createdQR)
       setEditData(createdQR.data)
       setEditCustomDomainId(createdQR.customDomainId ?? null)
-      setEditCustomSlug(createdQR.code)
+      setEditCustomSlug(createdQR.data.gs1 ? "" : createdQR.code)
       setViewDialogOpen(true)
       toast.success("QR code created successfully")
     } catch (error) {
@@ -314,7 +315,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
       await onUpdateQR(editingQR.id, {
         data: editData,
         customDomainId: editCustomDomainId,
-        customSlug: editCustomDomainId ? editCustomSlug : null,
+        customSlug: editCustomDomainId && !editData.gs1 ? editCustomSlug : null,
       });
       setEditingQR(null);
       setEditData(null);
@@ -652,7 +653,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               setEditingQR(qr)
                               setEditData(qr.data)
                               setEditCustomDomainId(qr.customDomainId ?? null)
-                              setEditCustomSlug(qr.code)
+                              setEditCustomSlug(qr.data.gs1 ? "" : qr.code)
                               setViewDialogOpen(true)
                             }}
                           >
@@ -808,7 +809,17 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                               <Input
                                 id="qr-public-url"
                                 readOnly
-                                value={editingQR ? buildPublicQrUrl(editCustomDomainId ? editCustomSlug : editingQR.code, domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null) : ""}
+                                value={editingQR && editData
+                                  ? editData.gs1
+                                    ? buildGs1DigitalLinkUrl(
+                                        editData.gs1,
+                                        domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null,
+                                      )
+                                    : buildPublicQrUrl(
+                                        editCustomDomainId ? editCustomSlug : editingQR.code,
+                                        domains.find((domain) => domain.id === editCustomDomainId)?.hostname ?? editingQR.customHostname ?? null,
+                                      )
+                                  : ""}
                               />
                             </div>
                             <div className="space-y-1">
@@ -817,7 +828,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                 value={editCustomDomainId ?? "default"}
                                 onValueChange={(value) => {
                                   setEditCustomDomainId(value === "default" ? null : value)
-                                  setEditCustomSlug(editingQR?.code ?? "")
+                                  setEditCustomSlug(editData?.gs1 ? "" : editingQR?.code ?? "")
                                 }}
                                 disabled={domainsLoading || domainsLocked}
                               >
@@ -837,7 +848,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
                                 <p className="text-xs text-muted-foreground">Upgrade to Creator to assign custom domains.</p>
                               ) : null}
                             </div>
-                            {editCustomDomainId ? (
+                            {editCustomDomainId && !editData?.gs1 ? (
                               <div className="space-y-1">
                                 <Label htmlFor="edit-custom-slug">Custom slug</Label>
                                 <Input

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+function hasHttpProtocol(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 const baseMetaSchema = z.object({
   name: z.string().trim().min(1).max(120).optional().nullable(),
   description: z.string().trim().max(500).optional().nullable(),
@@ -43,10 +52,7 @@ const gs1MarketRouteSchema = z.object({
   url: z
     .string()
     .url()
-    .refine((value) => {
-      const protocol = new URL(value).protocol;
-      return protocol === "http:" || protocol === "https:";
-    }, "Market destination must use http or https"),
+    .refine(hasHttpProtocol, "Market destination must use http or https"),
 });
 
 const gs1DigitalLinkSchema = z.object({
@@ -246,8 +252,7 @@ export const qrDataSchema = z
       return;
     }
 
-    const protocol = new URL(value.url).protocol;
-    if (protocol !== "http:" && protocol !== "https:") {
+    if (!hasHttpProtocol(value.url)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "GS1 Digital Link destinations must use http or https",
