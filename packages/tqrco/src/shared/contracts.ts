@@ -11,6 +11,69 @@ const urlSchema = z.object({
   url: z.string().url(),
 });
 
+const gtinSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{8}$|^\d{12}$|^\d{13}$|^\d{14}$/, "GTIN must contain 8, 12, 13, or 14 digits")
+  .refine((value) => {
+    const digits = [...value].map(Number);
+    const checkDigit = digits.pop();
+    const sum = digits
+      .reverse()
+      .reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 3 : 1), 0);
+
+    return checkDigit !== undefined && (10 - (sum % 10)) % 10 === checkDigit;
+  }, "GTIN check digit is invalid");
+
+const gs1PathAttributeSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(20)
+  .refine((value) => !/[/?#\u0000-\u001F\u007F]/u.test(value), "Value cannot contain URL path separators")
+  .optional()
+  .nullable();
+
+const gs1MarketRouteSchema = z.object({
+  countryCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{2}$/, "Market must be a two-letter country code")
+    .transform((value) => value.toUpperCase()),
+  url: z
+    .string()
+    .url()
+    .refine((value) => {
+      const protocol = new URL(value).protocol;
+      return protocol === "http:" || protocol === "https:";
+    }, "Market destination must use http or https"),
+});
+
+const gs1DigitalLinkSchema = z.object({
+  gtin: gtinSchema,
+  productName: z.string().trim().min(1).max(160).optional().nullable(),
+  batchLot: gs1PathAttributeSchema,
+  serial: gs1PathAttributeSchema,
+  expiry: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Expiry date must use YYYY-MM-DD")
+    .optional()
+    .nullable(),
+  marketRoutes: z.array(gs1MarketRouteSchema).max(50).optional().default([]),
+}).superRefine((value, context) => {
+  const seen = new Set<string>();
+  value.marketRoutes.forEach((route, index) => {
+    if (seen.has(route.countryCode)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Only one destination can be configured for ${route.countryCode}`,
+        path: ["marketRoutes", index, "countryCode"],
+      });
+    }
+    seen.add(route.countryCode);
+  });
+});
+
 const fileSchema = z.object({
   type: z.literal("file"),
   key: z.string().trim().min(1),
@@ -161,12 +224,37 @@ const qrDataMetaSchema = baseMetaSchema.extend({
   styleSettings: qrStyleSettingsSchema.nullable().optional(),
   logoSettings: qrLogoSettingsSchema.nullable().optional(),
   borderSettings: qrBorderSettingsSchema.nullable().optional(),
+  gs1: gs1DigitalLinkSchema.nullable().optional(),
 });
 
-export const qrDataSchema = z.intersection(
-  z.union([urlSchema, fileSchema, textSchema, emailSchema, phoneSchema, smsSchema, contactFieldsSchema, contactVCardSchema, wifiSchema]),
-  qrDataMetaSchema,
-);
+export const qrDataSchema = z
+  .intersection(
+    z.union([urlSchema, fileSchema, textSchema, emailSchema, phoneSchema, smsSchema, contactFieldsSchema, contactVCardSchema, wifiSchema]),
+    qrDataMetaSchema,
+  )
+  .superRefine((value, context) => {
+    if (!value.gs1) {
+      return;
+    }
+
+    if (value.type !== "url") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GS1 Digital Link records must use a web URL destination",
+        path: ["type"],
+      });
+      return;
+    }
+
+    const protocol = new URL(value.url).protocol;
+    if (protocol !== "http:" && protocol !== "https:") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GS1 Digital Link destinations must use http or https",
+        path: ["url"],
+      });
+    }
+  });
 
 export const brandProfileSchema = z.object({
   brandName: z.string().trim().min(1).max(120),
@@ -288,6 +376,21 @@ export interface QRMeta {
   styleSettings?: QrStyleSettings | null;
   logoSettings?: QrLogoSettings | null;
   borderSettings?: QrBorderSettings | null;
+  gs1?: Gs1DigitalLinkAttributes | null;
+}
+
+export interface Gs1DigitalLinkAttributes {
+  gtin: string;
+  productName?: string | null;
+  batchLot?: string | null;
+  serial?: string | null;
+  expiry?: string | null;
+  marketRoutes?: Gs1MarketRoute[];
+}
+
+export interface Gs1MarketRoute {
+  countryCode: string;
+  url: string;
 }
 
 export interface URLData {

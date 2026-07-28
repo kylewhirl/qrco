@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { buildPublicQrUrl } from "@/lib/qr-url";
+import { buildGs1DigitalLinkUrl } from "@/lib/gs1-digital-link";
 import type { CustomDomain, DailyScanCount, LatestScan, QR, QRData, TopLocation } from "@/lib/types";
 import { formatDate, serialize } from "@/lib/utils";
 
@@ -143,8 +144,12 @@ export function QRDetailClient({
   }, [customDomainId, domains, qr.customHostname]);
 
   const publicUrl = useMemo(() => {
+    if (draftData.gs1) {
+      return buildGs1DigitalLinkUrl(draftData.gs1, resolvedHostname);
+    }
+
     return buildPublicQrUrl(customDomainId ? customSlug : qr.code, resolvedHostname);
-  }, [customDomainId, customSlug, qr.code, resolvedHostname]);
+  }, [customDomainId, customSlug, draftData.gs1, qr.code, resolvedHostname]);
 
   async function handleSave() {
     try {
@@ -157,7 +162,7 @@ export function QRDetailClient({
         body: JSON.stringify({
           data: draftData,
           customDomainId,
-          customSlug: customDomainId ? customSlug : null,
+          customSlug: customDomainId && !draftData.gs1 ? customSlug : null,
         }),
       });
 
@@ -308,7 +313,7 @@ export function QRDetailClient({
                   <p className="text-xs text-muted-foreground">Upgrade to Creator to assign a custom domain to this QR code.</p>
                 ) : null}
               </div>
-              {customDomainId ? (
+              {customDomainId && !draftData.gs1 ? (
                 <div className="space-y-2">
                   <Label htmlFor="qr-custom-slug">Custom slug</Label>
                   <Input
@@ -338,21 +343,27 @@ export function QRDetailClient({
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="qr-type">Content type</Label>
-                <Select
-                  value={draftData.type}
-                  onValueChange={(value) => setDraftData((current) => createEmptyData(value as QRData["type"], current))}
-                >
-                  <SelectTrigger id="qr-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {QR_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {draftData.gs1 ? (
+                  <div id="qr-type" className="flex h-9 items-center rounded-md border bg-muted/35 px-3 text-sm font-medium">
+                    QR Code with GS1 Digital Link
+                  </div>
+                ) : (
+                  <Select
+                    value={draftData.type}
+                    onValueChange={(value) => setDraftData((current) => createEmptyData(value as QRData["type"], current))}
+                  >
+                    <SelectTrigger id="qr-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QR_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">

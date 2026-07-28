@@ -10,7 +10,8 @@ import {
   IconUsers,
   IconQrcode,
   IconCreditCard,
-  IconBrush
+  IconBrush,
+  IconPackage,
 } from "@tabler/icons-react"
 
 import { NavDocuments, type RecentQRCodeNavItem } from "@/components/nav-documents"
@@ -41,7 +42,12 @@ export const data = {
       title: "My QR Codes",
       url: "/dashboard/qr-codes",
       icon: IconQrcode,
-    },   
+    },
+    {
+      title: "Retail 2D",
+      url: "/dashboard/retail",
+      icon: IconPackage,
+    },
     {
       title: "Folders",
       url: "/dashboard/folders",

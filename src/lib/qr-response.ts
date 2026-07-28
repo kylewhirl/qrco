@@ -16,8 +16,17 @@ export async function buildQrResponse(request: NextRequest, qr: QR): Promise<Nex
   }
 
   switch (qr.data.type) {
-    case "url":
-      return NextResponse.redirect(qr.data.url, { status: 307 });
+    case "url": {
+      const countryCode =
+        request.headers.get("x-vercel-ip-country")
+        ?? request.headers.get("cf-ipcountry")
+        ?? "";
+      const marketDestination = qr.data.gs1?.marketRoutes?.find(
+        (route) => route.countryCode.toUpperCase() === countryCode.toUpperCase(),
+      );
+
+      return NextResponse.redirect(marketDestination?.url ?? qr.data.url, { status: 307 });
+    }
 
     case "text":
       return new NextResponse(qr.data.text, {

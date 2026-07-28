@@ -10,6 +10,7 @@ export type {
   DashboardMetrics,
   EmailData,
   FileData,
+  Gs1DigitalLinkAttributes,
   LatestScan,
   PhoneData,
   QR,

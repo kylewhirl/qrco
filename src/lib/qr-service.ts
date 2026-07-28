@@ -5,6 +5,7 @@ import { StackServerApp } from "@stackframe/stack";
 import { buildPublicQrUrl, isPrimaryAppHost, normalizeHostname } from "./qr-url";
 import { ensureCustomDomainOwnedByUser, ensureCustomDomainSchema } from "./custom-domains";
 import { buildQrImageUrl } from "./qr-images";
+import { buildGs1DigitalLinkPath, getGs1DigitalLinkUrlForQr } from "./gs1-digital-link";
 import { getBrandProfileForUser, getDefaultRenderConfig, getTypeDefaultRenderConfig, mergeRenderConfig } from "./brand-styles";
 import {
   ensureQrMutationAllowed,
@@ -154,7 +155,9 @@ function mapQR(record: QRRow): QR {
     ...record,
     customDomainId: record.customDomainId ?? null,
     customHostname: record.customHostname ?? null,
-    publicUrl: buildPublicQrUrl(record.code, record.customHostname ?? null),
+    publicUrl:
+      getGs1DigitalLinkUrlForQr(record.data, record.customHostname ?? null)
+      ?? buildPublicQrUrl(record.code, record.customHostname ?? null),
     imageUrl: record.data.imageKey ? buildQrImageUrl(record.id, record.data.imageKey) : null,
   };
 }
@@ -213,7 +216,13 @@ export async function createQRCodeForUser(userId: string, data: QRData, customDo
     throw new QRSlugValidationError("Custom slug requires a custom domain");
   }
 
-  const code = normalizedCustomSlug ?? await generateUniqueCode();
+  if (data.gs1 && normalizedCustomSlug) {
+    throw new QRSlugValidationError("GS1 Digital Link paths are generated from the product identifiers");
+  }
+
+  const code = data.gs1
+    ? buildGs1DigitalLinkPath(data.gs1)
+    : normalizedCustomSlug ?? await generateUniqueCode();
   await assertCodeAvailableForDomain(code, resolvedCustomDomainId);
   const dataWithDefaults = await applyCreateDefaultsToQrData(userId, data);
   const result = await queryNoAuth<{ id: string }[]>(
@@ -284,7 +293,13 @@ export async function updateQRDataForUser(userId: string, id: string, data: QRDa
     throw new QRSlugValidationError("Custom slug requires a custom domain");
   }
 
-  const nextCode = normalizedCustomSlug ?? existingQr.code;
+  if (data.gs1 && normalizedCustomSlug) {
+    throw new QRSlugValidationError("GS1 Digital Link paths are generated from the product identifiers");
+  }
+
+  const nextCode = data.gs1
+    ? buildGs1DigitalLinkPath(data.gs1)
+    : normalizedCustomSlug ?? existingQr.code;
   await assertCodeAvailableForDomain(nextCode, resolvedCustomDomainId, id);
   const result = await queryNoAuth<{ id: string }[]>(
     'UPDATE "QR" SET code = $1, data = $2::jsonb, "customDomainId" = $3 WHERE id = $4 AND user_id = $5 RETURNING id',
