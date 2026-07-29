@@ -15,7 +15,7 @@ export function MetricsGridSkeleton() {
     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
         <Card key={index} className="gap-0 rounded-none border-2 border-foreground py-0 shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 bg-[var(--brand-blue)] px-3 py-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 bg-[var(--brand-action)] px-3 py-1">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-4 w-4 rounded-full" />
           </CardHeader>

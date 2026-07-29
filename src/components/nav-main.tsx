@@ -43,7 +43,7 @@ export function NavMain({
               <DialogTrigger asChild>
                 <SidebarMenuButton
                   tooltip="Quick Create"
-                  className="h-10 min-w-8 rounded-xl border border-[var(--brand-blue)] bg-[var(--brand-blue)] px-3 font-bold !text-white shadow-[0_12px_24px_-16px_var(--brand-blue)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-blue)]/92 hover:!text-white active:translate-y-0 active:bg-[var(--brand-blue)] active:!text-white"
+                  className="h-10 min-w-8 rounded-xl border border-[var(--brand-action)] bg-[var(--brand-action)] px-3 font-bold !text-white shadow-[0_12px_24px_-16px_var(--brand-action)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-action)]/92 hover:!text-white active:translate-y-0 active:bg-[var(--brand-action)] active:!text-white"
                 >
                   <IconCirclePlusFilled />
                   <span>Create QR Code</span>

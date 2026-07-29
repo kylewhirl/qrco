@@ -168,7 +168,7 @@ export default function Retail2dPage() {
               {outcomes.map((outcome, index) => {
                 const Icon = outcome.icon;
                 return (
-                  <article key={outcome.title} className="group min-h-[340px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-50px_var(--foreground)] transition duration-300 hover:-translate-y-1 sm:p-8">
+                  <article key={outcome.title} className="group min-h-[340px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-50px_var(--brand-shadow)] transition duration-300 hover:-translate-y-1 sm:p-8">
                     <div className="flex items-start justify-between">
                       <span className="text-xs font-extrabold text-muted-foreground">0{index + 1}</span>
                       <span className="grid size-12 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--brand-blue)_10%,var(--card))] text-[var(--brand-blue)]">
@@ -221,7 +221,7 @@ export default function Retail2dPage() {
         </section>
 
         <section className="bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
-          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-blue)] px-5 py-16 text-white shadow-[0_32px_90px_-46px_var(--brand-blue)] sm:px-10 sm:py-20">
+          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-action)] px-5 py-16 text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-10 sm:py-20">
             <div aria-hidden="true" className="absolute -right-20 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div>

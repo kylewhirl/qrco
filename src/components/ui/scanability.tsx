@@ -41,7 +41,7 @@ export default function Scanability({ score, className, showScore = false }: Sca
             <button
               type="button"
               aria-label={`Scanability ${percentage} percent, ${status}`}
-              className="flex items-center gap-2 rounded-xl border border-border bg-card/95 px-2.5 py-1.5 text-left shadow-[0_12px_26px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] backdrop-blur"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card/95 px-2.5 py-1.5 text-left shadow-[0_12px_26px_-18px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)] backdrop-blur"
             >
               <IconComponent className={`h-4 w-4 shrink-0 ${colorClass}`} />
               <span className="leading-none">

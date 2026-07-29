@@ -104,8 +104,10 @@
   --radius: 0.875rem;
   --brand-paper: #f4f7fb;
   --brand-blue: #1756e8;
+  --brand-action: #1756e8;
   --brand-lime: #c8f33d;
   --brand-ink: #121a2c;
+  --brand-shadow: #182033;
   --background: #f4f7fb;
   --foreground: #182033;
   --card: #ffffff;
@@ -140,41 +142,44 @@
 }
 
 .dark {
-  --brand-paper: #0d1320;
-  --brand-blue: #6b8cff;
-  --brand-lime: #c8f33d;
-  --brand-ink: #f4f7ff;
-  --background: #0d1320;
-  --foreground: #edf2ff;
-  --card: #151d2d;
-  --card-foreground: #edf2ff;
-  --popover: #182132;
-  --popover-foreground: #edf2ff;
-  --primary: #6b8cff;
+  color-scheme: dark;
+  --brand-paper: #181c23;
+  --brand-blue: #fc7138;
+  --brand-action: #a11622;
+  --brand-lime: #f18a43;
+  --brand-ink: #18161c;
+  --brand-shadow: #000000;
+  --background: #181c23;
+  --foreground: #f7eee6;
+  --card: #1b2930;
+  --card-foreground: #f7eee6;
+  --popover: #203238;
+  --popover-foreground: #f7eee6;
+  --primary: #a11622;
   --primary-foreground: #ffffff;
-  --secondary: #caff2f;
-  --secondary-foreground: #090909;
-  --muted: #202b3f;
-  --muted-foreground: #9aa7bd;
-  --accent: #25365f;
-  --accent-foreground: #ffffff;
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: #2a3549;
-  --input: #344158;
-  --ring: #7e9aff;
-  --chart-1: #7e9aff;
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #111827;
-  --sidebar-foreground: #e7edfa;
-  --sidebar-primary: #6b8cff;
+  --secondary: #f18a43;
+  --secondary-foreground: #18161c;
+  --muted: #24353a;
+  --muted-foreground: #b9c2bd;
+  --accent: #2e4f4e;
+  --accent-foreground: #f7eee6;
+  --destructive: #df2120;
+  --border: #3b4e50;
+  --input: #476063;
+  --ring: #fc7138;
+  --chart-1: #fc7138;
+  --chart-2: #2e4f4e;
+  --chart-3: #df2120;
+  --chart-4: #f18a43;
+  --chart-5: #9b7854;
+  --sidebar: #111b21;
+  --sidebar-foreground: #e9ece8;
+  --sidebar-primary: #a11622;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #202c43;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #28344a;
-  --sidebar-ring: #7e9aff;
+  --sidebar-accent: #21383b;
+  --sidebar-accent-foreground: #f7eee6;
+  --sidebar-border: #31484b;
+  --sidebar-ring: #fc7138;
 }
 
 @layer base {
@@ -220,7 +225,15 @@
   }
 
   .dark .hero-frame-decal {
-    opacity: 0.26;
+    background: linear-gradient(180deg, #fc7138 0%, #df2120 62%, #a11622 100%);
+    opacity: 0.68;
+  }
+
+  .dark .brand-hero {
+    background:
+      radial-gradient(circle at 4% -8%, color-mix(in srgb, #fc7138 30%, transparent), transparent 24rem),
+      radial-gradient(circle at 98% 62%, color-mix(in srgb, #1a4346 72%, transparent), transparent 36rem),
+      linear-gradient(135deg, #181c23 0%, #13292f 55%, #18161c 100%);
   }
 
   @media (min-width: 75rem) {
@@ -233,6 +246,11 @@
     background-color: color-mix(in srgb, var(--muted) 45%, var(--card));
     background-image: radial-gradient(circle, color-mix(in srgb, var(--foreground) 13%, transparent) 1px, transparent 1.1px);
     background-size: 16px 16px;
+  }
+
+  .dark .qr-canvas-grid {
+    background-color: #142328;
+    background-image: radial-gradient(circle, #3a5a5b 1px, transparent 1.1px);
   }
 
   .dashboard-shell {
@@ -299,9 +317,9 @@
   .brand-header-cta {
     min-height: 2.6rem;
     padding: 0 1rem;
-    background: var(--brand-blue);
+    background: var(--brand-action);
     color: white;
-    box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--brand-blue) 75%, transparent);
+    box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--brand-action) 75%, transparent);
   }
 
   .brand-button {
@@ -414,16 +432,36 @@
     --dashboard-preview-accent: rgba(16, 185, 129, 0.16);
   }
 
+  .dark .dashboard-hero-slate,
+  .dark .dashboard-hero-blue,
+  .dark .dashboard-hero-sky,
+  .dark .dashboard-hero-emerald,
+  .dark .dashboard-hero-green {
+    --dashboard-hero-accent: rgba(26, 67, 70, 0.34);
+  }
+
+  .dark .dashboard-hero-amber {
+    --dashboard-hero-accent: rgba(241, 138, 67, 0.26);
+  }
+
+  .dark .dashboard-hero-pink {
+    --dashboard-hero-accent: rgba(223, 33, 32, 0.22);
+  }
+
+  .dark .dashboard-preview-emerald {
+    --dashboard-preview-accent: rgba(46, 79, 78, 0.34);
+  }
+
   .dark .dashboard-hero {
-    border-color: color-mix(in oklab, var(--border) 92%, transparent);
+    border-color: color-mix(in oklab, var(--border) 96%, transparent);
     background:
       linear-gradient(180deg,
-        color-mix(in oklab, var(--card) 92%, black 8%),
-        color-mix(in oklab, var(--muted) 48%, var(--background) 52%)
+        color-mix(in oklab, var(--card) 98%, white 2%),
+        color-mix(in oklab, var(--card) 86%, var(--background) 14%)
       );
     box-shadow:
-      inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
-      0 26px 48px -38px color-mix(in oklab, black 70%, transparent);
+      inset 0 1px 0 color-mix(in oklab, white 7%, transparent),
+      0 26px 48px -38px color-mix(in oklab, black 82%, transparent);
   }
 
   .dark .dashboard-preview-surface {
@@ -431,12 +469,12 @@
     background:
       radial-gradient(circle at top, var(--dashboard-preview-accent, rgba(16, 185, 129, 0.2)), transparent 56%),
       linear-gradient(180deg,
-        color-mix(in oklab, var(--card) 94%, black 6%),
-        color-mix(in oklab, var(--background) 82%, var(--card) 18%)
+        color-mix(in oklab, var(--card) 98%, white 2%),
+        color-mix(in oklab, var(--background) 88%, var(--card) 12%)
       );
     box-shadow:
-      inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
-      0 22px 34px -28px color-mix(in oklab, black 70%, transparent);
+      inset 0 1px 0 color-mix(in oklab, white 7%, transparent),
+      0 22px 34px -28px color-mix(in oklab, black 82%, transparent);
   }
 }
 
@@ -524,7 +562,7 @@
   background:
     radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-blue) 13%, transparent), transparent 34%),
     var(--card) !important;
-  box-shadow: 0 20px 46px -34px color-mix(in srgb, var(--foreground) 30%, transparent) !important;
+  box-shadow: 0 20px 46px -34px color-mix(in srgb, var(--brand-shadow) 30%, transparent) !important;
 }
 
 .dashboard-shell .dashboard-hero::before {
@@ -540,7 +578,7 @@
   border-radius: 1.25rem;
   background: var(--card);
   padding-block: 0.25rem;
-  box-shadow: 0 16px 38px -32px color-mix(in srgb, var(--foreground) 30%, transparent);
+  box-shadow: 0 16px 38px -32px color-mix(in srgb, var(--brand-shadow) 42%, transparent);
 }
 
 .dashboard-shell [data-slot="card-header"] {

@@ -499,7 +499,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
     ];
 
     return (
-      <div className="w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--foreground)_42%,transparent)]">
+      <div className="w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)]">
         <div className="grid lg:grid-cols-[minmax(280px,0.9fr)_minmax(350px,1.35fr)_minmax(280px,0.9fr)]">
           <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
             <div className="grid h-full grid-cols-[58px_minmax(0,1fr)]">
@@ -508,7 +508,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                   const Icon = option.icon;
                   const active = contentTab === option.value;
                   return (
-                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-blue)] text-white shadow-[0_8px_20px_-12px_var(--brand-blue)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
+                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-action)] text-white shadow-[0_8px_20px_-12px_var(--brand-action)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
                       <Icon className="size-[18px]" />
                     </button>
                   );
@@ -556,7 +556,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
 
           <aside className="min-w-0">
             <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">● Live</span></div>
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[var(--brand-ink)]">● Live</span></div>
               <div className="text-right"><strong className="font-display text-3xl leading-none tracking-[-0.04em]">12,846</strong><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scans</p></div>
             </div>
             <div className="border-b border-border p-5">
@@ -599,7 +599,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-11 rounded-xl border border-border bg-card px-5 font-bold" asChild><Link href="/dashboard">Preview <IconExternalLink className="size-4" /></Link></Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button className="h-11 rounded-xl border border-[var(--brand-blue)] bg-[var(--brand-blue)] px-6 font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-blue)] hover:bg-[var(--brand-blue)]/90"><Download className="size-4" />Download QR</Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Button className="h-11 rounded-xl border border-[var(--brand-action)] bg-[var(--brand-action)] px-6 font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-action)] hover:bg-[var(--brand-action)]/90"><Download className="size-4" />Download QR</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end"><DropdownMenuItem onClick={handleDownloadSvg}>Download SVG</DropdownMenuItem><DropdownMenuItem onClick={handleDownloadPng}>Download PNG</DropdownMenuItem></DropdownMenuContent>
             </DropdownMenu>
           </div>

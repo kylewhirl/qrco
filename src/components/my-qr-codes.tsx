@@ -474,7 +474,7 @@ export function QRCodeList({ qrCodes, onCreateQR, onUpdateQR, onDeleteQR, onImag
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="w-full rounded-xl bg-[var(--brand-blue)] font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-blue)] hover:bg-[var(--brand-blue)]/90 sm:w-auto">
+            <Button size="sm" className="w-full rounded-xl bg-[var(--brand-action)] font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-action)] hover:bg-[var(--brand-action)]/90 sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Quick Create
             </Button>

@@ -47,7 +47,7 @@ export default async function HomePage() {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />
       <main>
-        <section className="relative overflow-hidden bg-[var(--brand-paper)] pt-12 sm:pt-16 md:pt-20">
+        <section className="brand-hero relative overflow-hidden bg-[var(--brand-paper)] pt-12 sm:pt-16 md:pt-20">
           <div aria-hidden="true" className="absolute -left-32 top-8 size-80 rounded-full bg-[color-mix(in_srgb,var(--brand-blue)_14%,transparent)] blur-3xl" />
           <div aria-hidden="true" className="absolute -right-28 top-40 size-72 rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_18%,transparent)] blur-3xl" />
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-left" />
@@ -66,7 +66,7 @@ export default async function HomePage() {
               Create, update, and track every scan without expired codes or surprise paywalls.
             </p>
             <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-              <Link href="/sign-up" className="brand-button bg-[var(--brand-blue)] text-white shadow-[0_14px_32px_-18px_var(--brand-blue)]">
+              <Link href="/sign-up" className="brand-button bg-[var(--brand-action)] text-white shadow-[0_14px_32px_-18px_var(--brand-action)]">
                 Create a free QR code
                 <IconArrowRight className="size-4" stroke={2.4} />
               </Link>
@@ -87,7 +87,7 @@ export default async function HomePage() {
         </section>
 
         <section id="products" className="bg-background py-5">
-          <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-10 gap-y-3 rounded-2xl border bg-card px-5 py-5 text-xs font-bold text-muted-foreground shadow-[0_18px_45px_-40px_var(--foreground)] sm:text-sm">
+          <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-10 gap-y-3 rounded-2xl border bg-card px-5 py-5 text-xs font-bold text-muted-foreground shadow-[0_18px_45px_-40px_var(--brand-shadow)] sm:text-sm">
             <span>Unlimited static codes</span>
             <span>Editable destinations</span>
             <span>Actionable analytics</span>
@@ -108,7 +108,7 @@ export default async function HomePage() {
               {benefits.map((benefit) => {
                 const Icon = benefit.icon;
                 return (
-                  <article key={benefit.number} className="group min-h-[320px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-48px_var(--foreground)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_70px_-46px_color-mix(in_srgb,var(--brand-blue)_50%,transparent)] sm:p-9">
+                  <article key={benefit.number} className="group min-h-[320px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-48px_var(--brand-shadow)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_70px_-46px_color-mix(in_srgb,var(--brand-blue)_50%,transparent)] sm:p-9">
                     <div className="flex items-start justify-between">
                       <span className="text-xs font-bold text-muted-foreground">{benefit.number}</span>
                       <span className="grid size-12 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--brand-blue)_10%,var(--card))]">
@@ -125,7 +125,7 @@ export default async function HomePage() {
         </section>
 
         <section className="bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
-          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-blue)] px-5 py-20 text-center text-white shadow-[0_32px_90px_-46px_var(--brand-blue)] sm:px-8 sm:py-24">
+          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-action)] px-5 py-20 text-center text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-8 sm:py-24">
             <div aria-hidden="true" className="absolute -right-20 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
             <p className="relative text-xs font-bold tracking-[0.1em] text-[var(--brand-lime)]">Ready when you are</p>
             <h2 className="font-display relative mx-auto mt-5 max-w-4xl text-[clamp(3rem,7vw,6.2rem)] leading-[0.94] tracking-[-0.06em]">Make your next QR code last.</h2>
