@@ -47,7 +47,7 @@ export default async function HomePage() {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />
       <main>
-        <section className="brand-hero relative overflow-hidden bg-[var(--brand-paper)] pt-12 sm:pt-16 md:pt-20">
+        <section className="relative overflow-hidden bg-[var(--brand-paper)] pt-12 sm:pt-16 md:pt-20">
           <div aria-hidden="true" className="absolute -left-32 top-8 size-80 rounded-full bg-[color-mix(in_srgb,var(--brand-blue)_14%,transparent)] blur-3xl" />
           <div aria-hidden="true" className="absolute -right-28 top-40 size-72 rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_18%,transparent)] blur-3xl" />
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-left" />

@@ -143,43 +143,43 @@
 
 .dark {
   color-scheme: dark;
-  --brand-paper: #181c23;
-  --brand-blue: #fc7138;
-  --brand-action: #a11622;
-  --brand-lime: #f18a43;
-  --brand-ink: #18161c;
+  --brand-paper: #090c12;
+  --brand-blue: #4c80ff;
+  --brand-action: #2f68ee;
+  --brand-lime: #c3ee3f;
+  --brand-ink: #10151f;
   --brand-shadow: #000000;
-  --background: #181c23;
-  --foreground: #f7eee6;
-  --card: #1b2930;
-  --card-foreground: #f7eee6;
-  --popover: #203238;
-  --popover-foreground: #f7eee6;
-  --primary: #a11622;
+  --background: #090c12;
+  --foreground: #f3f6fb;
+  --card: #111720;
+  --card-foreground: #f3f6fb;
+  --popover: #151c27;
+  --popover-foreground: #f3f6fb;
+  --primary: #2f68ee;
   --primary-foreground: #ffffff;
-  --secondary: #f18a43;
-  --secondary-foreground: #18161c;
-  --muted: #24353a;
-  --muted-foreground: #b9c2bd;
-  --accent: #2e4f4e;
-  --accent-foreground: #f7eee6;
-  --destructive: #df2120;
-  --border: #3b4e50;
-  --input: #476063;
-  --ring: #fc7138;
-  --chart-1: #fc7138;
-  --chart-2: #2e4f4e;
-  --chart-3: #df2120;
-  --chart-4: #f18a43;
-  --chart-5: #9b7854;
-  --sidebar: #111b21;
-  --sidebar-foreground: #e9ece8;
-  --sidebar-primary: #a11622;
+  --secondary: #c3ee3f;
+  --secondary-foreground: #10151f;
+  --muted: #1a212c;
+  --muted-foreground: #a8b2c2;
+  --accent: #17274a;
+  --accent-foreground: #e6edff;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #27303d;
+  --input: #313c4c;
+  --ring: #5b86ff;
+  --chart-1: #4c80ff;
+  --chart-2: #34d3a0;
+  --chart-3: #ffb454;
+  --chart-4: #a78bfa;
+  --chart-5: #ff7185;
+  --sidebar: #0d1219;
+  --sidebar-foreground: #e8edf6;
+  --sidebar-primary: #2f68ee;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #21383b;
-  --sidebar-accent-foreground: #f7eee6;
-  --sidebar-border: #31484b;
-  --sidebar-ring: #fc7138;
+  --sidebar-accent: #182130;
+  --sidebar-accent-foreground: #f3f6fb;
+  --sidebar-border: #222c39;
+  --sidebar-ring: #5b86ff;
 }
 
 @layer base {
@@ -225,15 +225,7 @@
   }
 
   .dark .hero-frame-decal {
-    background: linear-gradient(180deg, #fc7138 0%, #df2120 62%, #a11622 100%);
-    opacity: 0.68;
-  }
-
-  .dark .brand-hero {
-    background:
-      radial-gradient(circle at 4% -8%, color-mix(in srgb, #fc7138 30%, transparent), transparent 24rem),
-      radial-gradient(circle at 98% 62%, color-mix(in srgb, #1a4346 72%, transparent), transparent 36rem),
-      linear-gradient(135deg, #181c23 0%, #13292f 55%, #18161c 100%);
+    opacity: 0.58;
   }
 
   @media (min-width: 75rem) {
@@ -249,8 +241,8 @@
   }
 
   .dark .qr-canvas-grid {
-    background-color: #142328;
-    background-image: radial-gradient(circle, #3a5a5b 1px, transparent 1.1px);
+    background-color: #0d131c;
+    background-image: radial-gradient(circle, #344154 1px, transparent 1.1px);
   }
 
   .dashboard-shell {
@@ -430,26 +422,6 @@
 
   .dashboard-preview-emerald {
     --dashboard-preview-accent: rgba(16, 185, 129, 0.16);
-  }
-
-  .dark .dashboard-hero-slate,
-  .dark .dashboard-hero-blue,
-  .dark .dashboard-hero-sky,
-  .dark .dashboard-hero-emerald,
-  .dark .dashboard-hero-green {
-    --dashboard-hero-accent: rgba(26, 67, 70, 0.34);
-  }
-
-  .dark .dashboard-hero-amber {
-    --dashboard-hero-accent: rgba(241, 138, 67, 0.26);
-  }
-
-  .dark .dashboard-hero-pink {
-    --dashboard-hero-accent: rgba(223, 33, 32, 0.22);
-  }
-
-  .dark .dashboard-preview-emerald {
-    --dashboard-preview-accent: rgba(46, 79, 78, 0.34);
   }
 
   .dark .dashboard-hero {

@@ -556,7 +556,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
 
           <aside className="min-w-0">
             <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[var(--brand-ink)]">● Live</span></div>
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">● Live</span></div>
               <div className="text-right"><strong className="font-display text-3xl leading-none tracking-[-0.04em]">12,846</strong><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scans</p></div>
             </div>
             <div className="border-b border-border p-5">
