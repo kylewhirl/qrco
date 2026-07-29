@@ -14,6 +14,7 @@ import { cn, serialize } from "@/lib/utils";
 import Link from "next/link";
 import {
   Brush,
+  ChartNoAxesCombined,
   FileIcon,
   Frame,
   GlobeIcon,
@@ -57,7 +58,17 @@ import Scanability from "@/components/ui/scanability";
 import { flattenAndDownloadSvg, prepareSvgForExport } from "@/lib/flatten-svg";
 import { buildPublicQrUrl } from "@/lib/qr-url";
 import { QRData } from "@/lib/types";
-import type { ContactData, EmailData, PhoneData, SMSData, URLData, WiFiData } from "@/lib/types";
+import type {
+  ContactData,
+  DailyScanCount,
+  EmailData,
+  PhoneData,
+  QR,
+  SMSData,
+  TopLocation,
+  URLData,
+  WiFiData,
+} from "@/lib/types";
 
 type ContentTab = "website" | "text" | "email" | "contact" | "phone" | "sms" | "wifi" | "file";
 type DesignTab = "style" | "border" | "logo" | "error-level" | "details";
@@ -67,6 +78,45 @@ type QrCodeCreatorProps = {
 };
 
 type CreatorUser = ReturnType<typeof useUser>;
+
+type HeroAnalytics = {
+  totalScans: number;
+  dailyScans: DailyScanCount[];
+  topLocations: TopLocation[];
+};
+
+const HERO_DEMO_CHART = [
+  { day: "M", scans: 420 },
+  { day: "T", scans: 860 },
+  { day: "W", scans: 1420 },
+  { day: "T", scans: 930 },
+  { day: "F", scans: 1860 },
+  { day: "S", scans: 1410 },
+  { day: "S", scans: 2412 },
+];
+
+const HERO_DEMO_LOCATIONS = [
+  { code: "US", location: "United States", percent: "56.3%" },
+  { code: "GB", location: "United Kingdom", percent: "22.7%" },
+  { code: "CA", location: "Canada", percent: "8.9%" },
+];
+
+function buildHeroChartData(dailyScans: DailyScanCount[]) {
+  const counts = new Map(dailyScans.map((item) => [item.date, item.count]));
+  const formatter = new Intl.DateTimeFormat("en-US", { weekday: "narrow", timeZone: "UTC" });
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCDate(date.getUTCDate() - (6 - index));
+    const key = date.toISOString().slice(0, 10);
+
+    return {
+      day: formatter.format(date),
+      scans: counts.get(key) ?? 0,
+    };
+  });
+}
 
 const CONTENT_OPTIONS: {
   value: ContentTab;
@@ -137,6 +187,9 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [scanTracking, setScanTracking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [trackedQrId, setTrackedQrId] = useState<string | null>(null);
+  const [heroAnalytics, setHeroAnalytics] = useState<HeroAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const [originalData, setOriginalData] = useState<QRData>(contentData);
   const [errorLevel, setErrorLevel] = useState<"L" | "M" | "Q" | "H">("M");
@@ -203,6 +256,42 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
     }
   }, [contentTab, contentData, scanTracking]);
 
+  useEffect(() => {
+    if (variant !== "hero" || !scanTracking || !trackedQrId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAnalytics = async () => {
+      try {
+        setAnalyticsLoading(true);
+        const response = await fetch(`/api/qr/${trackedQrId}/analytics`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const analytics = await response.json() as HeroAnalytics;
+        if (!cancelled) {
+          setHeroAnalytics(analytics);
+        }
+      } catch (error) {
+        console.error("Failed to refresh QR analytics", error);
+      } finally {
+        if (!cancelled) {
+          setAnalyticsLoading(false);
+        }
+      }
+    };
+
+    void loadAnalytics();
+    const analyticsInterval = window.setInterval(loadAnalytics, 15_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(analyticsInterval);
+    };
+  }, [scanTracking, trackedQrId, variant]);
+
   const handleDownloadSvg = async () => {
     if (!previewRef.current) return;
     const svgContainer = previewRef.current.innerHTML;
@@ -257,6 +346,8 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
     setIsLoading(checked);
 
     if (checked) {
+      setHeroAnalytics({ totalScans: 0, dailyScans: [], topLocations: [] });
+      setAnalyticsLoading(true);
       intervalRef.current = window.setInterval(() => {
         const randomCode = Math.random().toString(36).substr(2, 6);
         setQrString(buildPublicQrUrl(randomCode));
@@ -271,14 +362,20 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
-        const { code } = await res.json();
-        setQrString(buildPublicQrUrl(code));
+        const qr = await res.json() as QR;
+        setTrackedQrId(qr.id);
+        setHeroAnalytics({
+          totalScans: qr.totalScans,
+          dailyScans: [],
+          topLocations: [],
+        });
+        setQrString(buildPublicQrUrl(qr.code));
 
         if (selectedFile && contentData.type === "file") {
           try {
             const uploadForm = new FormData();
             uploadForm.append("file", selectedFile);
-            uploadForm.append("code", code);
+            uploadForm.append("code", qr.code);
             const uploadRes = await fetch("/api/upload", {
               method: "POST",
               body: uploadForm,
@@ -292,12 +389,16 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
         }
       } catch (err) {
         console.error("Failed to generate QR ID", err);
+        setScanTracking(false);
+        setTrackedQrId(null);
+        setHeroAnalytics(null);
       } finally {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
         setIsLoading(false);
+        setAnalyticsLoading(false);
       }
       return;
     }
@@ -307,6 +408,9 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
       intervalRef.current = null;
     }
     setIsLoading(false);
+    setTrackedQrId(null);
+    setHeroAnalytics(null);
+    setAnalyticsLoading(false);
     setQrString(serialize(originalData));
   };
 
@@ -488,15 +592,12 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
   );
 
   if (variant === "hero") {
-    const chartData = [
-      { day: "M", scans: 420 },
-      { day: "T", scans: 860 },
-      { day: "W", scans: 1420 },
-      { day: "T", scans: 930 },
-      { day: "F", scans: 1860 },
-      { day: "S", scans: 1410 },
-      { day: "S", scans: 2412 },
-    ];
+    const chartData = scanTracking
+      ? buildHeroChartData(heroAnalytics?.dailyScans ?? [])
+      : HERO_DEMO_CHART;
+    const totalScans = scanTracking ? heroAnalytics?.totalScans ?? 0 : 12_846;
+    const trackedLocations = heroAnalytics?.topLocations.slice(0, 3) ?? [];
+    const analyticsInactive = !scanTracking;
 
     return (
       <div className="w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)]">
@@ -555,40 +656,88 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           </section>
 
           <aside className="min-w-0">
-            <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p><span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">● Live</span></div>
-              <div className="text-right"><strong className="font-display text-3xl leading-none tracking-[-0.04em]">12,846</strong><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scans</p></div>
-            </div>
-            <div className="border-b border-border p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Scans over time</p>
-                <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">Demo · 7 days</span>
-              </div>
-              <div className="mt-4 h-[190px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 12, right: 8, left: -28, bottom: 0 }}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)", fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
-                    <ChartTooltip contentStyle={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 11, fontWeight: 700, boxShadow: "0 12px 30px -18px rgba(0,0,0,.35)" }} />
-                    <Line type="monotone" dataKey="scans" stroke="var(--brand-blue)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--card)", stroke: "var(--brand-blue)", strokeWidth: 2 }} activeDot={{ r: 5, fill: "var(--brand-lime)", stroke: "var(--brand-blue)" }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="p-5">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Top locations</p>
-              <div className="divide-y divide-border text-xs font-bold">
-                {[["US", "United States", "56.3%"], ["GB", "United Kingdom", "22.7%"], ["CA", "Canada", "8.9%"]].map(([code, country, percent]) => (
-                  <div key={code} className="grid grid-cols-[32px_1fr_auto] items-center gap-3 py-3"><span className="rounded-md bg-[color-mix(in_srgb,var(--brand-blue)_11%,var(--card))] py-1 text-center text-[9px] font-extrabold text-[var(--brand-blue)]">{code}</span><span>{country}</span><span>{percent}</span></div>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                <div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-foreground/55">Scan quality</p><Scanability score={scanability} className="mt-1" /></div>
-                <div className="flex items-center gap-3">
-                  <Tooltip><TooltipTrigger asChild><Label htmlFor="scan-tracking-hero" className="cursor-pointer text-xs font-bold">Tracking</Label></TooltipTrigger><TooltipContent><p>Track scans and update the destination anytime.</p></TooltipContent></Tooltip>
-                  <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user} onCheckedChange={handleTrackingChange} />
+            <div className="relative">
+              {analyticsInactive && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-6">
+                  <div className="max-w-[230px] rounded-2xl border border-border bg-card/95 px-5 py-4 text-center shadow-[0_18px_40px_-24px_var(--brand-shadow)] backdrop-blur-sm">
+                    <ChartNoAxesCombined className="mx-auto size-5 text-muted-foreground" />
+                    <p className="mt-2 text-xs font-extrabold uppercase tracking-[0.14em] text-foreground">Example analytics</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Enable scan tracking to replace this preview with real scan data.</p>
+                  </div>
                 </div>
+              )}
+
+              <div
+                aria-disabled={analyticsInactive}
+                aria-busy={analyticsLoading}
+                className={cn(
+                  "transition-[filter,opacity] duration-300",
+                  analyticsInactive && "pointer-events-none select-none grayscale opacity-30"
+                )}
+              >
+                <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p>
+                    <span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">
+                      ● {isLoading ? "Connecting" : scanTracking ? "Tracking" : "Example"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <strong className="font-display text-3xl leading-none tracking-[-0.04em]">{totalScans.toLocaleString()}</strong>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Scans</p>
+                  </div>
+                </div>
+                <div className="border-b border-border p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Scans over time</p>
+                    <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">
+                      {scanTracking ? "Live" : "Example"} · 7 days
+                    </span>
+                  </div>
+                  <div className="mt-4 h-[190px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 12, right: 8, left: -28, bottom: 0 }}>
+                        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)", fontWeight: 700 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
+                        <ChartTooltip contentStyle={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 11, fontWeight: 700, boxShadow: "0 12px 30px -18px rgba(0,0,0,.35)" }} />
+                        <Line type="monotone" dataKey="scans" stroke="var(--brand-blue)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--card)", stroke: "var(--brand-blue)", strokeWidth: 2 }} activeDot={{ r: 5, fill: "var(--brand-lime)", stroke: "var(--brand-blue)" }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Top locations</p>
+                  {scanTracking && trackedLocations.length === 0 ? (
+                    <div className="flex min-h-[132px] items-center justify-center rounded-xl border border-dashed border-border px-4 text-center text-xs leading-5 text-muted-foreground">
+                      Location data will appear here when it is available.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border text-xs font-bold">
+                      {(scanTracking
+                        ? trackedLocations.map((location) => ({
+                            code: location.location.slice(0, 2).toUpperCase(),
+                            location: location.location,
+                            percent: totalScans > 0 ? `${((location.count / totalScans) * 100).toFixed(1)}%` : "0%",
+                          }))
+                        : HERO_DEMO_LOCATIONS
+                      ).map(({ code, location, percent }) => (
+                        <div key={`${code}-${location}`} className="grid grid-cols-[32px_1fr_auto] items-center gap-3 py-3">
+                          <span className="rounded-md bg-[color-mix(in_srgb,var(--brand-blue)_11%,var(--card))] py-1 text-center text-[9px] font-extrabold text-[var(--brand-blue)]">{code}</span>
+                          <span>{location}</span>
+                          <span>{percent}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-border p-5">
+              <div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-foreground/55">Scan quality</p><Scanability score={scanability} className="mt-1" /></div>
+              <div className="flex items-center gap-3">
+                <Tooltip><TooltipTrigger asChild><Label htmlFor="scan-tracking-hero" className={cn("text-xs font-bold", user && "cursor-pointer")}>{user ? "Tracking" : "Log in to track"}</Label></TooltipTrigger><TooltipContent><p>{user ? "Create a dynamic code and show its real scan analytics." : "Log in to enable scan tracking."}</p></TooltipContent></Tooltip>
+                <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user || isLoading} onCheckedChange={handleTrackingChange} />
               </div>
             </div>
           </aside>
