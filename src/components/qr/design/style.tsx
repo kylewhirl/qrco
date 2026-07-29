@@ -279,100 +279,92 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
       <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Code style</h3>
 
       <div className="grid w-full min-w-0 grid-cols-1 gap-4">
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-            <div className="flex min-w-0 flex-col space-y-1">
-            <Label htmlFor="all-style">Style</Label>
-            <div className={advancedOpen ? "pointer-events-none opacity-50" : ""}>
-              <StyleOptionGrid
-                options={DOT_STYLE_OPTIONS}
-                value={settings.dotStyle}
-                kind="dots"
-                swatchColor={dotSwatchColor}
-                swatchBackground={swatchBackground}
-                onChange={(value) =>
-                  onChange({
-                    ...settings,
-                    dotStyle: value,
-                    eyeStyle: value as StyleSettingsProps["settings"]["eyeStyle"],
-                    innerEyeStyle: "none",
-                  })
-                }
-              />
-            </div>
-            </div>
-            <div className="flex flex-col space-y-1">
-            <Label htmlFor="all-color">Color</Label>
+        <div className="flex min-w-0 flex-col space-y-1">
+          <Label htmlFor="all-style">Style</Label>
+          <div className={advancedOpen ? "pointer-events-none opacity-50" : ""}>
+            <StyleOptionGrid
+              options={DOT_STYLE_OPTIONS}
+              value={settings.dotStyle}
+              kind="dots"
+              swatchColor={dotSwatchColor}
+              swatchBackground={swatchBackground}
+              onChange={(value) =>
+                onChange({
+                  ...settings,
+                  dotStyle: value,
+                  eyeStyle: value as StyleSettingsProps["settings"]["eyeStyle"],
+                  innerEyeStyle: "none",
+                })
+              }
+            />
+          </div>
+        </div>
+
+        <div className="grid min-w-0 grid-cols-2 gap-2">
+          <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
+            <Label htmlFor="all-color" className="min-w-0 truncate text-xs">Code color</Label>
             <ColorPicker
-                id="all-color"
-                color={unifiedValue}
-                onChange={(e) => {
+              id="all-color"
+              className="size-9 shrink-0"
+              color={unifiedValue}
+              onChange={(e) => {
                 const { colorType, colors, gradientType, rotation } = parseColorValue(
-                    e.target.value,
-                    {
+                  e.target.value,
+                  {
                     gradientType: settings.dotGradientType,
                     rotation: settings.dotRotation,
                     colors: settings.dotColors,
-                    }
+                  }
                 );
                 onChange({
-                    ...settings,
-                    // dots
-                    dotColorType: colorType,
-                    dotColors: colors,
-                    dotGradientType: gradientType,
-                    dotRotation: rotation,
-                    // eyes
-                    eyeColorType: colorType,
-                    eyeColors: colors,
-                    eyeGradientType: gradientType,
-                    eyeRotation: rotation,
-                    // inner eyes
-                    innerEyeColorType: colorType,
-                    innerEyeColors: colors,
-                    innerEyeGradientType: gradientType,
-                    innerEyeRotation: rotation,
+                  ...settings,
+                  // dots
+                  dotColorType: colorType,
+                  dotColors: colors,
+                  dotGradientType: gradientType,
+                  dotRotation: rotation,
+                  // eyes
+                  eyeColorType: colorType,
+                  eyeColors: colors,
+                  eyeGradientType: gradientType,
+                  eyeRotation: rotation,
+                  // inner eyes
+                  innerEyeColorType: colorType,
+                  innerEyeColors: colors,
+                  innerEyeGradientType: gradientType,
+                  innerEyeRotation: rotation,
                 });
-                }}
-                disabled={advancedOpen}
+              }}
+              disabled={advancedOpen}
             />
-            </div>
-        </div>
-        <div className="flex min-w-0 items-end">
-            <div className="flex min-w-0 flex-col space-y-1">
-                <div className="flex flex-col items-start space-y-1">
-                    <Label htmlFor="background-color">Background Color</Label>
-                    <ColorPicker
-                    id="background-color"
-                    color={
-                        settings.bgColorType !== "gradient"
-                        ? settings.bgColors[0]
-                        : settings.bgGradientType === "linear"
-                        ? bgValue
-                        : bgValue
-                    }
-                    onChange={(e) => {
-                        const { colorType, colors, gradientType, rotation } = parseColorValue(
-                        e.target.value,
-                        {
-                            gradientType: settings.bgGradientType,
-                            rotation: settings.bgRotation,
-                            colors: settings.bgColors,
-                        }
-                        );
-                        onChange({
-                            ...settings,
-                            bgColorType: colorType,
-                            bgColors: colors,
-                            bgGradientType: gradientType,
-                            bgRotation: rotation,
-                        });
-                    }}
-                    />
-                </div>
-            </div>
+          </div>
+          <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
+            <Label htmlFor="background-color" className="min-w-0 truncate text-xs">Background</Label>
+            <ColorPicker
+              id="background-color"
+              className="size-9 shrink-0"
+              color={settings.bgColorType !== "gradient" ? settings.bgColors[0] : bgValue}
+              onChange={(e) => {
+                const { colorType, colors, gradientType, rotation } = parseColorValue(
+                  e.target.value,
+                  {
+                    gradientType: settings.bgGradientType,
+                    rotation: settings.bgRotation,
+                    colors: settings.bgColors,
+                  }
+                );
+                onChange({
+                  ...settings,
+                  bgColorType: colorType,
+                  bgColors: colors,
+                  bgGradientType: gradientType,
+                  bgRotation: rotation,
+                });
+              }}
+            />
+          </div>
         </div>
       </div>
-      
 
       <Accordion
         type="single"

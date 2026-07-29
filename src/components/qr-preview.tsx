@@ -322,15 +322,23 @@ const QrPreview: React.FC<QrPreviewProps> = ({
   ]);
 
   return (
-    <div style={{ position: "relative", width: size, height: size }} className={className}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        maxWidth: size,
+        aspectRatio: "1 / 1",
+      }}
+      className={className}
+    >
       <div
         ref={ref}
+        className="[&_svg]:block [&_svg]:size-full"
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          width: `${size}px`,
-          height: `${size}px`,
+          inset: 0,
+          width: "100%",
+          height: "100%",
         }}
       />
     </div>

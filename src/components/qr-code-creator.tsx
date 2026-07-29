@@ -540,14 +540,14 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
             </div>
           </section>
 
-          <section className="qr-canvas-grid relative flex min-h-[520px] items-start justify-center overflow-hidden border-b border-border px-5 pt-14 lg:border-r lg:border-b-0">
+          <section className="qr-canvas-grid relative flex min-h-[420px] items-start justify-center overflow-hidden border-b border-border px-5 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r lg:border-b-0">
             <Scanability score={scanability} showScore className="absolute right-4 top-4 z-10" />
-            <div className="relative w-[78%] max-w-[340px]">
+            <div className="relative aspect-square w-full max-w-[340px]">
               <span className="pointer-events-none absolute -left-3 -top-3 size-5 rounded-tl-md border-l-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -right-3 -top-3 size-5 rounded-tr-md border-r-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -bottom-3 -left-3 size-5 rounded-bl-md border-b-2 border-l-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -bottom-3 -right-3 size-5 rounded-br-md border-r-2 border-b-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <div data-qr-preview className="relative flex aspect-square w-full items-center justify-center rounded-3xl border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
+              <div data-qr-preview className="relative flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-3xl border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
                 <QrPreview data={qrString} errorLevel={errorLevel} size={270} styleSettings={styleSettings} borderSettings={borderSettings} logoSettings={logoSettings} onScanabilityChange={setScanability} />
                 {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-white/85"><Loader2Icon className="size-6 animate-spin text-[var(--brand-blue)]" /></div>}
               </div>
