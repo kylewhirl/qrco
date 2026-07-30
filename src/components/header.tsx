@@ -42,7 +42,6 @@ function MobileNavigation() {
   const pages = [
     { href: "/#creator", label: "Products" },
     { href: "/#solutions", label: "Solutions" },
-    { href: "/retail-2d", label: "Retail 2D" },
     { href: "/pricing", label: "Pricing" },
     { href: "https://docs.tqrco.de", label: "Resources" },
   ];
@@ -148,7 +147,6 @@ export default function Header() {
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-semibold text-muted-foreground lg:flex" aria-label="Main navigation">
           <Link href="/#creator" className="brand-nav-link">Products</Link>
           <Link href="/#solutions" className="brand-nav-link">Solutions</Link>
-          <Link href="/retail-2d" className="brand-nav-link">Retail 2D</Link>
           <Link href="/pricing" className="brand-nav-link">Pricing</Link>
           <Link href="https://docs.tqrco.de" className="brand-nav-link">Resources</Link>
         </nav>
