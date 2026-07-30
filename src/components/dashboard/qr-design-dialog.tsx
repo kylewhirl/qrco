@@ -290,10 +290,10 @@ export function QrDesignDialog({
   };
 
   return (
-    <div className="rounded-[28px] border bg-card p-3 shadow-xl sm:p-4">
+    <div className="rounded-lg border bg-card p-3 shadow-xl sm:p-4">
       <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 max-w-full space-y-3">
-          <section className="rounded-[22px] border bg-background p-4 sm:p-5">
+          <section className="rounded-lg border bg-background p-4 sm:p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1">
                 <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Style Library</div>
@@ -345,7 +345,7 @@ export function QrDesignDialog({
             )}
           </section>
 
-          <section className="rounded-[22px] border bg-muted/35 p-3">
+          <section className="rounded-lg border bg-muted/35 p-3">
             <div className="mb-3 px-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Design</div>
             <Tabs value={designTab} onValueChange={(next) => setDesignTab(next as DesignTab)} className="min-h-0">
               <div className="overflow-x-auto">
@@ -427,7 +427,7 @@ export function QrDesignDialog({
         </div>
 
         <aside className="relative lg:sticky lg:top-4 lg:self-start">
-          <Card className="rounded-[22px] border bg-muted/35 p-3">
+          <Card className="rounded-lg border bg-muted/35 p-3">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div className="flex items-center gap-2">
                 <div>
@@ -450,7 +450,7 @@ export function QrDesignDialog({
               </DropdownMenu>
             </div>
 
-            <div className="relative flex min-h-[280px] items-center justify-center rounded-[20px] border bg-background p-4">
+            <div className="relative flex min-h-[280px] items-center justify-center rounded-lg border bg-background p-4">
               <div ref={previewRef} className="flex h-full w-full items-center justify-center">
                 <QrPreview
                   data={publicUrl}

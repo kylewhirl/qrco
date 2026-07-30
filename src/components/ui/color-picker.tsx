@@ -49,7 +49,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, className, disa
           <Button
             size="icon"
             variant="outline"
-            className={`rounded-xl border-border ${className ?? ""}`}
+            className={`rounded-md border-border ${className ?? ""}`}
             disabled={disabled}
             style={buttonStyle}
           >

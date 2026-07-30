@@ -169,7 +169,7 @@ export default function AICreateQr() {
 
   return (
     <div className="w-full">
-      <div className="overflow-hidden rounded-[28px] border border-border/60 bg-background shadow-[0_24px_80px_-32px_rgba(15,23,42,0.5)]">
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-background shadow-[0_24px_80px_-32px_rgba(15,23,42,0.5)]">
         <div className="grid min-h-[620px] lg:grid-cols-[1.15fr_0.85fr]">
           <section className="flex min-h-0 flex-col border-b border-border/60 bg-background lg:border-r lg:border-b-0">
             <div className="border-b border-border/60 bg-linear-to-b from-muted/50 to-background px-6 py-5">
@@ -185,7 +185,7 @@ export default function AICreateQr() {
             </div>
 
             <div className="border-b border-border/60 px-6 py-5">
-              <div className="rounded-[24px] border border-border/70 bg-muted/25 p-4 shadow-sm">
+              <div className="rounded-lg border border-border/70 bg-muted/25 p-4 shadow-sm">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">Prompt</p>
                   <p className="text-xs text-muted-foreground">Cmd/Ctrl + Enter</p>
@@ -248,7 +248,7 @@ export default function AICreateQr() {
             <div className="flex flex-1 flex-col justify-between gap-5 px-6 py-6">
               <div
                 className={cn(
-                  "relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-[28px] border border-border/70 bg-background p-6 shadow-sm",
+                  "relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-background p-6 shadow-sm",
                   !previewProps && !loading && "bg-[radial-gradient(circle_at_top,#f5f8ff,transparent_55%),linear-gradient(to_bottom,#ffffff,#fafafa)]"
                 )}
               >
@@ -267,7 +267,7 @@ export default function AICreateQr() {
 
                 {loading ? (
                   <div className="w-full space-y-4">
-                    <Skeleton className="mx-auto h-64 w-64 rounded-[24px]" />
+                    <Skeleton className="mx-auto h-64 w-64 rounded-lg" />
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-2/3" />
                       <Skeleton className="h-4 w-1/2" />
@@ -300,7 +300,7 @@ export default function AICreateQr() {
                   </div>
                 ) : (
                   <div className="max-w-sm text-center">
-                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-[22px] bg-foreground text-background shadow-sm">
+                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-lg bg-foreground text-background shadow-sm">
                       <Sparkles className="size-7" />
                     </div>
                     <h3 className="text-xl font-semibold tracking-tight">Your QR will appear here.</h3>
@@ -308,7 +308,7 @@ export default function AICreateQr() {
                 )}
               </div>
 
-              <div className="space-y-4 rounded-[24px] border border-border/70 bg-background px-5 py-4 shadow-sm">
+              <div className="space-y-4 rounded-lg border border-border/70 bg-background px-5 py-4 shadow-sm">
                 {error ? (
                   <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     {error}

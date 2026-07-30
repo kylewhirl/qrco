@@ -54,7 +54,7 @@ export default function Header() {
         </Link>
 
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-semibold text-muted-foreground lg:flex" aria-label="Main navigation">
-          <Link href="#products" className="brand-nav-link">Products</Link>
+          <Link href="#creator" className="brand-nav-link">Products</Link>
           <Link href="#solutions" className="brand-nav-link">Solutions</Link>
           <Link href="/retail-2d" className="brand-nav-link">Retail 2D</Link>
           <Link href="/pricing" className="brand-nav-link">Pricing</Link>

@@ -316,7 +316,7 @@ export function RetailDigitalLinkBuilder() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-      <Card className="overflow-hidden rounded-[28px] border-border/80 bg-card shadow-[0_24px_64px_-52px_var(--brand-shadow)]">
+      <Card className="overflow-hidden rounded-lg border-border/80 bg-card shadow-[0_24px_64px_-52px_var(--brand-shadow)]">
         <CardHeader className="border-b bg-[color-mix(in_srgb,var(--muted)_38%,var(--card))] p-5 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -550,7 +550,7 @@ export function RetailDigitalLinkBuilder() {
       </Card>
 
       <div className="space-y-6">
-        <Card className="overflow-hidden rounded-[28px] border-border/80 shadow-[0_24px_64px_-52px_var(--brand-shadow)] xl:sticky xl:top-6">
+        <Card className="overflow-hidden rounded-lg border-border/80 shadow-[0_24px_64px_-52px_var(--brand-shadow)] xl:sticky xl:top-6">
           <div className="qr-canvas-grid relative flex min-h-[360px] items-center justify-center border-b p-8">
             <div className="absolute left-4 top-4">
               <Badge variant="outline" className="rounded-full border-border bg-card/85 backdrop-blur">

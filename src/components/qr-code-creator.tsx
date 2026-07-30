@@ -600,7 +600,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
     const analyticsInactive = !scanTracking;
 
     return (
-      <div className="w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)]">
+      <div className="w-full overflow-hidden rounded-xl border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)]">
         <div className="grid lg:grid-cols-[minmax(280px,0.9fr)_minmax(350px,1.35fr)_minmax(280px,0.9fr)]">
           <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
             <div className="grid h-full grid-cols-[58px_minmax(0,1fr)]">
@@ -609,7 +609,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                   const Icon = option.icon;
                   const active = contentTab === option.value;
                   return (
-                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-action)] text-white shadow-[0_8px_20px_-12px_var(--brand-action)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
+                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-md border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-action)] text-white shadow-[0_8px_20px_-12px_var(--brand-action)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
                       <Icon className="size-[18px]" />
                     </button>
                   );
@@ -641,15 +641,15 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
             </div>
           </section>
 
-          <section className="qr-canvas-grid relative flex min-h-[420px] items-start justify-center overflow-hidden border-b border-border px-5 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r lg:border-b-0">
+          <section className="qr-canvas-grid relative flex min-h-[420px] items-start justify-center overflow-hidden border-b border-border px-3 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r lg:border-b-0">
             <Scanability score={scanability} showScore className="absolute right-4 top-4 z-10" />
-            <div className="relative aspect-square w-full max-w-[340px]">
+            <div className="relative aspect-square w-full max-w-[340px] shrink-0">
               <span className="pointer-events-none absolute -left-3 -top-3 size-5 rounded-tl-md border-l-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -right-3 -top-3 size-5 rounded-tr-md border-r-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -bottom-3 -left-3 size-5 rounded-bl-md border-b-2 border-l-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -bottom-3 -right-3 size-5 rounded-br-md border-r-2 border-b-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <div data-qr-preview className="relative flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-3xl border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
-                <QrPreview data={qrString} errorLevel={errorLevel} size={270} styleSettings={styleSettings} borderSettings={borderSettings} logoSettings={logoSettings} onScanabilityChange={setScanability} />
+              <div data-qr-preview className="relative flex aspect-square w-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
+                <QrPreview data={qrString} errorLevel={errorLevel} size={300} styleSettings={styleSettings} borderSettings={borderSettings} logoSettings={logoSettings} onScanabilityChange={setScanability} />
                 {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-white/85"><Loader2Icon className="size-6 animate-spin text-[var(--brand-blue)]" /></div>}
               </div>
             </div>
@@ -659,7 +659,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
             <div className="relative">
               {analyticsInactive && (
                 <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-6">
-                  <div className="max-w-[230px] rounded-2xl border border-border bg-card/95 px-5 py-4 text-center shadow-[0_18px_40px_-24px_var(--brand-shadow)] backdrop-blur-sm">
+                  <div className="max-w-[230px] rounded-lg border border-border bg-card/95 px-5 py-4 text-center shadow-[0_18px_40px_-24px_var(--brand-shadow)] backdrop-blur-sm">
                     <ChartNoAxesCombined className="mx-auto size-5 text-muted-foreground" />
                     <p className="mt-2 text-xs font-extrabold uppercase tracking-[0.14em] text-foreground">Example analytics</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">Enable scan tracking to replace this preview with real scan data.</p>
@@ -709,7 +709,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                 <div className="p-5">
                   <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Top locations</p>
                   {scanTracking && trackedLocations.length === 0 ? (
-                    <div className="flex min-h-[132px] items-center justify-center rounded-xl border border-dashed border-border px-4 text-center text-xs leading-5 text-muted-foreground">
+                    <div className="flex min-h-[132px] items-center justify-center rounded-md border border-dashed border-border px-4 text-center text-xs leading-5 text-muted-foreground">
                       Location data will appear here when it is available.
                     </div>
                   ) : (
@@ -746,9 +746,9 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
         <div className="flex flex-col items-stretch justify-between gap-3 border-t border-border bg-[color-mix(in_srgb,var(--muted)_32%,var(--card))] p-4 sm:flex-row sm:items-center">
           <p className="flex items-center gap-2 text-xs font-bold text-foreground/60"><IconQrcode className="size-4 text-[var(--brand-blue)]" />Your code updates as you design</p>
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="h-11 rounded-xl border border-border bg-card px-5 font-bold" asChild><Link href="/dashboard">Preview <IconExternalLink className="size-4" /></Link></Button>
+            <Button variant="outline" className="h-11 rounded-md border border-border bg-card px-5 font-bold" asChild><Link href="/dashboard">Preview <IconExternalLink className="size-4" /></Link></Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button className="h-11 rounded-xl border border-[var(--brand-action)] bg-[var(--brand-action)] px-6 font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-action)] hover:bg-[var(--brand-action)]/90"><Download className="size-4" />Download QR</Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Button className="h-11 rounded-md border border-[var(--brand-action)] bg-[var(--brand-action)] px-6 font-bold text-white shadow-[0_10px_24px_-16px_var(--brand-action)] hover:bg-[var(--brand-action)]/90"><Download className="size-4" />Download QR</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end"><DropdownMenuItem onClick={handleDownloadSvg}>Download SVG</DropdownMenuItem><DropdownMenuItem onClick={handleDownloadPng}>Download PNG</DropdownMenuItem></DropdownMenuContent>
             </DropdownMenu>
           </div>

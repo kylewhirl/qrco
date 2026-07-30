@@ -54,8 +54,8 @@ const transitionSteps = [
 function BarcodePanel() {
   return (
     <div className="relative mx-auto w-full max-w-[520px]">
-      <div className="absolute -inset-5 rounded-[2.5rem] bg-[#c8f33d]/18 blur-3xl" />
-      <div className="relative rotate-[1.5deg] rounded-[2rem] border border-white/15 bg-[#f7f2e8] p-5 text-[#182033] shadow-[0_44px_110px_-60px_#000] sm:p-7">
+      <div className="absolute -inset-5 rounded-lg bg-[#c8f33d]/18 blur-3xl" />
+      <div className="relative rotate-[1.5deg] rounded-lg border border-white/15 bg-[#f7f2e8] p-5 text-[#182033] shadow-[0_44px_110px_-60px_#000] sm:p-7">
         <div className="flex items-start justify-between gap-6">
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#667085]">Sample product</p>
@@ -168,7 +168,7 @@ export default function Retail2dPage() {
               {outcomes.map((outcome, index) => {
                 const Icon = outcome.icon;
                 return (
-                  <article key={outcome.title} className="group min-h-[340px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-50px_var(--brand-shadow)] transition duration-300 hover:-translate-y-1 sm:p-8">
+                  <article key={outcome.title} className="group min-h-[340px] rounded-lg border bg-card p-7 shadow-[0_24px_60px_-50px_var(--brand-shadow)] transition duration-300 hover:-translate-y-1 sm:p-8">
                     <div className="flex items-start justify-between">
                       <span className="text-xs font-extrabold text-muted-foreground">0{index + 1}</span>
                       <span className="grid size-12 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--brand-blue)_10%,var(--card))] text-[var(--brand-blue)]">
@@ -221,7 +221,7 @@ export default function Retail2dPage() {
         </section>
 
         <section className="bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
-          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-action)] px-5 py-16 text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-10 sm:py-20">
+          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-lg bg-[var(--brand-action)] px-5 py-16 text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-10 sm:py-20">
             <div aria-hidden="true" className="absolute -right-20 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div>

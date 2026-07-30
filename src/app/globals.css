@@ -53,10 +53,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.625rem;
+  --radius-3xl: 0.75rem;
+  --radius-4xl: 0.875rem;
   --animate-meteor: meteor 5s linear infinite;
   @keyframes meteor {
   0% {
@@ -101,7 +104,7 @@
   }}
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.375rem;
   --brand-paper: #f4f7fb;
   --brand-blue: #1756e8;
   --brand-action: #1756e8;
@@ -197,13 +200,13 @@
   .hero-frame-decal {
     position: absolute;
     z-index: 1;
-    top: 4.25rem;
+    top: 0.5rem;
     display: none;
     width: 11rem;
     height: 21.875rem;
     pointer-events: none;
-    background: var(--brand-blue);
-    opacity: 0.2;
+    background: #0754ff;
+    opacity: 0.98;
     -webkit-mask-position: center;
     mask-position: center;
     -webkit-mask-repeat: no-repeat;
@@ -225,7 +228,8 @@
   }
 
   .dark .hero-frame-decal {
-    opacity: 0.58;
+    background: var(--brand-blue);
+    opacity: 0.84;
   }
 
   @media (min-width: 75rem) {
@@ -299,7 +303,7 @@
     justify-content: center;
     gap: 0.55rem;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: 0.5rem;
     font-size: 0.875rem;
     font-weight: 700;
     line-height: 1;
@@ -530,7 +534,7 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--border) !important;
-  border-radius: 1.5rem !important;
+  border-radius: 0.75rem !important;
   background:
     radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-blue) 13%, transparent), transparent 34%),
     var(--card) !important;
@@ -547,7 +551,7 @@
   overflow: hidden;
   border-width: 1px;
   border-color: var(--border);
-  border-radius: 1.25rem;
+  border-radius: 0.625rem;
   background: var(--card);
   padding-block: 0.25rem;
   box-shadow: 0 16px 38px -32px color-mix(in srgb, var(--brand-shadow) 42%, transparent);
@@ -580,7 +584,7 @@
 .dashboard-shell [data-slot="badge"],
 .dashboard-shell [data-slot="dialog-content"],
 .dashboard-shell [data-slot="dropdown-menu-content"] {
-  border-radius: 0.875rem;
+  border-radius: 0.5rem;
 }
 
 .dashboard-shell [data-slot="button"],
@@ -590,15 +594,15 @@
 .dashboard-shell [data-slot="tabs-list"],
 .dashboard-shell [data-slot="tabs-trigger"],
 .dashboard-shell [data-slot="badge"] {
-  border-radius: 0.75rem;
+  border-radius: 0.375rem;
 }
 
 .dashboard-shell [data-slot="dialog-content"] {
-  border-radius: 1.5rem;
+  border-radius: 0.75rem;
 }
 
 .dashboard-shell main [class*="rounded-"][class*="border"] {
-  border-radius: 0 !important;
+  border-radius: 0.375rem !important;
 }
 
 .dashboard-shell table {

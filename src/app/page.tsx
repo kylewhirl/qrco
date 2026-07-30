@@ -6,32 +6,57 @@ import {
   IconChartLine,
   IconCreditCardOff,
   IconRefresh,
-  IconSparkles,
 } from "@tabler/icons-react";
+import {
+  BriefcaseBusiness,
+  CalendarDays,
+  House,
+  Package,
+  Store,
+  Utensils,
+} from "lucide-react";
 import QrCodeCreator from "@/components/qr-code-creator";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getCustomDomainFallbackUrlForHostname } from "@/lib/custom-domains";
 import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
-const benefits = [
+const useCases = [
   {
-    icon: IconRefresh,
-    number: "01",
-    title: "Change the destination. Not the code.",
-    copy: "Update where your QR code points at any time—without reprinting a thing.",
+    icon: Utensils,
+    title: "Restaurant menus",
+    example: "Put one code on tables, windows, and takeout bags.",
+    change: "Swap the menu, daily specials, or ordering link without replacing the printed code.",
   },
   {
-    icon: IconChartLine,
-    number: "02",
-    title: "Know what happens after the scan.",
-    copy: "See scan activity, devices, and top locations from one focused dashboard.",
+    icon: House,
+    title: "Property signs",
+    example: "Send buyers from a yard sign to the current listing, gallery, or tour.",
+    change: "Change the destination when the property sells or the next listing goes live.",
   },
   {
-    icon: IconSparkles,
-    number: "03",
-    title: "Make every code unmistakably yours.",
-    copy: "Shape, color, frame, and brand your code while keeping it easy to scan.",
+    icon: CalendarDays,
+    title: "Events and venues",
+    example: "Use the same code for tickets, schedules, maps, and last-minute updates.",
+    change: "Redirect attendees as the event moves from registration to the live program.",
+  },
+  {
+    icon: Package,
+    title: "Product packaging",
+    example: "Connect a label to instructions, warranty registration, or product details.",
+    change: "Keep printed packaging useful when documentation or compliance information changes.",
+  },
+  {
+    icon: Store,
+    title: "Retail displays",
+    example: "Link shelf cards and window signs to inventory, sizing, or a campaign.",
+    change: "Move the code to the next offer without rebuilding the physical display.",
+  },
+  {
+    icon: BriefcaseBusiness,
+    title: "Business cards",
+    example: "Share a portfolio, booking page, contact card, or current campaign.",
+    change: "Update where the card points long after it has been handed out.",
   },
 ];
 
@@ -47,16 +72,10 @@ export default async function HomePage() {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />
       <main>
-        <section className="relative overflow-hidden bg-[var(--brand-paper)] pt-12 sm:pt-16 md:pt-20">
-          <div aria-hidden="true" className="absolute -left-32 top-8 size-80 rounded-full bg-[color-mix(in_srgb,var(--brand-blue)_14%,transparent)] blur-3xl" />
-          <div aria-hidden="true" className="absolute -right-28 top-40 size-72 rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_18%,transparent)] blur-3xl" />
+        <section className="relative overflow-hidden bg-[var(--brand-paper)] pt-10 sm:pt-12">
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-left" />
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-right" />
           <div className="relative z-10 mx-auto max-w-[980px] px-5 text-center sm:px-8">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand-blue)_18%,var(--border))] bg-[color-mix(in_srgb,var(--brand-blue)_8%,var(--card))] px-3.5 py-2 text-[11px] font-bold tracking-[0.08em] text-[var(--brand-blue)] sm:text-xs">
-              <IconSparkles className="size-4" stroke={2.5} aria-hidden="true" />
-              Built to change
-            </div>
             <h1 className="font-display mx-auto max-w-[880px] text-[clamp(2.7rem,8vw,5.5rem)] leading-[0.98] tracking-[-0.06em]">
               Dynamic QR codes.
               <br />
@@ -81,42 +100,30 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div id="creator" className="relative z-20 mx-auto max-w-[1240px] px-4 pb-14 sm:px-6 sm:pb-20">
+          <div id="creator" className="relative z-20 mx-auto max-w-[1240px] px-2 pb-14 sm:px-6 sm:pb-20">
             <QrCodeCreator variant="hero" />
           </div>
         </section>
 
-        <section id="products" className="bg-background py-5">
-          <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-10 gap-y-3 rounded-2xl border bg-card px-5 py-5 text-xs font-bold text-muted-foreground shadow-[0_18px_45px_-40px_var(--brand-shadow)] sm:text-sm">
-            <span>Unlimited static codes</span>
-            <span>Editable destinations</span>
-            <span>Actionable analytics</span>
-            <span>Built-in scan testing</span>
-          </div>
-        </section>
-
-        <section id="solutions" className="bg-[var(--brand-paper)] py-20 sm:py-28">
+        <section id="solutions" className="bg-[var(--brand-paper)] py-16 sm:py-24">
           <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-            <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
-              <p className="text-xs font-bold tracking-[0.08em] text-[var(--brand-blue)]">Built for change</p>
-              <h2 className="font-display text-[clamp(2.8rem,6vw,5.6rem)] leading-[0.96] tracking-[-0.055em]">
-                One code.
-                <br />Endless moves.
+            <div className="grid gap-5 border-b border-border pb-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+              <h2 className="font-display max-w-3xl text-[clamp(2.6rem,5.5vw,5rem)] leading-[0.96] tracking-[-0.055em]">
+                Where people actually use dynamic QR codes
               </h2>
+              <p className="max-w-xl text-base font-medium leading-7 text-muted-foreground lg:justify-self-end">
+                The useful part is not generating a square. It is printing a code once, then changing what happens after someone scans it.
+              </p>
             </div>
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
-              {benefits.map((benefit) => {
-                const Icon = benefit.icon;
+            <div className="mt-8 grid border-l border-t border-border sm:grid-cols-2 lg:grid-cols-3">
+              {useCases.map((useCase) => {
+                const Icon = useCase.icon;
                 return (
-                  <article key={benefit.number} className="group min-h-[320px] rounded-[1.75rem] border bg-card p-7 shadow-[0_24px_60px_-48px_var(--brand-shadow)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_70px_-46px_color-mix(in_srgb,var(--brand-blue)_50%,transparent)] sm:p-9">
-                    <div className="flex items-start justify-between">
-                      <span className="text-xs font-bold text-muted-foreground">{benefit.number}</span>
-                      <span className="grid size-12 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--brand-blue)_10%,var(--card))]">
-                        <Icon className="size-6 text-[var(--brand-blue)] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110" stroke={1.8} />
-                      </span>
-                    </div>
-                    <h3 className="mt-16 text-2xl font-bold leading-tight tracking-[-0.035em]">{benefit.title}</h3>
-                    <p className="mt-4 max-w-sm text-sm font-medium leading-6 text-foreground/70">{benefit.copy}</p>
+                  <article key={useCase.title} className="group min-h-[300px] border-b border-r border-border bg-card p-6 transition-colors hover:bg-[color-mix(in_srgb,var(--brand-blue)_4%,var(--card))] sm:p-8">
+                    <Icon className="size-7 text-[var(--brand-blue)]" strokeWidth={1.8} aria-hidden="true" />
+                    <h3 className="mt-12 text-2xl font-bold leading-tight tracking-[-0.035em]">{useCase.title}</h3>
+                    <p className="mt-4 text-sm font-semibold leading-6 text-foreground/80">{useCase.example}</p>
+                    <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">{useCase.change}</p>
                   </article>
                 );
               })}
@@ -125,12 +132,16 @@ export default async function HomePage() {
         </section>
 
         <section className="bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
-          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[2rem] bg-[var(--brand-action)] px-5 py-20 text-center text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-8 sm:py-24">
+          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-xl bg-[var(--brand-action)] px-5 py-16 text-center text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-8 sm:py-20">
             <div aria-hidden="true" className="absolute -right-20 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
-            <p className="relative text-xs font-bold tracking-[0.1em] text-[var(--brand-lime)]">Ready when you are</p>
-            <h2 className="font-display relative mx-auto mt-5 max-w-4xl text-[clamp(3rem,7vw,6.2rem)] leading-[0.94] tracking-[-0.06em]">Make your next QR code last.</h2>
+            <h2 className="font-display relative mx-auto max-w-4xl text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.94] tracking-[-0.06em]">
+              Printing a menu, sign, label, or card?
+            </h2>
+            <p className="relative mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/80">
+              Make its QR destination editable before the physical version is out in the world.
+            </p>
             <Link href="/sign-up" className="brand-button brand-button-lime relative mt-9">
-              Start creating free
+              Create the code
               <IconArrowRight className="size-4" stroke={2.4} />
             </Link>
           </div>

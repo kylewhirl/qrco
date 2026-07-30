@@ -44,7 +44,7 @@ export default async function DashboardSettingsPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="dashboard-hero dashboard-hero-slate rounded-[28px] border p-6 md:p-8">
+      <section className="dashboard-hero dashboard-hero-slate rounded-lg border p-6 md:p-8">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_55%)] md:block" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-4">

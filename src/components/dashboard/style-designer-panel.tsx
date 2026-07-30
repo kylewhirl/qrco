@@ -117,9 +117,9 @@ export function StyleDesignerPanel({
   return (
     <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0 max-w-full space-y-3">
-        <section className="rounded-[22px] border bg-background p-4 sm:p-5">{topSection}</section>
+        <section className="rounded-lg border bg-background p-4 sm:p-5">{topSection}</section>
 
-        <section className="rounded-[22px] border bg-muted/35 p-3">
+        <section className="rounded-lg border bg-muted/35 p-3">
           <div className="mb-3 px-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Design
           </div>
@@ -203,13 +203,13 @@ export function StyleDesignerPanel({
       </div>
 
       <aside className="relative lg:sticky lg:top-4 lg:self-start">
-        <Card className="rounded-[22px] border bg-muted/35 p-3">
+        <Card className="rounded-lg border bg-muted/35 p-3">
           <div className="mb-3 px-1">
             <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Preview</div>
             <p className="text-sm text-muted-foreground">{previewLabel}</p>
           </div>
 
-          <div className="relative flex min-h-[280px] items-center justify-center rounded-[20px] border bg-background p-4">
+          <div className="relative flex min-h-[280px] items-center justify-center rounded-lg border bg-background p-4">
             <QrPreview
               data={previewData}
               errorLevel={effectiveErrorLevel}

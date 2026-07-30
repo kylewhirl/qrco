@@ -27,7 +27,7 @@ const opportunityCards = [
 export default function RetailDigitalLinkPage() {
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="relative overflow-hidden rounded-[30px] border border-[#203052] bg-[#101a2d] p-6 text-white shadow-[0_30px_80px_-55px_#101a2d] md:p-8 lg:p-10">
+      <section className="relative overflow-hidden rounded-lg border border-[#203052] bg-[#101a2d] p-6 text-white shadow-[0_30px_80px_-55px_#101a2d] md:p-8 lg:p-10">
         <div aria-hidden="true" className="absolute -right-20 -top-24 size-80 rounded-full bg-[#c8f33d]/15 blur-3xl" />
         <div aria-hidden="true" className="absolute bottom-0 right-0 h-28 w-2/5 bg-[repeating-linear-gradient(90deg,transparent_0,transparent_8px,rgba(255,255,255,.09)_8px,rgba(255,255,255,.09)_11px)] opacity-45" />
         <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_540px] xl:items-end">

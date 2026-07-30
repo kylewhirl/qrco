@@ -109,7 +109,7 @@ function CheckoutForm({
 
   return (
     <form id="checkout-payment-form" className="space-y-4" onSubmit={handleSubmit}>
-      <div className="rounded-[20px] border border-border bg-card px-4 py-3">
+      <div className="rounded-lg border border-border bg-card px-4 py-3">
         <PaymentElement
           options={{
             layout: {
@@ -357,7 +357,7 @@ export function BillingCheckoutPanel({
         <p className="text-[12px] font-medium text-foreground">Payment method</p>
       </div>
 
-      <div className="rounded-[20px] border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="space-y-1 border-b border-border pb-4">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Contact</p>
           <p className="text-sm text-foreground">{customerEmail ?? "No email available"}</p>
@@ -365,20 +365,20 @@ export function BillingCheckoutPanel({
 
         <div className="pt-4">
           {alreadyOnPlan ? (
-            <div className="rounded-[18px] border border-border bg-muted/60 px-4 py-3 text-sm text-foreground">
+            <div className="rounded-lg border border-border bg-muted/60 px-4 py-3 text-sm text-foreground">
               This account is already on the {selectedTier === "creator" ? "Creator" : "Growth"} plan.
             </div>
           ) : null}
 
           {loadingSecret ? (
-            <div className="flex items-center gap-2 rounded-[18px] border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Preparing payment form
             </div>
           ) : null}
 
           {setupError && !alreadyOnPlan ? (
-            <div className="rounded-[18px] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {setupError}
             </div>
           ) : null}

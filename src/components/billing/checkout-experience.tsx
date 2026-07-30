@@ -81,7 +81,7 @@ export function CheckoutExperience({
                       key={tier}
                       type="button"
                       onClick={() => setSelectedTier(tier)}
-                      className={`rounded-[18px] border px-4 py-3 text-left transition ${
+                      className={`rounded-lg border px-4 py-3 text-left transition ${
                         isActive
                           ? "border-primary bg-card shadow-sm"
                           : "border-border bg-card hover:border-foreground/20 hover:bg-muted/40"
@@ -109,7 +109,7 @@ export function CheckoutExperience({
 
             <div className="space-y-3">
               <p className="text-[12px] font-medium text-foreground">Contact information</p>
-              <div className="rounded-[18px] border border-border bg-card px-4 py-3">
+              <div className="rounded-lg border border-border bg-card px-4 py-3">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Email</p>
                 <p className="mt-1 text-sm text-foreground">{customerEmail ?? "No email available"}</p>
               </div>
@@ -124,7 +124,7 @@ export function CheckoutExperience({
           </section>
 
           <aside className="lg:sticky lg:top-8">
-            <div className="rounded-[28px] border border-border bg-card p-5 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
               <h2 className="text-[28px] font-semibold tracking-tight text-foreground">{tierLabel}</h2>
 
               <div className="mt-6 space-y-3 text-sm">
@@ -144,7 +144,7 @@ export function CheckoutExperience({
                 </div>
               </div>
 
-              <div className="mt-5 rounded-[18px] bg-primary/12 px-4 py-3 text-sm text-foreground">
+              <div className="mt-5 rounded-lg bg-primary/12 px-4 py-3 text-sm text-foreground">
                 {selectedTier === "growth" ? "Full access unlocked immediately after payment." : "Creator access unlocked immediately after payment."}
               </div>
 

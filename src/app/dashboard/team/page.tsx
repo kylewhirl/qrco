@@ -33,7 +33,7 @@ export default async function DashboardTeamPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="dashboard-hero dashboard-hero-blue rounded-[28px] border p-6 md:p-8">
+      <section className="dashboard-hero dashboard-hero-blue rounded-lg border p-6 md:p-8">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Workspace</p>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Team</h1>

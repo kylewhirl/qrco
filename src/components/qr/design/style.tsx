@@ -55,7 +55,7 @@ function NoneSwatch({ active, label }: { active: boolean; label: string }) {
   return (
     <div
       className={cn(
-        "flex size-10 items-center justify-center rounded-xl border bg-background text-muted-foreground transition hover:border-[var(--brand-blue)]",
+        "flex size-11 items-center justify-center rounded-md border bg-background text-muted-foreground transition hover:border-[var(--brand-blue)] sm:size-10",
         active ? "border-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_9%,var(--card))] shadow-[0_8px_18px_-14px_var(--brand-blue)]" : "border-border"
       )}
     >
@@ -116,7 +116,7 @@ function StaticSwatch({
   return (
     <div
       className={cn(
-        "flex size-10 items-center justify-center overflow-hidden rounded-xl border bg-background transition hover:border-[var(--brand-blue)]",
+        "flex size-11 items-center justify-center overflow-hidden rounded-md border bg-background transition hover:border-[var(--brand-blue)] sm:size-10",
         active ? "border-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_9%,var(--card))] shadow-[0_8px_18px_-14px_var(--brand-blue)]" : "border-border"
       )}
       style={{
@@ -130,7 +130,7 @@ function StaticSwatch({
     >
       {markup ? (
         <div
-          className="flex size-10 items-center justify-center"
+          className="flex size-11 items-center justify-center sm:size-10"
           dangerouslySetInnerHTML={{ __html: markup }}
         />
       ) : (
@@ -275,7 +275,7 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
   const swatchBackground = bgValue || "#ffffff";
 
   return (
-    <Card className={`w-full min-w-0 gap-4 rounded-2xl border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
+    <Card className={`w-full min-w-0 gap-4 rounded-md border-0 bg-transparent p-0 shadow-none ${className ?? ""}`}>
       <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Code style</h3>
 
       <div className="grid w-full min-w-0 grid-cols-1 gap-4">
@@ -300,8 +300,8 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
           </div>
         </div>
 
-        <div className="grid min-w-0 grid-cols-2 gap-2">
-          <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
             <Label htmlFor="all-color" className="min-w-0 truncate text-xs">Code color</Label>
             <ColorPicker
               id="all-color"
@@ -338,7 +338,7 @@ export default function StyleSettings({ settings, onChange, className }: StyleSe
               disabled={advancedOpen}
             />
           </div>
-          <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
+          <div className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border bg-[color-mix(in_srgb,var(--muted)_32%,transparent)] p-2">
             <Label htmlFor="background-color" className="min-w-0 truncate text-xs">Background</Label>
             <ColorPicker
               id="background-color"

@@ -163,7 +163,7 @@ export function AccountPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="dashboard-hero dashboard-hero-amber rounded-[32px] border p-6 md:p-8">
+      <section className="dashboard-hero dashboard-hero-amber rounded-lg border p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Identity Control</p>
@@ -235,7 +235,7 @@ export function AccountPage() {
               <CardDescription>Update the identity details shown around the dashboard.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="flex items-center gap-4 rounded-[24px] border bg-muted/20 p-4">
+              <div className="flex items-center gap-4 rounded-lg border bg-muted/20 p-4">
                 <Avatar className="h-20 w-20 rounded-2xl">
                   <AvatarImage src={profileImageUrl || undefined} alt={displayName || undefined} />
                   <AvatarFallback className="rounded-2xl text-lg">{getInitials(displayName || user.displayName)}</AvatarFallback>

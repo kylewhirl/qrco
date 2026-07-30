@@ -48,7 +48,7 @@ export default async function DashboardBillingPage({
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-      <section className="dashboard-hero dashboard-hero-sky rounded-[28px] border p-6 md:p-8">
+      <section className="dashboard-hero dashboard-hero-sky rounded-lg border p-6 md:p-8">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Commerce</p>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Billing</h1>
@@ -128,7 +128,7 @@ export default async function DashboardBillingPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-[24px] border border-border/70 bg-muted/15 p-5 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border/70 bg-muted/15 p-5 text-sm text-muted-foreground">
               Open the dedicated checkout for plan changes, payment entry, and confirmation. The dashboard no longer mixes checkout UI into the billing surface.
             </div>
             <Button asChild variant="outline" className="w-full">
