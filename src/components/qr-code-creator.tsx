@@ -14,7 +14,6 @@ import { cn, serialize } from "@/lib/utils";
 import Link from "next/link";
 import {
   Brush,
-  ChartNoAxesCombined,
   FileIcon,
   Frame,
   GlobeIcon,
@@ -642,7 +641,22 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           </section>
 
           <section className="qr-canvas-grid relative flex min-h-[420px] items-start justify-center overflow-hidden border-b border-border px-3 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r lg:border-b-0">
-            <Scanability score={scanability} showScore className="absolute right-4 top-4 z-10" />
+            <div className="absolute inset-x-3 top-4 z-10 flex items-center justify-between gap-3 sm:inset-x-4">
+              <div className="flex items-center gap-2">
+                <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user || isLoading} onCheckedChange={handleTrackingChange} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label htmlFor="scan-tracking-hero" className={cn("text-xs font-bold", user && "cursor-pointer")}>
+                      {user ? "Scan tracking" : "Log in to track"}
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{user ? "Create a dynamic code and show its real scan analytics." : "Log in to enable scan tracking."}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Scanability score={scanability} showScore />
+            </div>
             <div className="relative aspect-square w-full max-w-[340px] shrink-0">
               <span className="pointer-events-none absolute -left-3 -top-3 size-5 rounded-tl-md border-l-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
               <span className="pointer-events-none absolute -right-3 -top-3 size-5 rounded-tr-md border-r-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
@@ -656,25 +670,14 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
           </section>
 
           <aside className="min-w-0">
-            <div className="relative">
-              {analyticsInactive && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-6">
-                  <div className="max-w-[230px] rounded-lg border border-border bg-card/95 px-5 py-4 text-center shadow-[0_18px_40px_-24px_var(--brand-shadow)] backdrop-blur-sm">
-                    <ChartNoAxesCombined className="mx-auto size-5 text-muted-foreground" />
-                    <p className="mt-2 text-xs font-extrabold uppercase tracking-[0.14em] text-foreground">Example analytics</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Enable scan tracking to replace this preview with real scan data.</p>
-                  </div>
-                </div>
+            <div
+              aria-disabled={analyticsInactive}
+              aria-busy={analyticsLoading}
+              className={cn(
+                "transition-[filter,opacity] duration-300",
+                analyticsInactive && "pointer-events-none select-none grayscale opacity-40"
               )}
-
-              <div
-                aria-disabled={analyticsInactive}
-                aria-busy={analyticsLoading}
-                className={cn(
-                  "transition-[filter,opacity] duration-300",
-                  analyticsInactive && "pointer-events-none select-none grayscale opacity-30"
-                )}
-              >
+            >
                 <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p>
@@ -731,14 +734,6 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between border-t border-border p-5">
-              <div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-foreground/55">Scan quality</p><Scanability score={scanability} className="mt-1" /></div>
-              <div className="flex items-center gap-3">
-                <Tooltip><TooltipTrigger asChild><Label htmlFor="scan-tracking-hero" className={cn("text-xs font-bold", user && "cursor-pointer")}>{user ? "Tracking" : "Log in to track"}</Label></TooltipTrigger><TooltipContent><p>{user ? "Create a dynamic code and show its real scan analytics." : "Log in to enable scan tracking."}</p></TooltipContent></Tooltip>
-                <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user || isLoading} onCheckedChange={handleTrackingChange} />
-              </div>
             </div>
           </aside>
         </div>
