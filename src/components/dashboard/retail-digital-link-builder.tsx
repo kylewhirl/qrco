@@ -28,25 +28,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { flattenAndDownloadSvg } from "@/lib/flatten-svg";
 import {
   buildGs1DigitalLinkUrl,
-  hasValidGtinCheckDigit,
-  normalizeGtin,
+  validateGtin,
   type Gs1DigitalLinkAttributes,
 } from "@/lib/gs1-digital-link";
-import type { CustomDomain } from "@/lib/types";
-
-type CreatedQr = {
-  id: string;
-  code: string;
-  publicUrl?: string;
-};
+import type { CustomDomain, Product, ProductContent } from "@/lib/types";
 
 type BuilderFields = {
   productName: string;
   gtin: string;
   destinationUrl: string;
+  experienceMode: "hosted" | "external";
   batchLot: string;
   serial: string;
   expiry: string;
@@ -74,12 +69,17 @@ function isHttpUrl(value: string) {
   }
 }
 
-export function RetailDigitalLinkBuilder() {
+type RetailDigitalLinkBuilderProps = {
+  onProductCreated?: (product: Product) => void;
+};
+
+export function RetailDigitalLinkBuilder({ onProductCreated }: RetailDigitalLinkBuilderProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [fields, setFields] = useState<BuilderFields>({
     productName: "",
     gtin: "",
     destinationUrl: "",
+    experienceMode: "hosted",
     batchLot: "",
     serial: "",
     expiry: "",
@@ -89,9 +89,10 @@ export function RetailDigitalLinkBuilder() {
   const [domainsLocked, setDomainsLocked] = useState(false);
   const [loadingDomains, setLoadingDomains] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [createdQr, setCreatedQr] = useState<CreatedQr | null>(null);
+  const [createdProduct, setCreatedProduct] = useState<Product | null>(null);
   const [error, setError] = useState("");
   const [marketRoutes, setMarketRoutes] = useState<MarketRouteField[]>([]);
+  const [content, setContent] = useState<ProductContent>({});
 
   useEffect(() => {
     let ignore = false;
@@ -134,9 +135,11 @@ export function RetailDigitalLinkBuilder() {
     };
   }, []);
 
-  const normalizedGtin = normalizeGtin(fields.gtin);
-  const gtinValid = hasValidGtinCheckDigit(normalizedGtin);
-  const destinationValid = isHttpUrl(fields.destinationUrl);
+  const gtinValidation = validateGtin(fields.gtin);
+  const normalizedGtin = gtinValidation.gtin14 ?? "";
+  const gtinValid = gtinValidation.valid;
+  const hostedExperience = fields.experienceMode === "hosted";
+  const destinationValid = hostedExperience || isHttpUrl(fields.destinationUrl);
   const selectedDomain = domains.find((domain) => domain.id === selectedDomainId) ?? null;
   const usingBrandDomain = Boolean(selectedDomain);
 
@@ -165,8 +168,10 @@ export function RetailDigitalLinkBuilder() {
     ],
   );
 
-  const previewUrl = createdQr?.publicUrl
-    ?? buildGs1DigitalLinkUrl(attributes, selectedDomain?.hostname ?? null);
+  const previewUrl = createdProduct?.publicUrl
+    ?? (hostedExperience
+      ? `${process.env.NEXT_PUBLIC_APP_URL ?? "https://theqrcode.co"}/product/preview`
+      : buildGs1DigitalLinkUrl(attributes, selectedDomain?.hostname ?? null));
 
   const readiness = [
     {
@@ -182,13 +187,21 @@ export function RetailDigitalLinkBuilder() {
     {
       label: "Editable digital destination",
       complete: destinationValid,
-      detail: destinationValid ? "Destination can change without reprinting" : "Add the product experience URL",
+      detail: hostedExperience
+        ? "Hosted product page stays linked to this identity"
+        : destinationValid ? "Destination can change without reprinting" : "Add the product experience URL",
     },
   ];
 
   function updateField(key: keyof BuilderFields, value: string) {
     setFields((current) => ({ ...current, [key]: value }));
-    setCreatedQr(null);
+    setCreatedProduct(null);
+    setError("");
+  }
+
+  function updateContent(key: keyof ProductContent, value: string) {
+    setContent((current) => ({ ...current, [key]: value }));
+    setCreatedProduct(null);
     setError("");
   }
 
@@ -196,7 +209,7 @@ export function RetailDigitalLinkBuilder() {
     setMarketRoutes((current) =>
       current.map((route) => route.id === id ? { ...route, [key]: value } : route),
     );
-    setCreatedQr(null);
+    setCreatedProduct(null);
     setError("");
   }
 
@@ -209,17 +222,19 @@ export function RetailDigitalLinkBuilder() {
         url: "",
       },
     ]);
-    setCreatedQr(null);
+    setCreatedProduct(null);
   }
 
   function removeMarketRoute(id: string) {
     setMarketRoutes((current) => current.filter((route) => route.id !== id));
-    setCreatedQr(null);
+    setCreatedProduct(null);
   }
 
   async function handleCreate() {
     if (!gtinValid || !destinationValid || !fields.productName.trim()) {
-      setError("Add a product name, a valid GTIN, and an http(s) destination before creating the code.");
+      setError(hostedExperience
+        ? "Add a product name and a valid GTIN before creating the product."
+        : "Add a product name, a valid GTIN, and a valid web destination before creating the product.");
       return;
     }
 
@@ -228,7 +243,7 @@ export function RetailDigitalLinkBuilder() {
     );
     const marketCodes = marketRoutes.map((route) => route.countryCode.toUpperCase());
     if (invalidMarketRoute || new Set(marketCodes).size !== marketCodes.length) {
-      setError("Each market route needs a unique two-letter country code and a valid http(s) destination.");
+      setError("Each market route needs a unique two-letter country code and a valid web destination.");
       return;
     }
 
@@ -236,49 +251,29 @@ export function RetailDigitalLinkBuilder() {
     setError("");
 
     try {
-      const response = await fetch("/api/qr", {
+      const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          data: {
-            type: "url",
-            url: fields.destinationUrl.trim(),
-            name: fields.productName.trim(),
-            description: "QR Code powered by GS1 for retail point-of-sale and product engagement",
-            errorLevel: "M",
-            styleSettings: {
-              dotStyle: "square",
-              dotColorType: "solid",
-              dotColors: ["#111827"],
-              eyeStyle: "square",
-              eyeColorType: "solid",
-              eyeColors: ["#111827"],
-              innerEyeStyle: "square",
-              innerEyeColorType: "solid",
-              innerEyeColors: ["#111827"],
-              bgColorType: "solid",
-              bgColors: ["#ffffff"],
-            },
-            logoSettings: null,
-            borderSettings: null,
-            gs1: {
-              gtin: normalizedGtin,
-              productName: fields.productName.trim(),
-              batchLot: fields.batchLot.trim() || null,
-              serial: fields.serial.trim() || null,
-              expiry: fields.expiry || null,
-              marketRoutes: marketRoutes.map((route) => ({
-                countryCode: route.countryCode.toUpperCase(),
-                url: route.url.trim(),
-              })),
-            },
+          name: fields.productName.trim(),
+          identifierSubmitted: fields.gtin,
+          destinationUrl: hostedExperience ? null : fields.destinationUrl.trim(),
+          hostedExperience,
+          content,
+          qualifiers: {
+            batchLot: fields.batchLot.trim() || null,
+            serial: fields.serial.trim() || null,
+            expiry: fields.expiry || null,
           },
+          marketRoutes: marketRoutes.map((route) => ({
+            countryCode: route.countryCode.toUpperCase(),
+            url: route.url.trim(),
+          })),
           customDomainId: selectedDomain?.id ?? null,
-          customSlug: null,
         }),
       });
 
-      const result = (await response.json().catch(() => ({}))) as CreatedQr & {
+      const result = (await response.json().catch(() => ({}))) as Product & {
         error?: string;
         requiredTier?: string;
       };
@@ -286,15 +281,16 @@ export function RetailDigitalLinkBuilder() {
       if (!response.ok) {
         throw new Error(
           response.status === 409
-            ? "A Digital Link for this identifier set already exists on the selected domain."
-            : result.error || "The Digital Link could not be created.",
+            ? "A product with this identifier already exists on the selected domain."
+            : result.error || "The product could not be created.",
         );
       }
 
-      setCreatedQr(result);
-      toast.success("Retail Digital Link created");
+      setCreatedProduct(result);
+      onProductCreated?.(result);
+      toast.success("Product identity created");
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "The Digital Link could not be created.");
+      setError(createError instanceof Error ? createError.message : "The product could not be created.");
     } finally {
       setCreating(false);
     }
@@ -320,9 +316,9 @@ export function RetailDigitalLinkBuilder() {
         <CardHeader className="border-b bg-[color-mix(in_srgb,var(--muted)_38%,var(--card))] p-5 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-xl tracking-[-0.03em]">Product identity</CardTitle>
+              <CardTitle className="text-xl tracking-[-0.03em]">New product</CardTitle>
               <CardDescription className="mt-1.5">
-                Encode GS1 identifiers into a standards-based, resolvable web address.
+                Set the product identifier, destination, and QR code options.
               </CardDescription>
             </div>
             <Badge className="rounded-full bg-[var(--brand-lime)] px-3 py-1 text-[#263600] hover:bg-[var(--brand-lime)]">
@@ -363,20 +359,107 @@ export function RetailDigitalLinkBuilder() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="retail-destination">Default product experience</Label>
-            <Input
-              id="retail-destination"
-              type="url"
-              value={fields.destinationUrl}
-              onChange={(event) => updateField("destinationUrl", event.target.value)}
-              placeholder="https://brand.com/products/oat-milk"
-              className={fieldClassName}
-              aria-invalid={Boolean(fields.destinationUrl) && !destinationValid}
-            />
-            <p className="text-xs leading-5 text-muted-foreground">
-              Update this destination later for product details, recalls, instructions, campaigns, or local experiences.
-            </p>
+          <div className="space-y-4 rounded-2xl border border-border/80 bg-muted/25 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <Label htmlFor="retail-experience-mode">Digital experience</Label>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Keep the identity permanent while the shopper destination evolves.
+                </p>
+              </div>
+              <Select
+                value={fields.experienceMode}
+                onValueChange={(value) => updateField("experienceMode", value as BuilderFields["experienceMode"])}
+              >
+                <SelectTrigger id="retail-experience-mode" className="h-11 w-full rounded-xl bg-background sm:w-[230px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hosted">Host a product page</SelectItem>
+                  <SelectItem value="external">Use an existing URL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hostedExperience ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="retail-content-description">Product description</Label>
+                  <Textarea
+                    id="retail-content-description"
+                    value={content.description ?? ""}
+                    onChange={(event) => updateContent("description", event.target.value)}
+                    placeholder="A short, customer-facing description for the hosted product page"
+                    className="min-h-24 rounded-xl bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="retail-content-image-url">Product image URL</Label>
+                  <Input
+                    id="retail-content-image-url"
+                    type="url"
+                    value={content.imageUrl ?? ""}
+                    onChange={(event) => updateContent("imageUrl", event.target.value)}
+                    placeholder="https://brand.com/products/oat-milk.jpg"
+                    className="h-11 rounded-xl bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="retail-content-image-alt">Image alt text</Label>
+                  <Input
+                    id="retail-content-image-alt"
+                    value={content.imageAlt ?? ""}
+                    onChange={(event) => updateContent("imageAlt", event.target.value)}
+                    placeholder="Organic oat milk carton"
+                    className="h-11 rounded-xl bg-background"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="retail-content-benefits">Product highlights</Label>
+                  <Textarea
+                    id="retail-content-benefits"
+                    value={content.benefits ?? ""}
+                    onChange={(event) => updateContent("benefits", event.target.value)}
+                    placeholder={'One per line: Label | value\nFor example: Size | 12 FL OZ (355 mL)'}
+                    className="min-h-24 rounded-xl bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground">Add up to four short highlights using <span className="font-mono">Label | value</span>.</p>
+                </div>
+                {([
+                  ["ingredients", "Ingredients"],
+                  ["allergens", "Allergens"],
+                  ["instructions", "Instructions"],
+                  ["origin", "Origin & traceability"],
+                ] as Array<[keyof ProductContent, string]>).map(([key, label]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`retail-content-${key}`}>{label}</Label>
+                    <Textarea
+                      id={`retail-content-${key}`}
+                      value={content[key] ?? ""}
+                      onChange={(event) => updateContent(key, event.target.value)}
+                      placeholder={`Add ${label.toLowerCase()} if useful`}
+                      className="min-h-24 rounded-xl bg-background"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="retail-destination">Default product experience URL</Label>
+                <Input
+                  id="retail-destination"
+                  type="url"
+                  value={fields.destinationUrl}
+                  onChange={(event) => updateField("destinationUrl", event.target.value)}
+                  placeholder="https://brand.com/products/oat-milk"
+                  className={fieldClassName}
+                  aria-invalid={Boolean(fields.destinationUrl) && !destinationValid}
+                />
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Update this destination later for product details, recalls, instructions, campaigns, or local experiences.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -439,7 +522,7 @@ export function RetailDigitalLinkBuilder() {
                   value={selectedDomainId}
                   onValueChange={(value) => {
                     setSelectedDomainId(value);
-                    setCreatedQr(null);
+                    setCreatedProduct(null);
                   }}
                   disabled={loadingDomains}
                 >
@@ -540,7 +623,7 @@ export function RetailDigitalLinkBuilder() {
               className="h-12 rounded-xl bg-[var(--brand-action)] px-6 font-bold text-white hover:bg-[var(--brand-action)]/90"
             >
               {creating ? <Loader2 className="size-4 animate-spin" /> : <Barcode className="size-4" />}
-              {creating ? "Creating Digital Link" : "Create retail Digital Link"}
+              {creating ? "Creating product" : "Add product"}
             </Button>
             <span className="text-xs leading-5 text-muted-foreground">
               Creates a tracked, editable resolver record in your account.
@@ -589,7 +672,7 @@ export function RetailDigitalLinkBuilder() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                   Encoded URI
                 </p>
-                {createdQr ? (
+                {createdProduct ? (
                   <Badge className="rounded-full bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/12 dark:text-emerald-300">
                     <CheckCircle2 className="mr-1 size-3" />
                     Live
@@ -611,10 +694,10 @@ export function RetailDigitalLinkBuilder() {
                   SVG
                 </Button>
               </div>
-              {createdQr ? (
+              {createdProduct ? (
                 <Button asChild className="mt-2 h-10 w-full rounded-xl">
-                  <Link href={`/dashboard/${createdQr.id}`}>
-                    Open product code
+                  <Link href={`/dashboard/products/${createdProduct.id}`}>
+                    Open product
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>

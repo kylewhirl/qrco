@@ -57,8 +57,8 @@ export function isPrimaryAppHost(hostname: string): boolean {
     return true;
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    return normalized === "localhost" || normalized === "127.0.0.1";
+  if (normalized === "localhost" || normalized === "127.0.0.1" || normalized === "0.0.0.0") {
+    return true;
   }
 
   return false;

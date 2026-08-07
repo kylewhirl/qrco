@@ -5,6 +5,32 @@ import type { QR } from "@/lib/types";
 import { buildSignedUrl } from "@/lib/storage";
 import { logScan } from "@/lib/qr-service";
 import { serialize } from "@/lib/utils";
+import { getPrimaryAppHost, getRequestHostname, isPrimaryAppHost, normalizeHostname } from "@/lib/qr-url";
+
+function resolveDevelopmentDestination(request: NextRequest, destination: string): string {
+  const requestHost = getRequestHostname(request);
+  if (!isPrimaryAppHost(requestHost) || !["localhost", "127.0.0.1", "0.0.0.0"].includes(requestHost)) {
+    return destination;
+  }
+
+  try {
+    const target = new URL(destination);
+    if (normalizeHostname(target.hostname) !== getPrimaryAppHost()) {
+      return destination;
+    }
+
+    const localUrl = new URL(request.url);
+    if (requestHost === "0.0.0.0") {
+      localUrl.hostname = "localhost";
+    }
+    localUrl.pathname = target.pathname;
+    localUrl.search = target.search;
+    localUrl.hash = target.hash;
+    return localUrl.toString();
+  } catch {
+    return destination;
+  }
+}
 
 export async function buildQrResponse(request: NextRequest, qr: QR): Promise<NextResponse> {
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
@@ -25,7 +51,10 @@ export async function buildQrResponse(request: NextRequest, qr: QR): Promise<Nex
         (route) => route.countryCode.toUpperCase() === countryCode.toUpperCase(),
       );
 
-      return NextResponse.redirect(marketDestination?.url ?? qr.data.url, { status: 307 });
+      return NextResponse.redirect(
+        resolveDevelopmentDestination(request, marketDestination?.url ?? qr.data.url),
+        { status: 307 },
+      );
     }
 
     case "text":

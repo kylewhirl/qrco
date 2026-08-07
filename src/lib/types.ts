@@ -89,6 +89,66 @@ export interface Scan {
   location: string | null;
 }
 
+export interface ProductContent {
+  description?: string | null;
+  imageUrl?: string | null;
+  imageKey?: string | null;
+  imageAlt?: string | null;
+  benefits?: string | null;
+  ingredients?: string | null;
+  allergens?: string | null;
+  nutrition?: string | null;
+  instructions?: string | null;
+  certifications?: string | null;
+  origin?: string | null;
+  sustainability?: string | null;
+  promotion?: string | null;
+}
+
+export interface ProductQualifiers {
+  batchLot?: string | null;
+  serial?: string | null;
+  expiry?: string | null;
+}
+
+export interface ProductPageStyle {
+  brandName?: string | null;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  backgroundColor?: string | null;
+  cardColor?: string | null;
+  textColor?: string | null;
+}
+
+export interface Product {
+  id: string;
+  userId: string;
+  name: string;
+  identifierSubmitted: string;
+  gtin: string;
+  destinationUrl: string;
+  hostedExperience: boolean;
+  content: ProductContent;
+  qualifiers: ProductQualifiers;
+  pageStyle: ProductPageStyle;
+  qrId: string;
+  customDomainId: string | null;
+  customHostname: string | null;
+  publicUrl: string;
+  totalScans: number;
+  lastScanned: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ProductImportError {
+  row: number;
+  identifier: string;
+  reason: string;
+}
+
 export type ApiAccessScope =
   | "qr:read"
   | "qr:write"

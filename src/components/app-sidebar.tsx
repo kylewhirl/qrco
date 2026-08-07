@@ -44,8 +44,8 @@ export const data = {
       icon: IconQrcode,
     },
     {
-      title: "Retail 2D",
-      url: "/dashboard/retail",
+      title: "Products",
+      url: "/dashboard/products",
       icon: IconPackage,
     },
     {
