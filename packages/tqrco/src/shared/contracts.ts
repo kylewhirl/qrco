@@ -261,12 +261,33 @@ export const qrDataSchema = z
     }
   });
 
+const hexColorSchema = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex color");
+const brandAssetUrlSchema = z.string().trim().max(2048).refine((value) => {
+  if (value.startsWith("/")) {
+    return value.startsWith("/product-images/");
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname));
+  } catch {
+    return false;
+  }
+}, "Logo URL must use https (or a local development URL)");
+const brandWebsiteUrlSchema = z.string().url().max(2048).refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === "https:" || protocol === "http:";
+}, "Website URL must use http or https");
+
 export const brandProfileSchema = z.object({
   brandName: z.string().trim().min(1).max(120),
-  logoUrl: z.string().url().nullable().optional(),
-  primaryColor: z.string().trim().min(1).max(32),
-  accentColor: z.string().trim().min(1).max(32),
-  backgroundColor: z.string().trim().min(1).max(32),
+  logoUrl: brandAssetUrlSchema.nullable().optional(),
+  websiteUrl: brandWebsiteUrlSchema.nullable().optional(),
+  primaryColor: hexColorSchema,
+  accentColor: hexColorSchema,
+  backgroundColor: hexColorSchema,
+  cardColor: hexColorSchema.nullable().optional(),
+  textColor: hexColorSchema.nullable().optional(),
   defaultConfig: qrRenderConfigSchema,
   typeDefaults: qrTypeDefaultsSchema.optional(),
 });
@@ -497,9 +518,12 @@ export interface BrandProfile {
   userId: string;
   brandName: string;
   logoUrl: string | null;
+  websiteUrl?: string | null;
   primaryColor: string;
   accentColor: string;
   backgroundColor: string;
+  cardColor?: string | null;
+  textColor?: string | null;
   defaultConfig: QrRenderConfig;
   typeDefaults?: QrTypeDefaults;
   createdAt: string | Date;

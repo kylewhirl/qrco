@@ -414,23 +414,12 @@ export function RetailDigitalLinkBuilder({ onProductCreated }: RetailDigitalLink
                     className="h-11 rounded-xl bg-background"
                   />
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="retail-content-benefits">Product highlights</Label>
-                  <Textarea
-                    id="retail-content-benefits"
-                    value={content.benefits ?? ""}
-                    onChange={(event) => updateContent("benefits", event.target.value)}
-                    placeholder={'One per line: Label | value\nFor example: Size | 12 FL OZ (355 mL)'}
-                    className="min-h-24 rounded-xl bg-background"
-                  />
-                  <p className="text-xs text-muted-foreground">Add up to four short highlights using <span className="font-mono">Label | value</span>.</p>
-                </div>
                 {([
                   ["ingredients", "Ingredients"],
                   ["allergens", "Allergens"],
                   ["instructions", "Instructions"],
                   ["origin", "Origin & traceability"],
-                ] as Array<[keyof ProductContent, string]>).map(([key, label]) => (
+                ] as const).map(([key, label]) => (
                   <div key={key} className="space-y-2">
                     <Label htmlFor={`retail-content-${key}`}>{label}</Label>
                     <Textarea

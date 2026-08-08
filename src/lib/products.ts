@@ -13,20 +13,24 @@ import {
   ensureCustomDomainSchema,
 } from "@/lib/custom-domains";
 import {
-  createQRCodeForUser,
   deleteQRForUser,
   getQRByIdForUser,
-  updateQRDataForUser,
+  prepareQRCodeCreationForUser,
 } from "@/lib/qr-service";
+import { ensureQrMutationAllowed } from "@/lib/billing";
+import { isOwnedUploadObjectKey } from "@/lib/storage";
+import { normalizeProductNutritionFacts } from "@/lib/product-nutrition";
 import type {
   Product,
+  ProductBenefit,
   ProductContent,
+  ProductNutritionFacts,
   ProductQualifiers,
   QR,
   QRData,
 } from "@/lib/types";
 import type { ProductPageStyle } from "@/lib/types";
-import { getPrimaryAppUrl } from "@/lib/qr-url";
+import { getPrimaryAppUrl, isPrimaryAppHost } from "@/lib/qr-url";
 
 export type ProductCreateInput = {
   name: string;
@@ -65,9 +69,10 @@ const contentKeys: Array<keyof ProductContent> = [
   "imageUrl",
   "imageKey",
   "imageAlt",
-  "benefits",
+  "benefitItems",
   "ingredients",
   "allergens",
+  "nutritionFacts",
   "nutrition",
   "instructions",
   "certifications",
@@ -75,6 +80,12 @@ const contentKeys: Array<keyof ProductContent> = [
   "sustainability",
   "promotion",
 ];
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -93,11 +104,12 @@ function normalizeProductAssetUrl(value: string): string | null {
 
   try {
     const url = new URL(trimmed);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
+    const isLocalHost = ["localhost", "127.0.0.1"].includes(url.hostname);
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && isLocalHost)) {
       return null;
     }
 
-    if (url.pathname.startsWith("/product-images/")) {
+    if (url.pathname.startsWith("/product-images/") && isPrimaryAppHost(url.hostname)) {
       return `${url.pathname}${url.search}`;
     }
 
@@ -107,11 +119,46 @@ function normalizeProductAssetUrl(value: string): string | null {
   }
 }
 
-function cleanContent(content: ProductContent | null | undefined): ProductContent {
+function cleanContent(content: ProductContent | null | undefined, allowedImageKey?: string | null): ProductContent {
   const cleaned: ProductContent = {};
 
   for (const key of contentKeys) {
     const value = content?.[key];
+    if (key === "benefitItems") {
+      if (!Array.isArray(value)) {
+        continue;
+      }
+
+      const cleanedBenefits: ProductBenefit[] = [];
+      for (const item of value) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+
+        const benefit = item as Partial<ProductBenefit>;
+        const title = typeof benefit.title === "string" ? benefit.title.trim().slice(0, 120) : "";
+        if (!title) {
+          continue;
+        }
+
+        cleanedBenefits.push({
+          icon: typeof benefit.icon === "string" ? benefit.icon.trim().slice(0, 80) || "sparkles" : "sparkles",
+          title,
+          subtitle: typeof benefit.subtitle === "string" ? benefit.subtitle.trim().slice(0, 240) : "",
+        });
+      }
+      cleaned.benefitItems = cleanedBenefits.slice(0, 8);
+      continue;
+    }
+
+    if (key === "nutritionFacts") {
+      const normalizedFacts = normalizeProductNutritionFacts(value as ProductNutritionFacts | null | undefined);
+      if (normalizedFacts) {
+        cleaned.nutritionFacts = normalizedFacts;
+      }
+      continue;
+    }
+
     if (typeof value === "string" && value.trim()) {
       if (key === "imageUrl") {
         const normalizedAssetUrl = normalizeProductAssetUrl(value);
@@ -122,10 +169,12 @@ function cleanContent(content: ProductContent | null | undefined): ProductConten
         continue;
       }
       if (key === "imageKey") {
-        cleaned[key] = value.trim().slice(0, 512);
+        if (allowedImageKey && value.trim() === allowedImageKey) {
+          cleaned[key] = allowedImageKey;
+        }
         continue;
       }
-      const maxLength = key === "imageAlt" ? 160 : key === "benefits" ? 2000 : 5000;
+      const maxLength = key === "imageAlt" ? 160 : 5000;
       cleaned[key] = value.trim().slice(0, maxLength);
     }
   }
@@ -143,9 +192,10 @@ function cleanQualifiers(qualifiers: ProductQualifiers | null | undefined): Prod
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
-function cleanPageStyle(style: ProductPageStyle | null | undefined): ProductPageStyle {
+function cleanPageStyle(style: ProductPageStyle | null | undefined, allowedLogoKey?: string | null): ProductPageStyle {
   const cleaned: ProductPageStyle = {};
   const brandName = style?.brandName?.trim();
+  const logoKey = style?.logoKey?.trim();
   const logoUrl = style?.logoUrl?.trim();
   const websiteUrl = style?.websiteUrl?.trim();
 
@@ -153,14 +203,22 @@ function cleanPageStyle(style: ProductPageStyle | null | undefined): ProductPage
     cleaned.brandName = brandName.slice(0, 120);
   }
 
-  if (logoUrl) {
+  if (allowedLogoKey && logoKey === allowedLogoKey) {
+    cleaned.logoKey = allowedLogoKey;
+  }
+
+  if (logoUrl === "") {
+    cleaned.logoUrl = "";
+  } else if (logoUrl) {
     const normalizedLogoUrl = normalizeProductAssetUrl(logoUrl);
     if (normalizedLogoUrl) {
       cleaned.logoUrl = normalizedLogoUrl.slice(0, 2048);
     }
   }
 
-  if (websiteUrl && isHttpUrl(websiteUrl)) {
+  if (websiteUrl === "") {
+    cleaned.websiteUrl = "";
+  } else if (websiteUrl && isHttpUrl(websiteUrl)) {
     cleaned.websiteUrl = websiteUrl.slice(0, 2048);
   }
 
@@ -209,11 +267,14 @@ export async function ensureProductsSchema() {
       await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
       await queryAdmin(`CREATE INDEX IF NOT EXISTS "Product_userId_updatedAt_idx" ON "Product" (user_id, "updatedAt" DESC)`);
       await queryAdmin(`CREATE INDEX IF NOT EXISTS "Product_gtin_idx" ON "Product" (gtin)`);
+      await queryAdmin(`CREATE UNIQUE INDEX IF NOT EXISTS "QR_code_platform_unique_idx" ON "QR" (code) WHERE "customDomainId" IS NULL`);
+      await queryAdmin(`CREATE UNIQUE INDEX IF NOT EXISTS "QR_code_domain_unique_idx" ON "QR" ("customDomainId", code) WHERE "customDomainId" IS NOT NULL`);
       await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
       await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Product" TO authenticated`);
       await queryAdmin(`
         DO $$
         BEGIN
+          PERFORM pg_advisory_xact_lock(hashtext('qrco-product-schema'));
           EXECUTE 'ALTER TABLE "Product" ENABLE ROW LEVEL SECURITY';
           EXECUTE 'DROP POLICY IF EXISTS product_select_own ON "Product"';
           EXECUTE 'DROP POLICY IF EXISTS product_insert_own ON "Product"';
@@ -328,6 +389,9 @@ export async function getProductsForUser(userId: string): Promise<Product[]> {
 }
 
 export async function getProductByIdForUser(userId: string, productId: string): Promise<Product | null> {
+  if (!isUuid(productId)) {
+    return null;
+  }
   await ensureProductsSchema();
   const rows = await queryNoAuth<ProductRow[]>(
     `${productSelect} WHERE p.id = $1 AND p.user_id = $2 LIMIT 1`,
@@ -336,14 +400,19 @@ export async function getProductByIdForUser(userId: string, productId: string): 
   return rows[0] ? mapProduct(rows[0]) : null;
 }
 
-export async function getPublicProduct(productId: string): Promise<Product | null> {
+export async function getPublicProduct(productId: string, hostname?: string | null): Promise<Product | null> {
+  if (!isUuid(productId)) {
+    return null;
+  }
   await ensureProductsSchema();
   // Public product pages must remain reachable when the visitor also happens
   // to be signed in as a different account; this is intentionally a service-
   // role read constrained by the public active status.
+  const normalizedHostname = hostname?.trim().toLowerCase();
+  const isCustomHost = Boolean(normalizedHostname && !isPrimaryAppHost(normalizedHostname));
   const rows = await queryAdmin<ProductRow[]>(
-    `${productSelect} WHERE p.id = $1 AND p.status = 'active' LIMIT 1`,
-    [productId],
+    `${productSelect} WHERE p.id = $1 AND p.status = 'active'${isCustomHost ? ` AND d.hostname = $2 AND d.status = 'ready'` : ""} LIMIT 1`,
+    isCustomHost ? [productId, normalizedHostname] : [productId],
   );
   return rows[0] ? mapProduct(rows[0]) : null;
 }
@@ -433,33 +502,38 @@ function buildQrData(
 export async function createProductForUser(userId: string, input: ProductCreateInput): Promise<Product> {
   await ensureProductsSchema();
   const normalized = validateCreateInput(input);
-  const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, input.customDomainId);
   const productId = randomUUID();
-  const qr = await createQRCodeForUser(userId, buildQrData(productId, normalized), resolvedCustomDomainId);
+  const preparedQr = await prepareQRCodeCreationForUser(userId, buildQrData(productId, normalized), input.customDomainId);
+  const createdRows = await queryNoAuth<{ id: string }[]>(
+    `WITH new_qr AS (
+       INSERT INTO "QR" (code, data, user_id, "customDomainId")
+       VALUES ($1, $2::jsonb, $3, $4)
+       RETURNING id
+     )
+     INSERT INTO "Product"
+       (id, user_id, name, "identifierSubmitted", gtin, "destinationUrl", "hostedExperience", content, qualifiers, "pageStyle", "qrId", "customDomainId")
+     SELECT $5, $3, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, id, $4
+     FROM new_qr
+     RETURNING id`,
+    [
+      preparedQr.code,
+      JSON.stringify(preparedQr.data),
+      userId,
+      preparedQr.customDomainId,
+      productId,
+      normalized.name,
+      input.identifierSubmitted,
+      normalized.gtin.gtin14,
+      normalized.hostedExperience ? hostedProductUrl(productId) : normalized.destinationUrl,
+      normalized.hostedExperience,
+      JSON.stringify(normalized.content),
+      JSON.stringify(normalized.qualifiers),
+      JSON.stringify(normalized.pageStyle),
+    ],
+  );
 
-  try {
-    await queryNoAuth(
-      `INSERT INTO "Product"
-        (id, user_id, name, "identifierSubmitted", gtin, "destinationUrl", "hostedExperience", content, qualifiers, "pageStyle", "qrId", "customDomainId")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12)`,
-      [
-        productId,
-        userId,
-        normalized.name,
-        input.identifierSubmitted,
-        normalized.gtin.gtin14,
-        normalized.hostedExperience ? hostedProductUrl(productId) : normalized.destinationUrl,
-        normalized.hostedExperience,
-        JSON.stringify(normalized.content),
-        JSON.stringify(normalized.qualifiers),
-        JSON.stringify(normalized.pageStyle),
-        qr.id,
-        resolvedCustomDomainId,
-      ],
-    );
-  } catch (error) {
-    await deleteQRForUser(userId, qr.id);
-    throw error;
+  if (!createdRows[0]) {
+    throw new Error("Failed to create product");
   }
 
   const product = await getProductByIdForUser(userId, productId);
@@ -485,7 +559,11 @@ export async function updateProductForUser(
   const destinationUrl = hostedExperience
     ? hostedProductUrl(productId)
     : input.destinationUrl?.trim() || current.destinationUrl;
-  const pageStyle = input.pageStyle === undefined ? current.pageStyle : cleanPageStyle(input.pageStyle);
+  const pageStyle = input.pageStyle === undefined
+    ? current.pageStyle
+    : input.pageStyle === null || Object.keys(input.pageStyle).length === 0
+      ? {}
+      : cleanPageStyle({ ...current.pageStyle, ...input.pageStyle }, current.pageStyle.logoKey);
   if (!hostedExperience && !isHttpUrl(destinationUrl)) {
     throw new ProductValidationError("Destination must use http or https");
   }
@@ -504,14 +582,28 @@ export async function updateProductForUser(
       productName: name,
     },
   };
-  await updateQRDataForUser(userId, current.qrId, updatedData, current.customDomainId);
-
-  await queryNoAuth(
-    `UPDATE "Product"
-     SET name = $1, "destinationUrl" = $2, "hostedExperience" = $3, content = $4::jsonb, "pageStyle" = $5::jsonb, "updatedAt" = NOW()
-     WHERE id = $6 AND user_id = $7`,
-    [name, destinationUrl, hostedExperience, JSON.stringify(cleanContent(input.content ?? current.content)), JSON.stringify(pageStyle), productId, userId],
+  await ensureQrMutationAllowed(userId, { data: updatedData, customDomainId: current.customDomainId });
+  const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, current.customDomainId);
+  const nextContent = input.content === undefined
+    ? current.content
+    : cleanContent({ ...input.content, imageKey: current.content.imageKey }, current.content.imageKey);
+  const updatedRows = await queryNoAuth<{ id: string }[]>(
+    `WITH updated_qr AS (
+       UPDATE "QR"
+       SET data = $1::jsonb, "customDomainId" = $2
+       WHERE id = $3 AND user_id = $4
+       RETURNING id
+     )
+     UPDATE "Product"
+     SET name = $5, "destinationUrl" = $6, "hostedExperience" = $7, content = $8::jsonb, "pageStyle" = $9::jsonb, "updatedAt" = NOW()
+     WHERE id = $10 AND user_id = $4 AND "qrId" IN (SELECT id FROM updated_qr)
+     RETURNING id`,
+    [JSON.stringify(updatedData), resolvedCustomDomainId, current.qrId, userId, name, destinationUrl, hostedExperience, JSON.stringify(nextContent), JSON.stringify(pageStyle), productId],
   );
+
+  if (!updatedRows[0]) {
+    return null;
+  }
 
   return getProductByIdForUser(userId, productId);
 }
@@ -523,17 +615,72 @@ export async function attachUploadedImageToProductForUser(userId: string, produc
     return null;
   }
 
+  if (!isOwnedUploadObjectKey(key, userId, current.qrId, "images")) {
+    throw new ProductValidationError("Invalid product image key");
+  }
+
   const content = cleanContent({
     ...current.content,
     imageKey: key,
     imageUrl: null,
-  });
+  }, key);
   await queryNoAuth(
     `UPDATE "Product" SET content = $1::jsonb, "updatedAt" = NOW() WHERE id = $2 AND user_id = $3`,
     [JSON.stringify(content), productId, userId],
   );
 
   return getProductByIdForUser(userId, productId);
+}
+
+export async function attachUploadedLogoToProductForUser(userId: string, productId: string, key: string): Promise<Product | null> {
+  await ensureProductsSchema();
+  const current = await getProductByIdForUser(userId, productId);
+  if (!current) {
+    return null;
+  }
+
+  if (!isOwnedUploadObjectKey(key, userId, current.qrId, "logos")) {
+    throw new ProductValidationError("Invalid product logo key");
+  }
+
+  const pageStyle = cleanPageStyle({
+    ...current.pageStyle,
+    logoKey: key,
+    logoUrl: null,
+  }, key);
+  await queryNoAuth(
+    `UPDATE "Product" SET "pageStyle" = $1::jsonb, "updatedAt" = NOW() WHERE id = $2 AND user_id = $3`,
+    [JSON.stringify(pageStyle), productId, userId],
+  );
+
+  return getProductByIdForUser(userId, productId);
+}
+
+export async function removeUploadedLogoFromProductForUser(
+  userId: string,
+  productId: string,
+): Promise<{ product: Product | null; key: string | null }> {
+  await ensureProductsSchema();
+  const current = await getProductByIdForUser(userId, productId);
+  if (!current) {
+    return { product: null, key: null };
+  }
+
+  const previousKey = current.pageStyle.logoKey;
+  const key = previousKey && isOwnedUploadObjectKey(previousKey, userId, current.qrId, "logos")
+    ? previousKey
+    : null;
+  const pageStyle = cleanPageStyle({
+    ...current.pageStyle,
+    logoKey: null,
+    logoUrl: "",
+  });
+  await queryNoAuth(
+    `UPDATE "Product" SET "pageStyle" = $1::jsonb, "updatedAt" = NOW() WHERE id = $2 AND user_id = $3`,
+    [JSON.stringify(pageStyle), productId, userId],
+  );
+
+  return { product: await getProductByIdForUser(userId, productId), key };
 }
 
 export async function deleteProductForUser(userId: string, productId: string): Promise<boolean> {

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof BillingAccessError) {
       return NextResponse.json({ error: error.message, code: error.code, requiredTier: error.requiredTier }, { status: error.status });
     }
-    if (error instanceof Error && /already in use|already exists|slug/i.test(error.message)) {
+    if (error instanceof Error && /already in use|already exists|slug|duplicate|unique constraint/i.test(error.message)) {
       return NextResponse.json({ error: "A product with this GTIN already exists on the selected domain.", code: "duplicate_product" }, { status: 409 });
     }
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 });

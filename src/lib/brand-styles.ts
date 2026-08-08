@@ -45,9 +45,12 @@ function mapBrandProfile(record: BrandProfile | null, userId: string): BrandProf
     userId,
     brandName: "My brand",
     logoUrl: null,
+    websiteUrl: null,
     primaryColor: "#111827",
     accentColor: "#0f766e",
     backgroundColor: "#ffffff",
+    cardColor: "#ffffff",
+    textColor: "#172033",
     defaultConfig: DEFAULT_RENDER_CONFIG,
     typeDefaults: {},
     createdAt: new Date(0),
@@ -66,9 +69,12 @@ export async function ensureBrandStylesSchema() {
           "userId" TEXT NOT NULL UNIQUE,
           "brandName" TEXT NOT NULL,
           "logoUrl" TEXT,
+          "websiteUrl" TEXT,
           "primaryColor" TEXT NOT NULL,
           "accentColor" TEXT NOT NULL,
           "backgroundColor" TEXT NOT NULL,
+          "cardColor" TEXT,
+          "textColor" TEXT,
           "defaultConfig" JSONB NOT NULL,
           "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -76,6 +82,9 @@ export async function ensureBrandStylesSchema() {
         )
       `);
       await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb`);
+      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "websiteUrl" TEXT`);
+      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "cardColor" TEXT`);
+      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "textColor" TEXT`);
       await queryAdmin(`
         CREATE TABLE IF NOT EXISTS "StylePreset" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -97,6 +106,7 @@ export async function ensureBrandStylesSchema() {
       await queryAdmin(`
         DO $$
         BEGIN
+          PERFORM pg_advisory_xact_lock(hashtext('qrco-brand-styles-schema'));
           EXECUTE 'ALTER TABLE "BrandProfile" ENABLE ROW LEVEL SECURITY';
           EXECUTE 'ALTER TABLE "StylePreset" ENABLE ROW LEVEL SECURITY';
           EXECUTE 'DROP POLICY IF EXISTS brand_profile_select_own ON "BrandProfile"';
@@ -128,7 +138,7 @@ export async function ensureBrandStylesSchema() {
 export async function getBrandProfileForUser(userId: string): Promise<BrandProfile> {
   await ensureBrandStylesSchema();
   const result = await queryNoAuth<BrandProfile[]>(
-    `SELECT id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"
+    `SELECT id, "userId", "brandName", "logoUrl", "websiteUrl", "primaryColor", "accentColor", "backgroundColor", "cardColor", "textColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"
      FROM "BrandProfile"
      WHERE "userId" = $1
      LIMIT 1`,
@@ -145,26 +155,32 @@ export async function upsertBrandProfileForUser(
   await ensureBrandStylesSchema();
 
   const result = await queryNoAuth<BrandProfile[]>(
-    `INSERT INTO "BrandProfile" ("userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults")
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+    `INSERT INTO "BrandProfile" ("userId", "brandName", "logoUrl", "websiteUrl", "primaryColor", "accentColor", "backgroundColor", "cardColor", "textColor", "defaultConfig", "typeDefaults")
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb)
      ON CONFLICT ("userId")
      DO UPDATE SET
        "brandName" = EXCLUDED."brandName",
        "logoUrl" = EXCLUDED."logoUrl",
+       "websiteUrl" = EXCLUDED."websiteUrl",
        "primaryColor" = EXCLUDED."primaryColor",
        "accentColor" = EXCLUDED."accentColor",
        "backgroundColor" = EXCLUDED."backgroundColor",
+       "cardColor" = EXCLUDED."cardColor",
+       "textColor" = EXCLUDED."textColor",
        "defaultConfig" = EXCLUDED."defaultConfig",
        "typeDefaults" = EXCLUDED."typeDefaults",
        "updatedAt" = NOW()
-     RETURNING id, "userId", "brandName", "logoUrl", "primaryColor", "accentColor", "backgroundColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"`,
+     RETURNING id, "userId", "brandName", "logoUrl", "websiteUrl", "primaryColor", "accentColor", "backgroundColor", "cardColor", "textColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"`,
     [
       userId,
       input.brandName,
       input.logoUrl ?? null,
+      input.websiteUrl ?? null,
       input.primaryColor,
       input.accentColor,
       input.backgroundColor,
+      input.cardColor ?? null,
+      input.textColor ?? null,
       JSON.stringify(input.defaultConfig),
       JSON.stringify(input.typeDefaults ?? {}),
     ],

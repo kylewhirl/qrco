@@ -27,10 +27,21 @@ export function buildUploadObjectKey(
   userId: string,
   qrId: string,
   filename: string,
-  kind: "files" | "images" = "files",
+  kind: "files" | "images" | "logos" = "files",
 ): string {
   const extension = sanitizeFileExtension(filename);
   return `uploads/${sanitizeStorageSegment(userId)}/${sanitizeStorageSegment(qrId)}/${kind}/${randomUUID()}.${extension}`;
+}
+
+export function isOwnedUploadObjectKey(
+  key: string,
+  userId: string,
+  qrId: string,
+  kind: "files" | "images" | "logos" = "files",
+): boolean {
+  const prefix = `uploads/${sanitizeStorageSegment(userId)}/${sanitizeStorageSegment(qrId)}/${kind}/`;
+  const filename = key.startsWith(prefix) ? key.slice(prefix.length) : "";
+  return /^[0-9a-f-]{36}\.[a-z0-9]{1,16}$/i.test(filename);
 }
 
 export function createStorageClient() {

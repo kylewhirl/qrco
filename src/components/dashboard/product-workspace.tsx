@@ -79,6 +79,8 @@ export function ProductWorkspace({ initialProducts }: ProductWorkspaceProps) {
   const [identifierColumn, setIdentifierColumn] = useState("none");
   const [nameColumn, setNameColumn] = useState("none");
   const [destinationColumn, setDestinationColumn] = useState("none");
+  const [descriptionColumn, setDescriptionColumn] = useState("none");
+  const [imageColumn, setImageColumn] = useState("none");
   const [domainId, setDomainId] = useState("platform");
   const [importing, setImporting] = useState(false);
   const [importErrors, setImportErrors] = useState<ProductImportError[]>([]);
@@ -112,6 +114,10 @@ export function ProductWorkspace({ initialProducts }: ProductWorkspaceProps) {
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setImportMessage("Catalog files must be 5 MB or smaller.");
+      return;
+    }
     const text = await file.text();
     const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
     const delimiter = firstLine.includes("\t") ? "\t" : ",";
@@ -121,11 +127,17 @@ export function ProductWorkspace({ initialProducts }: ProductWorkspaceProps) {
       setImportMessage("Add a header row and at least one product row to the file.");
       return;
     }
+    if (parsed.length > 500) {
+      setImportMessage("Catalog imports support up to 500 product rows at a time.");
+      return;
+    }
 
     setPreview({ headers, rows: parsed, fileName: file.name });
     setIdentifierColumn(suggestedColumn(headers, [/gtin/i, /upc/i, /ean/i, /barcode/i, /product.?id/i]));
     setNameColumn(suggestedColumn(headers, [/product.?name/i, /description/i, /item.?name/i, /title/i]));
     setDestinationColumn(suggestedColumn(headers, [/destination/i, /url/i, /product.?page/i, /website/i]));
+    setDescriptionColumn(suggestedColumn(headers, [/description/i, /product.?description/i, /details/i]));
+    setImageColumn(suggestedColumn(headers, [/image/i, /photo/i, /picture/i]));
     setImportErrors([]);
     setImportMessage("");
   }
@@ -146,13 +158,18 @@ export function ProductWorkspace({ initialProducts }: ProductWorkspaceProps) {
           customDomainId: domainId === "platform" ? null : domainId,
           rows: preview.rows.map((row, index) => {
             const destinationUrl = columnValue(row, destinationColumn);
+            const description = columnValue(row, descriptionColumn);
+            const imageUrl = columnValue(row, imageColumn);
             return {
               row: index + 2,
               name: columnValue(row, nameColumn) || `Imported product ${index + 1}`,
               identifierSubmitted: columnValue(row, identifierColumn),
               destinationUrl: destinationUrl || null,
               hostedExperience: !destinationUrl,
-              content: {},
+              content: {
+                ...(description ? { description } : {}),
+                ...(imageUrl ? { imageUrl } : {}),
+              },
               qualifiers: {},
             };
           }),
@@ -236,7 +253,7 @@ export function ProductWorkspace({ initialProducts }: ProductWorkspaceProps) {
               <div className="space-y-4 rounded-xl border bg-background p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold">{preview.fileName} <span className="font-normal text-muted-foreground">· {preview.rows.length} rows</span></p><Button type="button" variant="ghost" size="sm" className="rounded-lg" onClick={() => setPreview(null)}><X className="size-4" />Clear</Button></div>
                 <div className="grid gap-3 md:grid-cols-4">
-                  {[["Identifier column", identifierColumn, setIdentifierColumn], ["Product name", nameColumn, setNameColumn], ["Destination URL", destinationColumn, setDestinationColumn]].map(([label, value, setter]) => (
+                  {[["Identifier column", identifierColumn, setIdentifierColumn], ["Product name", nameColumn, setNameColumn], ["Destination URL", destinationColumn, setDestinationColumn], ["Description", descriptionColumn, setDescriptionColumn], ["Image URL", imageColumn, setImageColumn]].map(([label, value, setter]) => (
                     <label key={label as string} className="space-y-1.5 text-xs font-bold">{label as string}<select value={value as string} onChange={(event) => (setter as (value: string) => void)(event.target.value)} className="h-10 w-full rounded-xl border bg-background px-3 font-normal outline-none focus:ring-2 focus:ring-[var(--brand-blue)]"><option value="none">Not mapped</option>{preview.headers.map((header, index) => <option key={`${header}-${index}`} value={index}>{header || `Column ${index + 1}`}</option>)}</select></label>
                   ))}
                   <label className="space-y-1.5 text-xs font-bold">Resolver domain<Select value={domainId} onValueChange={setDomainId}><SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="platform">Platform domain</SelectItem>{domains.map((domain) => <SelectItem key={domain.id} value={domain.id}>{domain.hostname}</SelectItem>)}</SelectContent></Select></label>

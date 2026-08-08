@@ -94,15 +94,55 @@ export interface ProductContent {
   imageUrl?: string | null;
   imageKey?: string | null;
   imageAlt?: string | null;
-  benefits?: string | null;
+  benefitItems?: ProductBenefit[] | null;
   ingredients?: string | null;
   allergens?: string | null;
+  nutritionFacts?: ProductNutritionFacts | null;
   nutrition?: string | null;
   instructions?: string | null;
   certifications?: string | null;
   origin?: string | null;
   sustainability?: string | null;
   promotion?: string | null;
+}
+
+export interface ProductBenefit {
+  icon?: string | null;
+  title: string;
+  subtitle?: string | null;
+}
+
+export interface ProductNutritionFacts {
+  servingSize?: string | null;
+  servingsPerContainer?: string | null;
+  calories?: string | null;
+  totalFat?: string | null;
+  totalFatDailyValue?: string | null;
+  saturatedFat?: string | null;
+  saturatedFatDailyValue?: string | null;
+  transFat?: string | null;
+  cholesterol?: string | null;
+  cholesterolDailyValue?: string | null;
+  sodium?: string | null;
+  sodiumDailyValue?: string | null;
+  totalCarbohydrate?: string | null;
+  totalCarbohydrateDailyValue?: string | null;
+  dietaryFiber?: string | null;
+  dietaryFiberDailyValue?: string | null;
+  totalSugars?: string | null;
+  addedSugars?: string | null;
+  addedSugarsDailyValue?: string | null;
+  protein?: string | null;
+  proteinDailyValue?: string | null;
+  vitaminD?: string | null;
+  vitaminDDailyValue?: string | null;
+  calcium?: string | null;
+  calciumDailyValue?: string | null;
+  iron?: string | null;
+  ironDailyValue?: string | null;
+  potassium?: string | null;
+  potassiumDailyValue?: string | null;
+  footnote?: string | null;
 }
 
 export interface ProductQualifiers {
@@ -113,6 +153,7 @@ export interface ProductQualifiers {
 
 export interface ProductPageStyle {
   brandName?: string | null;
+  logoKey?: string | null;
   logoUrl?: string | null;
   websiteUrl?: string | null;
   primaryColor?: string | null;

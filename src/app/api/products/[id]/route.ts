@@ -1,3 +1,4 @@
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { type NextRequest, NextResponse } from "next/server";
 
 import {
@@ -7,6 +8,7 @@ import {
   updateProductForUser,
 } from "@/lib/products";
 import { productUpdateSchema } from "@/lib/product-validation";
+import { createStorageClient, isOwnedUploadObjectKey } from "@/lib/storage";
 import { stackServerApp } from "@/stack";
 
 export async function GET(
@@ -41,10 +43,23 @@ export async function PATCH(
   }
 
   try {
+    const current = await getProductByIdForUser(user.id, id);
+    if (!current) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
     const product = await updateProductForUser(user.id, id, parsed.data);
-    return product
-      ? NextResponse.json(product)
-      : NextResponse.json({ error: "Product not found" }, { status: 404 });
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const oldLogoKey = current.pageStyle.logoKey;
+    if (oldLogoKey && !product.pageStyle.logoKey && isOwnedUploadObjectKey(oldLogoKey, user.id, current.qrId, "logos")) {
+      await createStorageClient().send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: oldLogoKey })).catch((error) => {
+        console.error("Failed to delete cleared product logo:", error);
+      });
+    }
+
+    return NextResponse.json(product);
   } catch (error) {
     if (error instanceof ProductValidationError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackServerApp } from "../stack";
 import { Anton, Montserrat, Geist_Mono, Orbitron } from "next/font/google";
@@ -9,8 +7,6 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
-import { getCustomDomainFallbackUrlForHostname } from "@/lib/custom-domains";
-import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -45,13 +41,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const requestHeaders = await headers();
-  const hostname = getRequestHostname({ headers: requestHeaders });
-
-  if (hostname && !isPrimaryAppHost(hostname)) {
-    redirect(await getCustomDomainFallbackUrlForHostname(hostname));
-  }
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body

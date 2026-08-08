@@ -7,6 +7,23 @@ import { logScan } from "@/lib/qr-service";
 import { serialize } from "@/lib/utils";
 import { getPrimaryAppHost, getRequestHostname, isPrimaryAppHost, normalizeHostname } from "@/lib/qr-url";
 
+function resolveHostedProductDestination(qr: QR): string {
+  if (!qr.customHostname || qr.data.type !== "url") {
+    return qr.data.type === "url" ? qr.data.url : "";
+  }
+
+  try {
+    const destination = new URL(qr.data.url);
+    if (/^\/product\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(destination.pathname)) {
+      return `https://${normalizeHostname(qr.customHostname)}${destination.pathname}${destination.search}`;
+    }
+  } catch {
+    // Keep the original destination when it is not a valid URL.
+  }
+
+  return qr.data.url;
+}
+
 function resolveDevelopmentDestination(request: NextRequest, destination: string): string {
   const requestHost = getRequestHostname(request);
   if (!isPrimaryAppHost(requestHost) || !["localhost", "127.0.0.1", "0.0.0.0"].includes(requestHost)) {
@@ -52,7 +69,7 @@ export async function buildQrResponse(request: NextRequest, qr: QR): Promise<Nex
       );
 
       return NextResponse.redirect(
-        resolveDevelopmentDestination(request, marketDestination?.url ?? qr.data.url),
+        resolveDevelopmentDestination(request, marketDestination?.url ?? resolveHostedProductDestination(qr)),
         { status: 307 },
       );
     }

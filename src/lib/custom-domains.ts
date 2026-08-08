@@ -200,6 +200,7 @@ export async function ensureCustomDomainSchema() {
       await queryAdmin(`
         DO $$
         BEGIN
+          PERFORM pg_advisory_xact_lock(hashtext('qrco-custom-domain-schema'));
           EXECUTE 'ALTER TABLE "CustomDomain" ENABLE ROW LEVEL SECURITY';
           EXECUTE 'DROP POLICY IF EXISTS custom_domain_select_own ON "CustomDomain"';
           EXECUTE 'DROP POLICY IF EXISTS custom_domain_insert_own ON "CustomDomain"';

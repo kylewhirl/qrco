@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         identifier: row.identifierSubmitted,
         reason: error instanceof ProductValidationError
           ? error.message
-          : error instanceof Error && /already in use|already exists|slug/i.test(error.message)
+          : error instanceof Error && /already in use|already exists|slug|duplicate|unique constraint/i.test(error.message)
             ? "A product with this GTIN already exists on the selected domain"
             : "Could not create this product",
       });

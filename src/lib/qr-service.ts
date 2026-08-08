@@ -207,7 +207,12 @@ async function getQRByIdInternal(id: string, userId?: string): Promise<QR | null
   return result[0] ? mapQR(result[0]) : null;
 }
 
-export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR> {
+export async function prepareQRCodeCreationForUser(
+  userId: string,
+  data: QRData,
+  customDomainId?: string | null,
+  customSlug?: string | null,
+): Promise<{ code: string; data: QRData; customDomainId: string | null }> {
   await ensureQrMutationAllowed(userId, { data, customDomainId });
   const resolvedCustomDomainId = await ensureCustomDomainOwnedByUser(userId, customDomainId);
   const normalizedCustomSlug = normalizeCustomSlug(customSlug);
@@ -225,9 +230,15 @@ export async function createQRCodeForUser(userId: string, data: QRData, customDo
     : normalizedCustomSlug ?? await generateUniqueCode();
   await assertCodeAvailableForDomain(code, resolvedCustomDomainId);
   const dataWithDefaults = await applyCreateDefaultsToQrData(userId, data);
+
+  return { code, data: dataWithDefaults, customDomainId: resolvedCustomDomainId };
+}
+
+export async function createQRCodeForUser(userId: string, data: QRData, customDomainId?: string | null, customSlug?: string | null): Promise<QR> {
+  const prepared = await prepareQRCodeCreationForUser(userId, data, customDomainId, customSlug);
   const result = await queryNoAuth<{ id: string }[]>(
     'INSERT INTO "QR" (code, data, user_id, "customDomainId") VALUES ($1, $2::jsonb, $3, $4) RETURNING id',
-    [code, JSON.stringify(dataWithDefaults), userId, resolvedCustomDomainId],
+    [prepared.code, JSON.stringify(prepared.data), userId, prepared.customDomainId],
   );
 
   const qr = await getQRByIdInternal(result[0].id);

@@ -81,9 +81,12 @@ const EMPTY_BRAND: BrandProfile = {
   userId: "",
   brandName: "My brand",
   logoUrl: null,
+  websiteUrl: null,
   primaryColor: "#111827",
   accentColor: "#0f766e",
   backgroundColor: "#ffffff",
+  cardColor: "#ffffff",
+  textColor: "#172033",
   defaultConfig: DEFAULT_CONFIG,
   typeDefaults: {},
   createdAt: new Date(0),
@@ -456,9 +459,12 @@ export function StylesStudio() {
         body: JSON.stringify({
           brandName: brand.brandName,
           logoUrl: brand.logoUrl,
+          websiteUrl: brand.websiteUrl ?? null,
           primaryColor: brand.primaryColor,
           accentColor: brand.accentColor,
           backgroundColor: brand.backgroundColor,
+          cardColor: brand.cardColor ?? null,
+          textColor: brand.textColor ?? null,
           defaultConfig: normalizeConfig(brand.defaultConfig),
           typeDefaults: normalizeTypeDefaults(brand.typeDefaults),
         }),
@@ -702,6 +708,16 @@ export function StylesStudio() {
                   onChange={(event) => setBrand((current) => ({ ...current, logoUrl: event.target.value.trim() || null }))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand-website">Website URL</Label>
+                <Input
+                  id="brand-website"
+                  type="url"
+                  placeholder="https://brand.com"
+                  value={brand.websiteUrl ?? ""}
+                  onChange={(event) => setBrand((current) => ({ ...current, websiteUrl: event.target.value.trim() || null }))}
+                />
+              </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -732,6 +748,26 @@ export function StylesStudio() {
                           [key]: event.target.value,
                         }))
                       }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {[["Card", "cardColor"], ["Text", "textColor"]].map(([label, key]) => (
+                <div key={key} className="space-y-2">
+                  <Label>{label} color</Label>
+                  <div className="flex items-center gap-3 rounded-2xl border p-3">
+                    <input
+                      type="color"
+                      className="h-10 w-12 rounded-md border bg-transparent p-1"
+                      value={brand[key as keyof Pick<BrandProfile, "cardColor" | "textColor">] ?? (key === "cardColor" ? "#ffffff" : "#172033")}
+                      onChange={(event) => setBrand((current) => ({ ...current, [key]: event.target.value }))}
+                    />
+                    <Input
+                      value={brand[key as keyof Pick<BrandProfile, "cardColor" | "textColor">] ?? (key === "cardColor" ? "#ffffff" : "#172033")}
+                      onChange={(event) => setBrand((current) => ({ ...current, [key]: event.target.value }))}
                     />
                   </div>
                 </div>
