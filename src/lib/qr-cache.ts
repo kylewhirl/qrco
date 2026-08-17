@@ -16,9 +16,9 @@ export function qrDomainCacheTag(hostname: string): string {
 }
 
 export function invalidateQrLookup(hostname: string, code: string): void {
-  revalidateTag(qrLookupCacheTag(hostname, code));
+  revalidateTag(qrLookupCacheTag(hostname, code), { expire: 0 });
 }
 
 export function invalidateQrDomain(hostname: string): void {
-  revalidateTag(qrDomainCacheTag(hostname));
+  revalidateTag(qrDomainCacheTag(hostname), { expire: 0 });
 }
