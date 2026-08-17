@@ -243,7 +243,7 @@ export async function getQRByHostAndCode(hostname: string, code: string): Promis
 
       return result[0] ? mapQR(result[0]) : null;
     },
-    ["public-qr", cacheHostname, code],
+    ["public-qr-v2", cacheHostname, code],
     {
       revalidate: 300,
       tags: [qrLookupCacheTag(cacheHostname, code), qrDomainCacheTag(cacheHostname)],

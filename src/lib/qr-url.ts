@@ -24,7 +24,8 @@ export function getRequestHostname(
         || (source.headers as Record<string, string | string[] | undefined>).host;
 
   const resolvedHeader = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-  return normalizeHostname(source.nextUrl?.hostname || resolvedHeader || "");
+  const forwardedHostname = resolvedHeader?.split(",", 1)[0]?.trim();
+  return normalizeHostname(forwardedHostname || source.nextUrl?.hostname || "");
 }
 
 export function getApexName(hostname: string): string {

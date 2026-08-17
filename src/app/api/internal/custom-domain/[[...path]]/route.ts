@@ -2,15 +2,23 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getCustomDomainFallbackUrlForHostname } from "@/lib/custom-domains";
 import { buildQrResponse } from "@/lib/qr-response";
 import { getQRByHostAndCode } from "@/lib/qr-service";
-import { getRequestHostname } from "@/lib/qr-url";
+import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
 async function handleCustomDomainRequest(
   request: NextRequest,
   params: Promise<{ path?: string[] }>,
 ) {
+  const hostname = getRequestHostname(request);
+  if (
+    request.headers.get("x-qrco-custom-domain") !== "1"
+    || !hostname
+    || isPrimaryAppHost(hostname)
+  ) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   const { path } = await params;
   const code = path?.join("/") ?? "";
-  const hostname = getRequestHostname(request);
 
   if (!code) {
     return NextResponse.redirect(await getCustomDomainFallbackUrlForHostname(hostname));

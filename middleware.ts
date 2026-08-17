@@ -8,6 +8,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (request.headers.get("x-qrco-custom-domain") === "1") {
+    return NextResponse.next();
+  }
+
   if (!["GET", "HEAD"].includes(request.method)) {
     return new NextResponse("Not Found", { status: 404 });
   }
@@ -25,9 +29,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
   }
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-qrco-custom-domain", "1");
   const rewriteUrl = request.nextUrl.clone();
-  rewriteUrl.pathname = `/__custom-domain${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
-  return NextResponse.rewrite(rewriteUrl);
+  rewriteUrl.pathname = `/api/internal/custom-domain${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
+  return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
 }
 
 export const config = {
