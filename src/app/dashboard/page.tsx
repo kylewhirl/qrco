@@ -19,13 +19,13 @@ import {
   TopLocationsListSkeleton,
 } from "@/components/dashboard/dashboard-skeletons"
 import {
-  getDailyScanCounts,
-  getDashboardMetrics,
-  getLatestScans,
-  getRecentQRCodes,
-  getTopLocations,
+  getDailyScanCountsForUser,
+  getDashboardMetricsForUser,
+  getLatestScansForUser,
+  getRecentQRCodesForUser,
+  getTopLocationsForUser,
 } from "@/lib/qr-service"
-import { getCurrentUserBillingState } from "@/lib/billing"
+import { getBillingStateForUser } from "@/lib/billing"
 import type { DailyScanCount, DashboardMetrics, LatestScan, QR, TopLocation } from "@/lib/types"
 import { formatNumber } from "@/lib/utils"
 import { stackServerApp } from "@/stack"
@@ -39,12 +39,14 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  const billingState = await getCurrentUserBillingState()
-  const metricsPromise = getDashboardMetrics()
-  const dailyScanCountsPromise = getDailyScanCounts()
-  const qrCodesPromise = getRecentQRCodes()
-  const topLocationsPromise = billingState.plan.access.advanced_analytics ? getTopLocations() : Promise.resolve([])
-  const latestScansPromise = getLatestScans()
+  const billingState = await getBillingStateForUser(user)
+  const metricsPromise = getDashboardMetricsForUser(user.id)
+  const dailyScanCountsPromise = getDailyScanCountsForUser(user.id)
+  const qrCodesPromise = getRecentQRCodesForUser(user.id)
+  const topLocationsPromise = billingState.plan.access.advanced_analytics
+    ? getTopLocationsForUser(user.id)
+    : Promise.resolve([])
+  const latestScansPromise = getLatestScansForUser(user.id)
 
   return (
     <div className="relative flex-1 space-y-5 overflow-hidden px-3 py-5 sm:px-5 lg:px-7 lg:py-7">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, buildApiPreflightResponse } from "@/lib/api-request-auth";
 import { getBrandProfileForUser, getDefaultRenderConfig, getStylePresetForUser, mergeRenderConfig } from "@/lib/brand-styles";
 import { getQRByIdForUser } from "@/lib/qr-service";
-import { renderQRCodeBinary, UnsafeServerLogoSourceError } from "@/lib/qr-renderer";
+import { renderQRCodeBinaryCached, UnsafeServerLogoSourceError } from "@/lib/qr-renderer";
 
 export const runtime = "nodejs";
 
@@ -72,7 +72,7 @@ export async function GET(
       config.height = height;
     }
 
-    const rendered = await renderQRCodeBinary(qr, config, format);
+    const rendered = await renderQRCodeBinaryCached(qr, config, format);
     return new NextResponse(new Uint8Array(rendered.body), {
       headers: {
         ...authorization.value.corsHeaders,

@@ -1,9 +1,10 @@
 import "server-only";
 
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import type { QR } from "@/lib/types";
 import { buildSignedUrl } from "@/lib/storage";
 import { logScan } from "@/lib/qr-service";
+import { getLocationFromHeaders } from "@/lib/request-location";
 import { serialize } from "@/lib/utils";
 import { getPrimaryAppHost, getRequestHostname, isPrimaryAppHost, normalizeHostname } from "@/lib/qr-url";
 
@@ -50,12 +51,20 @@ function resolveDevelopmentDestination(request: NextRequest, destination: string
 }
 
 export async function buildQrResponse(request: NextRequest, qr: QR): Promise<NextResponse> {
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
+  if (request.method === "GET") {
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const ip = forwardedFor?.split(",", 1)[0]?.trim()
+      || request.headers.get("x-real-ip")
+      || "127.0.0.1";
+    const location = getLocationFromHeaders(request.headers);
 
-  try {
-    await logScan(qr.id, ip);
-  } catch (err) {
-    console.error("logScan failed:", err);
+    after(async () => {
+      try {
+        await logScan(qr.id, ip, location);
+      } catch (error) {
+        console.error("logScan failed:", error);
+      }
+    });
   }
 
   switch (qr.data.type) {

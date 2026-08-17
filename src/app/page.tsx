@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   IconArrowRight,
   IconChartLine,
@@ -18,8 +16,6 @@ import {
 import QrCodeCreator from "@/components/qr-code-creator";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { getCustomDomainFallbackUrlForHostname } from "@/lib/custom-domains";
-import { getRequestHostname, isPrimaryAppHost } from "@/lib/qr-url";
 
 const useCases = [
   {
@@ -60,14 +56,7 @@ const useCases = [
   },
 ];
 
-export default async function HomePage() {
-  const requestHeaders = await headers();
-  const hostname = getRequestHostname({ headers: requestHeaders });
-
-  if (hostname && !isPrimaryAppHost(hostname)) {
-    redirect(await getCustomDomainFallbackUrlForHostname(hostname));
-  }
-
+export default function HomePage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />

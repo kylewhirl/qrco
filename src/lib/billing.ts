@@ -73,8 +73,6 @@ const stackAdminApp = new StackServerApp({
   },
 });
 
-let ensureUsageSchemaPromise: Promise<void> | null = null;
-
 function isBillingTier(value: unknown): value is BillingTier {
   return value === "free" || value === "creator" || value === "growth";
 }
@@ -98,37 +96,7 @@ function getCurrentPeriodKey(date = new Date()) {
   return `${year}-${month}`;
 }
 
-async function ensureUsageSchema() {
-  if (!ensureUsageSchemaPromise) {
-    ensureUsageSchemaPromise = (async () => {
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS ${usageSchemaTable} (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "userId" TEXT NOT NULL,
-          meter TEXT NOT NULL,
-          "periodKey" TEXT NOT NULL,
-          count INTEGER NOT NULL DEFAULT 0,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          UNIQUE ("userId", meter, "periodKey")
-        )
-      `);
-      await queryAdmin(`
-        CREATE INDEX IF NOT EXISTS "BillingUsageCounter_user_meter_period_idx"
-        ON ${usageSchemaTable} ("userId", meter, "periodKey")
-      `);
-    })().catch((error) => {
-      ensureUsageSchemaPromise = null;
-      throw error;
-    });
-  }
-
-  await ensureUsageSchemaPromise;
-}
-
 async function getUsageCount(userId: string, meter: BillingMeter, periodKey = getCurrentPeriodKey()) {
-  await ensureUsageSchema();
   const result = await queryAdmin<{ count: number }[]>(
     `SELECT count
      FROM ${usageSchemaTable}
@@ -143,7 +111,6 @@ async function getUsageCount(userId: string, meter: BillingMeter, periodKey = ge
 }
 
 async function incrementUsageCount(userId: string, meter: BillingMeter, amount = 1, periodKey = getCurrentPeriodKey()) {
-  await ensureUsageSchema();
   const result = await queryAdmin<{ count: number }[]>(
     `INSERT INTO ${usageSchemaTable} ("userId", meter, "periodKey", count)
      VALUES ($1, $2, $3, $4)

@@ -8,10 +8,7 @@ import {
   getGs1DigitalLinkUrlForQr,
   validateGtin,
 } from "@/lib/gs1-digital-link";
-import {
-  ensureCustomDomainOwnedByUser,
-  ensureCustomDomainSchema,
-} from "@/lib/custom-domains";
+import { ensureCustomDomainOwnedByUser } from "@/lib/custom-domains";
 import {
   deleteQRForUser,
   getQRByIdForUser,
@@ -61,8 +58,6 @@ export class ProductValidationError extends Error {
     this.name = "ProductValidationError";
   }
 }
-
-let ensureProductsSchemaPromise: Promise<void> | null = null;
 
 const contentKeys: Array<keyof ProductContent> = [
   "description",
@@ -236,66 +231,6 @@ function hostedProductUrl(productId: string): string {
   return getPrimaryAppUrl(`/product/${productId}`).toString();
 }
 
-export async function ensureProductsSchema() {
-  if (!ensureProductsSchemaPromise) {
-    ensureProductsSchemaPromise = (async () => {
-      await ensureCustomDomainSchema();
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS pg_session_jwt`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS "Product" (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id TEXT NOT NULL,
-          name TEXT NOT NULL,
-          "identifierSubmitted" TEXT NOT NULL,
-          gtin TEXT NOT NULL,
-          "destinationUrl" TEXT NOT NULL,
-          "hostedExperience" BOOLEAN NOT NULL DEFAULT FALSE,
-          content JSONB NOT NULL DEFAULT '{}'::jsonb,
-          qualifiers JSONB NOT NULL DEFAULT '{}'::jsonb,
-          "qrId" UUID NOT NULL UNIQUE REFERENCES "QR"(id) ON DELETE CASCADE,
-          "customDomainId" UUID REFERENCES "CustomDomain"(id) ON DELETE SET NULL,
-          status TEXT NOT NULL DEFAULT 'active',
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "hostedExperience" BOOLEAN NOT NULL DEFAULT FALSE`);
-      await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS content JSONB NOT NULL DEFAULT '{}'::jsonb`);
-      await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS qualifiers JSONB NOT NULL DEFAULT '{}'::jsonb`);
-      await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "pageStyle" JSONB NOT NULL DEFAULT '{}'::jsonb`);
-      await queryAdmin(`ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "Product_userId_updatedAt_idx" ON "Product" (user_id, "updatedAt" DESC)`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "Product_gtin_idx" ON "Product" (gtin)`);
-      await queryAdmin(`CREATE UNIQUE INDEX IF NOT EXISTS "QR_code_platform_unique_idx" ON "QR" (code) WHERE "customDomainId" IS NULL`);
-      await queryAdmin(`CREATE UNIQUE INDEX IF NOT EXISTS "QR_code_domain_unique_idx" ON "QR" ("customDomainId", code) WHERE "customDomainId" IS NOT NULL`);
-      await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
-      await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Product" TO authenticated`);
-      await queryAdmin(`
-        DO $$
-        BEGIN
-          PERFORM pg_advisory_xact_lock(hashtext('qrco-product-schema'));
-          EXECUTE 'ALTER TABLE "Product" ENABLE ROW LEVEL SECURITY';
-          EXECUTE 'DROP POLICY IF EXISTS product_select_own ON "Product"';
-          EXECUTE 'DROP POLICY IF EXISTS product_insert_own ON "Product"';
-          EXECUTE 'DROP POLICY IF EXISTS product_update_own ON "Product"';
-          EXECUTE 'DROP POLICY IF EXISTS product_delete_own ON "Product"';
-          EXECUTE 'CREATE POLICY product_select_own ON "Product" FOR SELECT TO authenticated USING (auth.user_id()::text = user_id::text)';
-          EXECUTE 'CREATE POLICY product_insert_own ON "Product" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = user_id::text)';
-          EXECUTE 'CREATE POLICY product_update_own ON "Product" FOR UPDATE TO authenticated USING (auth.user_id()::text = user_id::text) WITH CHECK (auth.user_id()::text = user_id::text)';
-          EXECUTE 'CREATE POLICY product_delete_own ON "Product" FOR DELETE TO authenticated USING (auth.user_id()::text = user_id::text)';
-        END
-        $$;
-      `);
-    })().catch((error) => {
-      ensureProductsSchemaPromise = null;
-      throw error;
-    });
-  }
-
-  await ensureProductsSchemaPromise;
-}
-
 type ProductRow = {
   id: string;
   user_id: string;
@@ -380,7 +315,6 @@ const productSelect = `
 `;
 
 export async function getProductsForUser(userId: string): Promise<Product[]> {
-  await ensureProductsSchema();
   const rows = await queryNoAuth<ProductRow[]>(
     `${productSelect} WHERE p.user_id = $1 ORDER BY p."updatedAt" DESC`,
     [userId],
@@ -392,7 +326,6 @@ export async function getProductByIdForUser(userId: string, productId: string): 
   if (!isUuid(productId)) {
     return null;
   }
-  await ensureProductsSchema();
   const rows = await queryNoAuth<ProductRow[]>(
     `${productSelect} WHERE p.id = $1 AND p.user_id = $2 LIMIT 1`,
     [productId, userId],
@@ -404,7 +337,6 @@ export async function getPublicProduct(productId: string, hostname?: string | nu
   if (!isUuid(productId)) {
     return null;
   }
-  await ensureProductsSchema();
   // Public product pages must remain reachable when the visitor also happens
   // to be signed in as a different account; this is intentionally a service-
   // role read constrained by the public active status.
@@ -500,7 +432,6 @@ function buildQrData(
 }
 
 export async function createProductForUser(userId: string, input: ProductCreateInput): Promise<Product> {
-  await ensureProductsSchema();
   const normalized = validateCreateInput(input);
   const productId = randomUUID();
   const preparedQr = await prepareQRCodeCreationForUser(userId, buildQrData(productId, normalized), input.customDomainId);
@@ -548,7 +479,6 @@ export async function updateProductForUser(
   productId: string,
   input: ProductUpdateInput,
 ): Promise<Product | null> {
-  await ensureProductsSchema();
   const current = await getProductByIdForUser(userId, productId);
   if (!current) {
     return null;
@@ -609,7 +539,6 @@ export async function updateProductForUser(
 }
 
 export async function attachUploadedImageToProductForUser(userId: string, productId: string, key: string): Promise<Product | null> {
-  await ensureProductsSchema();
   const current = await getProductByIdForUser(userId, productId);
   if (!current) {
     return null;
@@ -633,7 +562,6 @@ export async function attachUploadedImageToProductForUser(userId: string, produc
 }
 
 export async function attachUploadedLogoToProductForUser(userId: string, productId: string, key: string): Promise<Product | null> {
-  await ensureProductsSchema();
   const current = await getProductByIdForUser(userId, productId);
   if (!current) {
     return null;
@@ -660,7 +588,6 @@ export async function removeUploadedLogoFromProductForUser(
   userId: string,
   productId: string,
 ): Promise<{ product: Product | null; key: string | null }> {
-  await ensureProductsSchema();
   const current = await getProductByIdForUser(userId, productId);
   if (!current) {
     return { product: null, key: null };
@@ -684,7 +611,6 @@ export async function removeUploadedLogoFromProductForUser(
 }
 
 export async function deleteProductForUser(userId: string, productId: string): Promise<boolean> {
-  await ensureProductsSchema();
   const current = await getProductByIdForUser(userId, productId);
   if (!current) {
     return false;

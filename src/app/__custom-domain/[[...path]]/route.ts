@@ -11,19 +11,20 @@ async function handleCustomDomainRequest(
   const { path } = await params;
   const code = path?.join("/") ?? "";
   const hostname = getRequestHostname(request);
-  const fallbackUrl = await getCustomDomainFallbackUrlForHostname(hostname);
 
   if (!code) {
-    return NextResponse.redirect(fallbackUrl);
+    return NextResponse.redirect(await getCustomDomainFallbackUrlForHostname(hostname));
   }
 
   const qr = await getQRByHostAndCode(hostname, code);
   if (!qr) {
-    return NextResponse.redirect(fallbackUrl);
+    return NextResponse.redirect(await getCustomDomainFallbackUrlForHostname(hostname));
   }
 
   const response = await buildQrResponse(request, qr);
-  return response.status === 404 ? NextResponse.redirect(fallbackUrl) : response;
+  return response.status === 404
+    ? NextResponse.redirect(await getCustomDomainFallbackUrlForHostname(hostname))
+    : response;
 }
 
 export async function GET(

@@ -1,9 +1,7 @@
 import "server-only";
 
-import { queryAdmin, queryNoAuth } from "@/lib/db";
+import { queryNoAuth } from "@/lib/db";
 import type { BrandProfile, QRData, QrRenderConfig, QrTypeDefaults, StylePreset, StylePresetQrType } from "@/lib/types";
-
-let ensureBrandStylesSchemaPromise: Promise<void> | null = null;
 
 const DEFAULT_RENDER_CONFIG: QrRenderConfig = {
   errorLevel: "M",
@@ -58,85 +56,7 @@ function mapBrandProfile(record: BrandProfile | null, userId: string): BrandProf
   };
 }
 
-export async function ensureBrandStylesSchema() {
-  if (!ensureBrandStylesSchemaPromise) {
-    ensureBrandStylesSchemaPromise = (async () => {
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS pg_session_jwt`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS "BrandProfile" (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "userId" TEXT NOT NULL UNIQUE,
-          "brandName" TEXT NOT NULL,
-          "logoUrl" TEXT,
-          "websiteUrl" TEXT,
-          "primaryColor" TEXT NOT NULL,
-          "accentColor" TEXT NOT NULL,
-          "backgroundColor" TEXT NOT NULL,
-          "cardColor" TEXT,
-          "textColor" TEXT,
-          "defaultConfig" JSONB NOT NULL,
-          "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "typeDefaults" JSONB NOT NULL DEFAULT '{}'::jsonb`);
-      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "websiteUrl" TEXT`);
-      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "cardColor" TEXT`);
-      await queryAdmin(`ALTER TABLE "BrandProfile" ADD COLUMN IF NOT EXISTS "textColor" TEXT`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS "StylePreset" (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "userId" TEXT NOT NULL,
-          name TEXT NOT NULL,
-          description TEXT,
-          "qrType" TEXT NOT NULL DEFAULT 'all',
-          "isDefault" BOOLEAN NOT NULL DEFAULT FALSE,
-          config JSONB NOT NULL,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await queryAdmin(`ALTER TABLE "StylePreset" ADD COLUMN IF NOT EXISTS "qrType" TEXT NOT NULL DEFAULT 'all'`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "StylePreset_userId_idx" ON "StylePreset" ("userId")`);
-      await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
-      await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "BrandProfile" TO authenticated`);
-      await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "StylePreset" TO authenticated`);
-      await queryAdmin(`
-        DO $$
-        BEGIN
-          PERFORM pg_advisory_xact_lock(hashtext('qrco-brand-styles-schema'));
-          EXECUTE 'ALTER TABLE "BrandProfile" ENABLE ROW LEVEL SECURITY';
-          EXECUTE 'ALTER TABLE "StylePreset" ENABLE ROW LEVEL SECURITY';
-          EXECUTE 'DROP POLICY IF EXISTS brand_profile_select_own ON "BrandProfile"';
-          EXECUTE 'DROP POLICY IF EXISTS brand_profile_insert_own ON "BrandProfile"';
-          EXECUTE 'DROP POLICY IF EXISTS brand_profile_update_own ON "BrandProfile"';
-          EXECUTE 'DROP POLICY IF EXISTS style_preset_select_own ON "StylePreset"';
-          EXECUTE 'DROP POLICY IF EXISTS style_preset_insert_own ON "StylePreset"';
-          EXECUTE 'DROP POLICY IF EXISTS style_preset_update_own ON "StylePreset"';
-          EXECUTE 'DROP POLICY IF EXISTS style_preset_delete_own ON "StylePreset"';
-          EXECUTE 'CREATE POLICY brand_profile_select_own ON "BrandProfile" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY brand_profile_insert_own ON "BrandProfile" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY brand_profile_update_own ON "BrandProfile" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY style_preset_select_own ON "StylePreset" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY style_preset_insert_own ON "StylePreset" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY style_preset_update_own ON "StylePreset" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY style_preset_delete_own ON "StylePreset" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
-        END
-        $$;
-      `);
-    })().catch((error) => {
-      ensureBrandStylesSchemaPromise = null;
-      throw error;
-    });
-  }
-
-  await ensureBrandStylesSchemaPromise;
-}
-
 export async function getBrandProfileForUser(userId: string): Promise<BrandProfile> {
-  await ensureBrandStylesSchema();
   const result = await queryNoAuth<BrandProfile[]>(
     `SELECT id, "userId", "brandName", "logoUrl", "websiteUrl", "primaryColor", "accentColor", "backgroundColor", "cardColor", "textColor", "defaultConfig", "typeDefaults", "createdAt", "updatedAt"
      FROM "BrandProfile"
@@ -152,8 +72,6 @@ export async function upsertBrandProfileForUser(
   userId: string,
   input: Omit<BrandProfile, "id" | "userId" | "createdAt" | "updatedAt">,
 ): Promise<BrandProfile> {
-  await ensureBrandStylesSchema();
-
   const result = await queryNoAuth<BrandProfile[]>(
     `INSERT INTO "BrandProfile" ("userId", "brandName", "logoUrl", "websiteUrl", "primaryColor", "accentColor", "backgroundColor", "cardColor", "textColor", "defaultConfig", "typeDefaults")
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb)
@@ -190,7 +108,6 @@ export async function upsertBrandProfileForUser(
 }
 
 export async function listStylePresetsForUser(userId: string): Promise<StylePreset[]> {
-  await ensureBrandStylesSchema();
   return queryNoAuth<StylePreset[]>(
     `SELECT id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"
      FROM "StylePreset"
@@ -201,7 +118,6 @@ export async function listStylePresetsForUser(userId: string): Promise<StylePres
 }
 
 export async function getStylePresetForUser(userId: string, presetId: string): Promise<StylePreset | null> {
-  await ensureBrandStylesSchema();
   const result = await queryNoAuth<StylePreset[]>(
     `SELECT id, "userId", name, description, "qrType", "isDefault", config, "createdAt", "updatedAt"
      FROM "StylePreset"
@@ -240,8 +156,6 @@ export async function createStylePresetForUser(
   userId: string,
   input: Omit<StylePreset, "id" | "userId" | "createdAt" | "updatedAt">,
 ): Promise<StylePreset> {
-  await ensureBrandStylesSchema();
-
   if (input.isDefault) {
     await clearDefaultPreset(userId, input.qrType ?? "all");
   }
@@ -268,8 +182,6 @@ export async function updateStylePresetForUser(
   presetId: string,
   input: Partial<Omit<StylePreset, "id" | "userId" | "createdAt" | "updatedAt">>,
 ): Promise<StylePreset | null> {
-  await ensureBrandStylesSchema();
-
   const current = await getStylePresetForUser(userId, presetId);
   if (!current) {
     return null;
@@ -305,7 +217,6 @@ export async function updateStylePresetForUser(
 }
 
 export async function deleteStylePresetForUser(userId: string, presetId: string): Promise<boolean> {
-  await ensureBrandStylesSchema();
   const result = await queryNoAuth<{ id: string }[]>(
     `DELETE FROM "StylePreset"
      WHERE id = $1 AND "userId" = $2

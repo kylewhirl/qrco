@@ -1,7 +1,9 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { unstable_cache } from "next/cache";
 import { JSDOM } from "jsdom";
 import nodeCanvas from "canvas";
 import type QRCodeStyling from "qr-code-styling";
@@ -298,5 +300,33 @@ export async function renderQRCodeBinary(
   return {
     contentType: "image/svg+xml",
     body: Buffer.from(svgText, "utf8"),
+  };
+}
+
+export async function renderQRCodeBinaryCached(
+  qr: QR | QRData | string,
+  config: QrRenderConfig,
+  format: "svg" | "png" = "svg",
+): Promise<{ contentType: string; body: Buffer }> {
+  const data = toRenderData(qr);
+  const cacheKey = createHash("sha256")
+    .update(JSON.stringify({ data, config, format }))
+    .digest("hex");
+  const loadRenderedQr = unstable_cache(
+    async () => {
+      const rendered = await renderQRCodeBinary(data, config, format);
+      return {
+        contentType: rendered.contentType,
+        bodyBase64: rendered.body.toString("base64"),
+      };
+    },
+    ["rendered-qr-v1", cacheKey],
+    { revalidate: 60 * 60 * 24 * 7 },
+  );
+  const rendered = await loadRenderedQr();
+
+  return {
+    contentType: rendered.contentType,
+    body: Buffer.from(rendered.bodyBase64, "base64"),
   };
 }

@@ -73,32 +73,6 @@ export function formatNumber(num: number): string {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
 }
 
-// Get location from IP address (simplified version)
-export async function getLocationFromIP(ip: string): Promise<string | null> {
-  try {
-    // In a real application, you would use a geolocation API service
-    // For example: ipinfo.io, ipapi.co, or ipstack
-    // This is a simplified version for demonstration
-      const response = await fetch(`http://ip-api.com/json/${ip}`)
-      const data = await response.json()
-      const city = data.city;
-      const country = data.country_name;
-
-      if (city && country) {
-        return `${city}, ${country}`;
-      } else if (country) {
-        return country;
-      } else if (city) {
-        return city;
-      } else {
-        return "Unknown";
-      }
-  } catch (error) {
-    console.error("Error getting location from IP:", error)
-    return null
-  }
-}
-
 // Truncate text with ellipsis
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text

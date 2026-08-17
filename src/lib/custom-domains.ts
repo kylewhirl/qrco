@@ -1,6 +1,7 @@
 import "server-only";
 
-import { queryAdmin, queryNoAuth } from "@/lib/db";
+import { queryNoAuth, queryPublic } from "@/lib/db";
+import { invalidateQrDomain } from "@/lib/qr-cache";
 import type {
   CustomDomain,
   CustomDomainStatus,
@@ -26,8 +27,6 @@ type VercelDomainConfigRecord = {
 type CustomDomainRow = Omit<CustomDomain, "configuration"> & {
   configuration: DomainConfiguration | null
 };
-
-let ensureCustomDomainSchemaPromise: Promise<void> | null = null;
 
 function getVercelConfig() {
   const token = process.env.VERCEL_TOKEN;
@@ -166,62 +165,6 @@ function mapConfiguration(record: VercelDomainConfigRecord | null): DomainConfig
   };
 }
 
-export async function ensureCustomDomainSchema() {
-  if (!ensureCustomDomainSchemaPromise) {
-    ensureCustomDomainSchemaPromise = (async () => {
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS pg_session_jwt`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS "CustomDomain" (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "userId" TEXT NOT NULL,
-          hostname TEXT NOT NULL UNIQUE,
-          "apexName" TEXT NOT NULL,
-          status TEXT NOT NULL,
-          verification JSONB,
-          configuration JSONB,
-          "verifiedAt" TIMESTAMPTZ,
-          "lastCheckedAt" TIMESTAMPTZ,
-          "isPrimary" BOOLEAN NOT NULL DEFAULT FALSE,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await queryAdmin(`ALTER TABLE "CustomDomain" ADD COLUMN IF NOT EXISTS configuration JSONB`);
-      await queryAdmin(`ALTER TABLE "CustomDomain" ADD COLUMN IF NOT EXISTS "fallbackUrl" TEXT`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "CustomDomain_userId_idx" ON "CustomDomain" ("userId")`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "CustomDomain_status_idx" ON "CustomDomain" ("userId", status)`);
-      await queryAdmin(`
-        ALTER TABLE "QR"
-        ADD COLUMN IF NOT EXISTS "customDomainId" UUID REFERENCES "CustomDomain"(id) ON DELETE SET NULL
-      `);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "QR_customDomainId_idx" ON "QR" ("customDomainId")`);
-      await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
-      await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "CustomDomain" TO authenticated`);
-      await queryAdmin(`
-        DO $$
-        BEGIN
-          PERFORM pg_advisory_xact_lock(hashtext('qrco-custom-domain-schema'));
-          EXECUTE 'ALTER TABLE "CustomDomain" ENABLE ROW LEVEL SECURITY';
-          EXECUTE 'DROP POLICY IF EXISTS custom_domain_select_own ON "CustomDomain"';
-          EXECUTE 'DROP POLICY IF EXISTS custom_domain_insert_own ON "CustomDomain"';
-          EXECUTE 'DROP POLICY IF EXISTS custom_domain_update_own ON "CustomDomain"';
-          EXECUTE 'DROP POLICY IF EXISTS custom_domain_delete_own ON "CustomDomain"';
-          EXECUTE 'CREATE POLICY custom_domain_select_own ON "CustomDomain" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY custom_domain_insert_own ON "CustomDomain" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY custom_domain_update_own ON "CustomDomain" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY custom_domain_delete_own ON "CustomDomain" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
-        END
-        $$;
-      `);
-    })().catch((error) => {
-      ensureCustomDomainSchemaPromise = null;
-      throw error;
-    });
-  }
-
-  await ensureCustomDomainSchemaPromise;
-}
-
 function mapCustomDomain(record: CustomDomainRow): CustomDomain {
   return {
     id: record.id,
@@ -240,8 +183,6 @@ function mapCustomDomain(record: CustomDomainRow): CustomDomain {
 }
 
 async function syncDomainRow(domain: Pick<CustomDomain, "id" | "userId" | "hostname">): Promise<CustomDomain | null> {
-  await ensureCustomDomainSchema();
-
   let record: VercelDomainRecord | null = null;
   let configuration: DomainConfiguration | null = null;
 
@@ -294,7 +235,6 @@ async function syncDomainRow(domain: Pick<CustomDomain, "id" | "userId" | "hostn
 }
 
 export async function listCustomDomainsForUser(userId: string): Promise<CustomDomain[]> {
-  await ensureCustomDomainSchema();
   const rows = await queryNoAuth<CustomDomainRow[]>(`
     SELECT
       id,
@@ -319,7 +259,6 @@ export async function listCustomDomainsForUser(userId: string): Promise<CustomDo
 }
 
 export async function listVerifiedCustomDomainsForUser(userId: string): Promise<CustomDomain[]> {
-  await ensureCustomDomainSchema();
   const rows = await queryNoAuth<CustomDomainRow[]>(`
     SELECT
       id,
@@ -343,7 +282,6 @@ export async function listVerifiedCustomDomainsForUser(userId: string): Promise<
 }
 
 export async function getCustomDomainByIdForUser(userId: string, id: string): Promise<CustomDomain | null> {
-  await ensureCustomDomainSchema();
   const rows = await queryNoAuth<CustomDomainRow[]>(`
     SELECT
       id,
@@ -367,8 +305,6 @@ export async function getCustomDomainByIdForUser(userId: string, id: string): Pr
 }
 
 export async function ensureCustomDomainOwnedByUser(userId: string, customDomainId: string | null | undefined): Promise<string | null> {
-  await ensureCustomDomainSchema();
-
   if (!customDomainId) {
     return null;
   }
@@ -390,8 +326,6 @@ export async function ensureCustomDomainOwnedByUser(userId: string, customDomain
 }
 
 export async function createCustomDomainForUser(userId: string, rawHostname: string): Promise<CustomDomain> {
-  await ensureCustomDomainSchema();
-
   const hostname = normalizeHostname(rawHostname);
   if (!isValidHostname(hostname)) {
     throw new Error("Invalid hostname");
@@ -473,11 +407,12 @@ export async function createCustomDomainForUser(userId: string, rawHostname: str
     domainRecord.verified ? new Date().toISOString() : null,
   ]);
 
-  return mapCustomDomain(inserted[0]);
+  const createdDomain = mapCustomDomain(inserted[0]);
+  invalidateQrDomain(createdDomain.hostname);
+  return createdDomain;
 }
 
 export async function verifyCustomDomainForUser(userId: string, id: string): Promise<CustomDomain | null> {
-  await ensureCustomDomainSchema();
   const domain = await getCustomDomainByIdForUser(userId, id);
   if (!domain) {
     return null;
@@ -534,7 +469,12 @@ export async function verifyCustomDomainForUser(userId: string, id: string): Pro
     userId,
   ]);
 
-  return rows[0] ? mapCustomDomain(rows[0]) : null;
+  const verifiedDomain = rows[0] ? mapCustomDomain(rows[0]) : null;
+  if (verifiedDomain) {
+    invalidateQrDomain(verifiedDomain.hostname);
+  }
+
+  return verifiedDomain;
 }
 
 export async function updateCustomDomainFallbackForUser(
@@ -542,7 +482,6 @@ export async function updateCustomDomainFallbackForUser(
   id: string,
   fallbackUrl: string | null,
 ): Promise<CustomDomain | null> {
-  await ensureCustomDomainSchema();
   const domain = await getCustomDomainByIdForUser(userId, id);
   if (!domain) {
     return null;
@@ -574,18 +513,22 @@ export async function updateCustomDomainFallbackForUser(
       "createdAt"
   `, [fallbackUrl, id, userId]);
 
-  return rows[0] ? mapCustomDomain(rows[0]) : null;
+  const updatedDomain = rows[0] ? mapCustomDomain(rows[0]) : null;
+  if (updatedDomain) {
+    invalidateQrDomain(updatedDomain.hostname);
+  }
+
+  return updatedDomain;
 }
 
 export async function getCustomDomainFallbackUrlForHostname(hostname: string): Promise<string> {
-  await ensureCustomDomainSchema();
   const normalizedHostname = normalizeHostname(hostname);
 
   if (!normalizedHostname) {
     return getPrimaryAppUrl().toString();
   }
 
-  const rows = await queryNoAuth<{ fallbackUrl: string | null }[]>(`
+  const rows = await queryPublic<{ fallbackUrl: string | null }[]>(`
     SELECT "fallbackUrl"
     FROM "CustomDomain"
     WHERE hostname = $1
@@ -596,7 +539,6 @@ export async function getCustomDomainFallbackUrlForHostname(hostname: string): P
 }
 
 export async function deleteCustomDomainForUser(userId: string, id: string): Promise<boolean> {
-  await ensureCustomDomainSchema();
   const domain = await getCustomDomainByIdForUser(userId, id);
   if (!domain) {
     return false;
@@ -614,6 +556,10 @@ export async function deleteCustomDomainForUser(userId: string, id: string): Pro
     WHERE id = $1 AND "userId" = $2
     RETURNING id
   `, [id, userId]);
+
+  if (deleted.length > 0) {
+    invalidateQrDomain(domain.hostname);
+  }
 
   return deleted.length > 0;
 }

@@ -18,6 +18,8 @@
     "build:sdk": "npm --prefix packages/tqrco run build",
     "check": "npm run lint -- --max-warnings=0 && npx tsc --noEmit --incremental false && npm run build:sdk",
     "check:docs": "npm --prefix apps/docs run build",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-database.mjs",
+    "prebuild": "npm run db:migrate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."

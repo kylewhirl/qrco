@@ -1,6 +1,7 @@
 import "server-only";
 
 import { neon } from "@neondatabase/serverless";
+import { cache } from "react";
 import { stackServerApp } from "@/stack";
 
 function getAuthenticatedSql(authToken: string) {
@@ -13,7 +14,7 @@ function getAdminSql() {
   return neon(process.env.DATABASE_URL!);
 }
 
-async function getCurrentAuthToken(): Promise<string | null> {
+const getCurrentAuthToken = cache(async (): Promise<string | null> => {
   const user = await stackServerApp.getUser();
   if (!user) {
     return null;
@@ -21,7 +22,7 @@ async function getCurrentAuthToken(): Promise<string | null> {
 
   const { accessToken } = await user.getAuthJson();
   return accessToken ?? null;
-}
+});
 
 export async function query<T>(queryString: string, params: unknown[] = []): Promise<T> {
   const authToken = await getCurrentAuthToken();
@@ -48,6 +49,12 @@ export async function queryAdmin<T>(queryString: string, params: unknown[] = [])
   }
 }
 
+// Public routes use parameterized queries with application-enforced access
+// rules and do not need to resolve a Stack session before every query.
+export async function queryPublic<T>(queryString: string, params: unknown[] = []): Promise<T> {
+  return queryAdmin<T>(queryString, params);
+}
+
 // Prefer the authenticated Neon connection when a Stack session is present.
 // This keeps dashboard traffic inside DB-enforced auth/RLS while preserving
 // explicit service-role access for API-key and public request flows.
@@ -63,4 +70,3 @@ export async function queryNoAuth<T>(queryString: string, params: unknown[] = []
     throw error;
   }
 }
-

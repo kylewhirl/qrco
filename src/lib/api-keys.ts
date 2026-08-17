@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { queryAdmin, queryNoAuth } from "@/lib/db";
+import { queryNoAuth } from "@/lib/db";
 import type {
   ApiAccessScope,
   ApiKeyCreateResult,
@@ -23,8 +23,6 @@ export const ALL_API_ACCESS_SCOPES: ApiAccessScope[] = [
   "styles:read",
   "styles:write",
 ];
-
-let ensureApiKeyTablePromise: Promise<void> | null = null;
 
 function hashApiKey(apiKey: string) {
   return createHash("sha256").update(apiKey).digest("hex");
@@ -84,67 +82,12 @@ function mapApiKeyRecord(record: ApiKeyRecord): ApiKeyRecord {
   };
 }
 
-async function ensureApiKeyTable() {
-  if (!ensureApiKeyTablePromise) {
-    ensureApiKeyTablePromise = (async () => {
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-      await queryAdmin(`CREATE EXTENSION IF NOT EXISTS pg_session_jwt`);
-      await queryAdmin(`
-        CREATE TABLE IF NOT EXISTS "ApiKey" (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "userId" TEXT NOT NULL,
-          name TEXT NOT NULL,
-          prefix TEXT NOT NULL,
-          "keyHash" TEXT NOT NULL UNIQUE,
-          kind TEXT NOT NULL DEFAULT 'secret',
-          scopes JSONB NOT NULL DEFAULT '[]'::jsonb,
-          "allowedOrigins" JSONB,
-          "lastUsedAt" TIMESTAMPTZ,
-          "revokedAt" TIMESTAMPTZ,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await queryAdmin(`ALTER TABLE "ApiKey" ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'secret'`);
-      await queryAdmin(`ALTER TABLE "ApiKey" ADD COLUMN IF NOT EXISTS scopes JSONB NOT NULL DEFAULT '[]'::jsonb`);
-      await queryAdmin(`ALTER TABLE "ApiKey" ADD COLUMN IF NOT EXISTS "allowedOrigins" JSONB`);
-      await queryAdmin(`UPDATE "ApiKey" SET kind = 'secret' WHERE kind IS NULL`);
-      await queryAdmin(`UPDATE "ApiKey" SET scopes = '[]'::jsonb WHERE scopes IS NULL`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "ApiKey_userId_idx" ON "ApiKey" ("userId")`);
-      await queryAdmin(`CREATE INDEX IF NOT EXISTS "ApiKey_active_idx" ON "ApiKey" ("userId", "revokedAt")`);
-      await queryAdmin(`GRANT USAGE ON SCHEMA public TO authenticated`);
-      await queryAdmin(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "ApiKey" TO authenticated`);
-      await queryAdmin(`
-        DO $$
-        BEGIN
-          EXECUTE 'ALTER TABLE "ApiKey" ENABLE ROW LEVEL SECURITY';
-          EXECUTE 'DROP POLICY IF EXISTS api_key_select_own ON "ApiKey"';
-          EXECUTE 'DROP POLICY IF EXISTS api_key_insert_own ON "ApiKey"';
-          EXECUTE 'DROP POLICY IF EXISTS api_key_update_own ON "ApiKey"';
-          EXECUTE 'DROP POLICY IF EXISTS api_key_delete_own ON "ApiKey"';
-          EXECUTE 'CREATE POLICY api_key_select_own ON "ApiKey" FOR SELECT TO authenticated USING (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY api_key_insert_own ON "ApiKey" FOR INSERT TO authenticated WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY api_key_update_own ON "ApiKey" FOR UPDATE TO authenticated USING (auth.user_id()::text = "userId"::text) WITH CHECK (auth.user_id()::text = "userId"::text)';
-          EXECUTE 'CREATE POLICY api_key_delete_own ON "ApiKey" FOR DELETE TO authenticated USING (auth.user_id()::text = "userId"::text)';
-        END
-        $$;
-      `);
-    })().catch((error) => {
-      ensureApiKeyTablePromise = null;
-      throw error;
-    });
-  }
-
-  await ensureApiKeyTablePromise;
-}
-
 async function createAccessTokenForUser(userId: string, input: {
   name: string;
   kind: ApiTokenKind;
   scopes?: ApiAccessScope[];
   allowedOrigins?: string[] | null;
 }): Promise<ApiKeyCreateResult> {
-  await ensureApiKeyTable();
-
   const secret = `${getTokenPrefix(input.kind)}${randomBytes(24).toString("hex")}`;
   const keyHash = hashApiKey(secret);
   const prefix = maskPrefix(secret);
@@ -165,7 +108,6 @@ async function createAccessTokenForUser(userId: string, input: {
 }
 
 export async function listApiKeysForUser(userId: string, kind: ApiTokenKind = "secret"): Promise<ApiKeySummary[]> {
-  await ensureApiKeyTable();
   const rows = await queryNoAuth<ApiKeySummary[]>(
     `SELECT id, name, prefix, kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"
      FROM "ApiKey"
@@ -199,8 +141,6 @@ export async function createPublishableTokenForUser(userId: string, input: Publi
 }
 
 export async function revokeApiKeyForUser(userId: string, apiKeyId: string) {
-  await ensureApiKeyTable();
-
   const result = await queryNoAuth<ApiKeySummary[]>(
     `UPDATE "ApiKey"
      SET "revokedAt" = NOW()
@@ -221,8 +161,6 @@ export async function updateApiKeyForUser(
     allowedOrigins?: string[] | null;
   },
 ) {
-  await ensureApiKeyTable();
-
   const currentResult = await queryNoAuth<ApiKeySummary[]>(
     `SELECT id, name, prefix, kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"
      FROM "ApiKey"
@@ -256,8 +194,6 @@ export async function updateApiKeyForUser(
 }
 
 export async function getApiKeyRecord(apiKey: string): Promise<ApiKeyRecord | null> {
-  await ensureApiKeyTable();
-
   const keyHash = hashApiKey(apiKey);
   const result = await queryNoAuth<ApiKeyRecord[]>(
     `SELECT id, "userId", name, prefix, "keyHash", kind, scopes, "allowedOrigins", "lastUsedAt", "revokedAt", "createdAt"
@@ -282,7 +218,6 @@ export async function getApiKeyRecord(apiKey: string): Promise<ApiKeyRecord | nu
 }
 
 export async function touchApiKeyLastUsed(apiKeyId: string) {
-  await ensureApiKeyTable();
   await queryNoAuth(
     `UPDATE "ApiKey"
      SET "lastUsedAt" = NOW()
