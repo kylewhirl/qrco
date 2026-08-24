@@ -124,9 +124,9 @@ export default function Header() {
   useEffect(() => setIsHydrated(true), []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-[color-mix(in_srgb,var(--brand-paper)_84%,transparent)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="The QR Code Co home">
+    <header className="brand-header sticky top-0 z-50 border-b-2 border-[var(--mondrian-rule)] bg-[var(--brand-paper)]">
+      <div className="brand-header-inner mx-auto flex h-16 max-w-[1440px] items-center px-4 sm:px-6">
+        <Link href="/" className="brand-logo-lockup flex shrink-0 items-center gap-2.5" aria-label="The QR Code Co home">
           <Logo className="!size-5" />
           <TypingMorph
             initialText="tqrco.de"

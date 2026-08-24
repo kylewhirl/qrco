@@ -58,23 +58,23 @@ const useCases = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="mondrian-site min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />
       <main>
-        <section className="relative overflow-hidden bg-[var(--brand-paper)] pt-10 sm:pt-12">
+        <section className="mondrian-hero relative overflow-hidden border-b-2 border-[var(--mondrian-rule)] bg-[var(--brand-paper)] pt-10 sm:pt-12">
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-left" />
           <div aria-hidden="true" className="hero-frame-decal hero-frame-decal-right" />
           <div className="relative z-10 mx-auto max-w-[980px] px-5 text-center sm:px-8">
-            <h1 className="font-display mx-auto max-w-[880px] text-[clamp(2.7rem,8vw,5.5rem)] leading-[0.98] tracking-[-0.06em]">
+            <h1 className="font-display mondrian-display mx-auto max-w-[880px] text-[clamp(2.7rem,8vw,5.5rem)] leading-[0.98] tracking-[-0.06em]">
               Dynamic QR codes.
               <br />
-              Free, forever.
+              <span className="mondrian-serif">Free, forever.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-7 text-muted-foreground sm:text-lg">
               Create, update, and track every scan without expired codes or surprise paywalls.
             </p>
             <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-              <Link href="/sign-up" className="brand-button bg-[var(--brand-action)] text-white shadow-[0_14px_32px_-18px_var(--brand-action)]">
+              <Link href="/sign-up" className="brand-button mondrian-button-primary bg-[var(--brand-action)] text-white">
                 Create a free QR code
                 <IconArrowRight className="size-4" stroke={2.4} />
               </Link>
@@ -82,10 +82,10 @@ export default function HomePage() {
                 Explore the platform
               </Link>
             </div>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 pb-8 text-xs font-semibold text-muted-foreground sm:text-sm">
-              <span className="inline-flex items-center gap-2"><IconRefresh className="size-4 text-[var(--brand-blue)]" stroke={3} />Dynamic forever</span>
+            <div className="mondrian-proof mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 pb-8 text-xs font-semibold text-muted-foreground sm:text-sm">
+              <span className="inline-flex items-center gap-2"><IconRefresh className="size-4 text-[var(--brand-red)]" stroke={3} />Dynamic forever</span>
               <span className="inline-flex items-center gap-2"><IconChartLine className="size-4 text-[var(--brand-blue)]" stroke={3} />Real-time analytics</span>
-              <span className="inline-flex items-center gap-2"><IconCreditCardOff className="size-4 text-[var(--brand-blue)]" stroke={3} />No credit card</span>
+              <span className="inline-flex items-center gap-2"><IconCreditCardOff className="size-4 text-[var(--brand-yellow)]" stroke={3} />No credit card</span>
             </div>
           </div>
 
@@ -94,9 +94,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="solutions" className="bg-[var(--brand-paper)] py-16 sm:py-24">
+        <section id="solutions" className="mondrian-solutions border-b-2 border-[var(--mondrian-rule)] bg-[var(--brand-paper)] py-16 sm:py-24">
           <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-            <div className="grid gap-5 border-b border-border pb-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+            <div className="grid gap-5 border-b-2 border-[var(--mondrian-rule)] pb-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <h2 className="font-display max-w-3xl text-[clamp(2.6rem,5.5vw,5rem)] leading-[0.96] tracking-[-0.055em]">
                 Where people actually use dynamic QR codes
               </h2>
@@ -108,8 +108,8 @@ export default function HomePage() {
               {useCases.map((useCase) => {
                 const Icon = useCase.icon;
                 return (
-                  <article key={useCase.title} className="group min-h-[300px] border-b border-r border-border bg-card p-6 transition-colors hover:bg-[color-mix(in_srgb,var(--brand-blue)_4%,var(--card))] sm:p-8">
-                    <Icon className="size-7 text-[var(--brand-blue)]" strokeWidth={1.8} aria-hidden="true" />
+                  <article key={useCase.title} className="mondrian-use-case group min-h-[300px] border-b-2 border-r-2 border-[var(--mondrian-rule)] bg-card p-6 transition-colors sm:p-8">
+                    <Icon className="size-7" strokeWidth={1.8} aria-hidden="true" />
                     <h3 className="mt-12 text-2xl font-bold leading-tight tracking-[-0.035em]">{useCase.title}</h3>
                     <p className="mt-4 text-sm font-semibold leading-6 text-foreground/80">{useCase.example}</p>
                     <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">{useCase.change}</p>
@@ -120,9 +120,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
-          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-xl bg-[var(--brand-action)] px-5 py-16 text-center text-white shadow-[0_32px_90px_-46px_var(--brand-action)] sm:px-8 sm:py-20">
-            <div aria-hidden="true" className="absolute -right-20 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
+        <section className="mondrian-cta-section bg-[var(--brand-paper)] px-4 pb-20 sm:px-6 sm:pb-28">
+          <div className="mondrian-cta relative mx-auto max-w-[1200px] overflow-hidden bg-[var(--brand-blue)] px-5 py-16 text-center text-white sm:px-8 sm:py-20">
+            <div aria-hidden="true" className="mondrian-cta-mark absolute" />
             <h2 className="font-display relative mx-auto max-w-4xl text-[clamp(2.8rem,6vw,5.4rem)] leading-[0.94] tracking-[-0.06em]">
               Printing a menu, sign, label, or card?
             </h2>

@@ -599,16 +599,16 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
     const analyticsInactive = !scanTracking;
 
     return (
-      <div className="w-full overflow-hidden rounded-xl border border-border bg-card shadow-[0_32px_90px_-52px_color-mix(in_srgb,var(--brand-shadow)_52%,transparent)]">
+      <div className="mondrian-creator w-full overflow-hidden border-2 border-[var(--mondrian-rule)] bg-card">
         <div className="grid lg:grid-cols-[minmax(280px,0.9fr)_minmax(350px,1.35fr)_minmax(280px,0.9fr)]">
           <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
             <div className="grid h-full grid-cols-[58px_minmax(0,1fr)]">
-              <nav className="flex flex-col items-center gap-2 border-r border-border bg-[color-mix(in_srgb,var(--brand-blue)_7%,var(--card))] px-2 py-4" aria-label="QR content types">
+              <nav className="mondrian-toolrail flex flex-col items-center gap-2 border-r-2 border-[var(--mondrian-rule)] bg-card px-2 py-4" aria-label="QR content types">
                 {CONTENT_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   const active = contentTab === option.value;
                   return (
-                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("flex size-10 items-center justify-center rounded-md border border-transparent text-muted-foreground transition", active ? "border-[color-mix(in_srgb,var(--brand-blue)_20%,var(--border))] bg-[var(--brand-action)] text-white shadow-[0_8px_20px_-12px_var(--brand-action)]" : "hover:border-border hover:bg-card hover:text-foreground", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
+                    <button key={option.value} type="button" title={option.label} aria-label={option.label} disabled={option.value === "file" && !user} onClick={() => setContentTab(option.value)} className={cn("mondrian-tool-button flex size-10 items-center justify-center border border-transparent text-muted-foreground transition", active ? "border-[var(--mondrian-rule)] bg-[var(--brand-blue)] text-white" : "hover:border-border hover:bg-[var(--brand-yellow)] hover:text-[var(--brand-ink)]", option.value === "file" && !user && "cursor-not-allowed opacity-40")}>
                       <Icon className="size-[18px]" />
                     </button>
                   );
@@ -640,7 +640,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
             </div>
           </section>
 
-          <section className="qr-canvas-grid relative flex min-h-[420px] items-start justify-center overflow-hidden border-b border-border px-3 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r lg:border-b-0">
+          <section className="qr-canvas-grid mondrian-canvas relative flex min-h-[420px] items-start justify-center overflow-hidden border-b-2 border-[var(--mondrian-rule)] px-3 pb-12 pt-16 sm:min-h-[480px] sm:px-8 sm:pb-16 lg:min-h-[520px] lg:border-r-2 lg:border-b-0">
             <div className="absolute inset-x-3 top-4 z-10 flex items-center justify-between gap-3 sm:inset-x-4">
               <div className="flex items-center gap-2">
                 <Switch id="scan-tracking-hero" checked={scanTracking} disabled={!user || isLoading} onCheckedChange={handleTrackingChange} />
@@ -658,11 +658,11 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
               <Scanability score={scanability} showScore />
             </div>
             <div className="relative aspect-square w-full max-w-[340px] shrink-0">
-              <span className="pointer-events-none absolute -left-3 -top-3 size-5 rounded-tl-md border-l-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <span className="pointer-events-none absolute -right-3 -top-3 size-5 rounded-tr-md border-r-2 border-t-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <span className="pointer-events-none absolute -bottom-3 -left-3 size-5 rounded-bl-md border-b-2 border-l-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <span className="pointer-events-none absolute -bottom-3 -right-3 size-5 rounded-br-md border-r-2 border-b-2 border-[var(--brand-blue)]" aria-hidden="true" />
-              <div data-qr-preview className="relative flex aspect-square w-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-4 shadow-[0_24px_50px_-30px_color-mix(in_srgb,var(--brand-blue)_55%,transparent)] sm:p-6" ref={previewRef}>
+              <span className="mondrian-corner mondrian-corner-red pointer-events-none absolute -left-3 -top-3 size-5 border-l-2 border-t-2" aria-hidden="true" />
+              <span className="mondrian-corner mondrian-corner-blue pointer-events-none absolute -right-3 -top-3 size-5 border-r-2 border-t-2" aria-hidden="true" />
+              <span className="mondrian-corner mondrian-corner-yellow pointer-events-none absolute -bottom-3 -left-3 size-5 border-b-2 border-l-2" aria-hidden="true" />
+              <span className="mondrian-corner mondrian-corner-red pointer-events-none absolute -bottom-3 -right-3 size-5 border-r-2 border-b-2" aria-hidden="true" />
+              <div data-qr-preview className="mondrian-qr-preview relative flex aspect-square w-full min-h-0 min-w-0 items-center justify-center overflow-hidden border-2 border-[var(--mondrian-rule)] bg-white p-4 sm:p-6" ref={previewRef}>
                 <QrPreview data={qrString} errorLevel={errorLevel} size={300} styleSettings={styleSettings} borderSettings={borderSettings} logoSettings={logoSettings} onScanabilityChange={setScanability} />
                 {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-white/85"><Loader2Icon className="size-6 animate-spin text-[var(--brand-blue)]" /></div>}
               </div>
@@ -681,7 +681,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                 <div className="flex items-center justify-between gap-8 border-b border-border px-5 py-4">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Status</p>
-                    <span className="mt-1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--brand-lime)_65%,var(--card))] px-2.5 py-1 text-xs font-bold text-[#314a00]">
+                    <span className="mondrian-status mt-1 inline-flex border border-[var(--mondrian-rule)] bg-[var(--brand-yellow)] px-2.5 py-1 text-xs font-bold text-[var(--brand-ink)]">
                       ● {isLoading ? "Connecting" : scanTracking ? "Tracking" : "Example"}
                     </span>
                   </div>
@@ -703,8 +703,8 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
                         <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                         <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)", fontWeight: 700 }} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--muted-foreground)" }} />
-                        <ChartTooltip contentStyle={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 11, fontWeight: 700, boxShadow: "0 12px 30px -18px rgba(0,0,0,.35)" }} />
-                        <Line type="monotone" dataKey="scans" stroke="var(--brand-blue)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--card)", stroke: "var(--brand-blue)", strokeWidth: 2 }} activeDot={{ r: 5, fill: "var(--brand-lime)", stroke: "var(--brand-blue)" }} />
+                        <ChartTooltip contentStyle={{ border: "2px solid var(--border)", borderRadius: 0, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 11, fontWeight: 700, boxShadow: "4px 4px 0 var(--brand-shadow)" }} />
+                        <Line type="monotone" dataKey="scans" stroke="var(--brand-yellow)" strokeWidth={3} dot={{ r: 3, fill: "var(--card)", stroke: "var(--brand-blue)", strokeWidth: 2 }} activeDot={{ r: 5, fill: "var(--brand-red)", stroke: "var(--brand-blue)" }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -739,7 +739,7 @@ function QrCodeCreatorContent({ variant = "default", user }: QrCodeCreatorProps 
         </div>
 
         <div className="flex flex-col items-stretch justify-between gap-3 border-t border-border bg-[color-mix(in_srgb,var(--muted)_32%,var(--card))] p-4 sm:flex-row sm:items-center">
-          <p className="flex items-center gap-2 text-xs font-bold text-foreground/60"><IconQrcode className="size-4 text-[var(--brand-blue)]" />Your code updates as you design</p>
+          <p className="flex items-center gap-2 text-xs font-bold text-foreground/60"><IconQrcode className="size-4 text-[var(--brand-red)]" />Your code updates as you design</p>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-11 rounded-md border border-border bg-card px-5 font-bold" asChild><Link href="/dashboard">Preview <IconExternalLink className="size-4" /></Link></Button>
             <DropdownMenu>
