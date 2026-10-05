@@ -35,7 +35,7 @@ export function NavMain({
   const pathname = usePathname();
 
   return (
-    <SidebarGroup className="px-3 py-3">
+    <SidebarGroup className="px-3 py-3 group-data-[collapsible=icon]:px-2">
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export function NavMain({
                   type="button"
                   size="icon"
                   variant="outline"
-                  className="size-10 shrink-0 rounded-xl border border-sidebar-border bg-card text-[var(--brand-blue)] shadow-none transition-colors hover:bg-accent hover:text-[var(--brand-blue)] group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0"
+                  className="size-10 shrink-0 rounded-xl border border-sidebar-border bg-card text-[var(--dashboard-link,var(--brand-blue))] shadow-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
                 >
                   <IconSparkles />
                   <span className="sr-only">AI Create</span>
@@ -90,7 +90,7 @@ export function NavMain({
                 isActive={pathname === item.url}
                 className={cn(
                   "h-9 rounded-xl px-2.5 font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  pathname === item.url && "bg-sidebar-accent text-[var(--brand-blue)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--brand-blue)_12%,transparent)] hover:bg-sidebar-accent hover:text-[var(--brand-blue)]"
+                  pathname === item.url && "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--brand-blue)_12%,transparent)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
                 <Link href={item.url}>

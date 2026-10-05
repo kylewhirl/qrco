@@ -18,14 +18,14 @@ export function TopLocationsList({ locations }: TopLocationsListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="h-8 text-[0.64rem] font-black uppercase tracking-[0.1em]">Location</TableHead>
-              <TableHead className="h-8 text-right text-[0.64rem] font-black uppercase tracking-[0.1em]">Scans</TableHead>
+              <TableHead className="h-8 text-xs font-black uppercase tracking-[0.1em]">Location</TableHead>
+              <TableHead className="h-8 text-right text-xs font-black uppercase tracking-[0.1em]">Scans</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="w-full overflow-x-auto">
             {locations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={2} className="text-center">
+                <TableCell colSpan={2} className="py-8 text-center text-sm text-muted-foreground">
                   No data available
                 </TableCell>
               </TableRow>

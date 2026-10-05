@@ -52,7 +52,7 @@ export function NavDocuments({
   return (
     <SidebarGroup className="border-t border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:hidden">
       <div className="mb-1 flex items-center justify-between">
-        <SidebarGroupLabel className="h-6 px-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">Recent QR Codes</SidebarGroupLabel>
+        <SidebarGroupLabel className="h-6 px-0 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Recent QR Codes</SidebarGroupLabel>
       </div>
 
       <SidebarMenu>
@@ -89,7 +89,7 @@ export function NavDocuments({
 
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate font-medium">{getLabel(item)}</span>
-                    <span className="line-clamp-2 text-[0.67rem] text-muted-foreground">
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
                       {getMeta(item)}
                     </span>
                   </div>
