@@ -48,11 +48,11 @@ export function ScanActivityChart({ data }: ScanActivityChartProps) {
 
     return (
       <g transform={`translate(${x},${y})`}>
-        <text dy={12} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+        <text dy={12} textAnchor="middle" className="fill-foreground text-xs font-semibold">
           {day}
         </text>
         {(isFirstOfMonth || isFirstTick) && (
-          <text dy={24} textAnchor="middle" className="fill-muted-foreground text-[9px]">
+          <text dy={24} textAnchor="middle" className="fill-muted-foreground text-xs">
             {month}
           </text>
         )}
@@ -69,19 +69,20 @@ export function ScanActivityChart({ data }: ScanActivityChartProps) {
 
   return (
     <Card className="col-span-4 gap-0 border border-border bg-card py-0">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 px-5 pt-5">
+      <CardHeader className="flex flex-col items-start justify-between gap-3 sm:flex-row px-5 pt-5">
         <div>
           <CardTitle className="font-display text-lg tracking-[-0.025em]">Scan activity</CardTitle>
           <p className="mt-1 text-xs font-medium text-muted-foreground">Daily scan counts for the past {range} days</p>
         </div>
-        <div className="flex shrink-0 rounded-xl bg-muted p-1" aria-label="Chart date range">
+        <div className="flex shrink-0 rounded-md bg-muted p-1" role="group" aria-label="Chart date range">
           {([7, 30, 90] as const).map((days) => (
             <button
               key={days}
               type="button"
               onClick={() => setRange(days)}
               aria-pressed={range === days}
-              className="h-7 min-w-10 rounded-lg px-2 text-[0.65rem] font-bold text-muted-foreground transition hover:text-foreground aria-pressed:bg-card aria-pressed:text-[var(--brand-blue)] aria-pressed:shadow-sm"
+              aria-label={`Last ${days} days`}
+              className="h-9 min-w-11 rounded-md px-3 text-xs font-bold text-muted-foreground transition hover:text-foreground aria-pressed:bg-card aria-pressed:text-[var(--dashboard-link,var(--brand-blue))] aria-pressed:shadow-sm"
             >
               {days}D
             </button>
@@ -93,13 +94,14 @@ export function ScanActivityChart({ data }: ScanActivityChartProps) {
           config={{
             scans: {
               label: "Scans",
-              color: "hsl(var(--chart-1))",
+              color: "var(--chart-1)",
             },
           }}
           className="h-full w-full"
         >
           <LineChart
             data={chartData}
+            accessibilityLayer
             margin={{ top: 8, right: 8, left: -10, bottom: 26 }}
           >
             <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.16} strokeDasharray="2 3" />
@@ -116,9 +118,9 @@ export function ScanActivityChart({ data }: ScanActivityChartProps) {
             <YAxis
               tickLine={false}
               axisLine={false}
-              width={28}
+              width={36}
               allowDecimals={false}
-              tick={{ fontSize: 10, fontWeight: 600 }}
+              tick={{ fontSize: 12, fontWeight: 600 }}
             />
             <ChartTooltip
               content={<ChartTooltipContent />}

@@ -262,8 +262,6 @@
   .dashboard-shell {
     --sidebar: var(--card);
     --sidebar-foreground: var(--foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
   }
@@ -800,8 +798,17 @@
   }
 }
 
-/* Shared dashboard brand system. Kept outside Tailwind layers so route-level
-   legacy radius and surface utilities cannot quietly override the workspace. */
+/* Dashboard surfaces include Radix portals mounted under body. Keep these
+   rules out of Tailwind layers so legacy route utilities remain consistent. */
+body:has(.dashboard-shell) {
+  --dashboard-link: #0757b8;
+}
+
+.dark body:has(.dashboard-shell) {
+  --dashboard-link: #7db4f0;
+  --brand-action: #c92d26;
+}
+
 .dashboard-shell main,
 .dashboard-shell main > * {
   min-width: 0;
@@ -876,34 +883,21 @@
   text-transform: none;
 }
 
-.dashboard-shell [data-slot="button"],
-.dashboard-shell [data-slot="input"],
-.dashboard-shell [data-slot="textarea"],
-.dashboard-shell [data-slot="select-trigger"],
-.dashboard-shell [data-slot="tabs-list"],
-.dashboard-shell [data-slot="tabs-trigger"],
-.dashboard-shell [data-slot="badge"],
-.dashboard-shell [data-slot="dialog-content"],
-.dashboard-shell [data-slot="dropdown-menu-content"] {
-  border-radius: 0.5rem;
-}
-
-.dashboard-shell [data-slot="button"],
-.dashboard-shell [data-slot="input"],
-.dashboard-shell [data-slot="textarea"],
-.dashboard-shell [data-slot="select-trigger"],
-.dashboard-shell [data-slot="tabs-list"],
-.dashboard-shell [data-slot="tabs-trigger"],
-.dashboard-shell [data-slot="badge"] {
+body:has(.dashboard-shell) :is([data-slot="button"], [data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], [data-slot="tabs-list"], [data-slot="tabs-trigger"], [data-slot="badge"]) {
   border-radius: 0.375rem;
 }
 
-.dashboard-shell [data-slot="dialog-content"] {
+body:has(.dashboard-shell) :is([data-slot="dialog-content"], [data-slot="sheet-content"]) {
   border-radius: 0.75rem;
 }
 
-.dashboard-shell main [class*="rounded-"][class*="border"] {
-  border-radius: 0.375rem !important;
+body:has(.dashboard-shell) :is([data-slot="dropdown-menu-content"], [data-slot="select-content"], [data-slot="popover-content"]) {
+  border-radius: 0.5rem;
+}
+
+body:has(.dashboard-shell) :is(a, button, input, textarea, [role="combobox"], [data-slot="chart"] svg[tabindex]):focus-visible {
+  outline: 2px solid var(--dashboard-link);
+  outline-offset: 3px;
 }
 
 .dashboard-shell table {
@@ -912,9 +906,9 @@
 
 .dashboard-shell th {
   color: var(--foreground);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -922,16 +916,8 @@
   background: color-mix(in oklab, var(--brand-blue) 9%, transparent);
 }
 
-.dashboard-shell [data-sidebar="sidebar"] [data-slot="sidebar-menu-button"] {
-  color: #fff;
-}
-
-.dashboard-shell [data-sidebar="sidebar"] [data-slot="sidebar-menu-button"][data-active="true"] {
-  color: var(--card-foreground);
-}
-
-.dashboard-shell [data-sidebar="sidebar"] [data-slot="sidebar-group-label"],
-.dashboard-shell [data-sidebar="sidebar"] [data-slot="sidebar-menu-badge"] {
+body:has(.dashboard-shell) [data-sidebar="sidebar"] [data-slot="sidebar-group-label"],
+body:has(.dashboard-shell) [data-sidebar="sidebar"] [data-slot="sidebar-menu-badge"] {
   color: var(--muted-foreground);
 }
 
@@ -945,4 +931,10 @@
 .dark .dashboard-shell .text-red-800,
 .dark .dashboard-shell .text-sky-950 {
   color: var(--foreground) !important;
+}
+
+/* Metadata and count badges must follow the highlighted row foreground too. */
+body:has(.dashboard-shell) [data-sidebar="sidebar"] [data-slot="sidebar-menu-button"]:is(:hover, :focus-visible, [data-active="true"], [data-state="open"]) .text-muted-foreground,
+body:has(.dashboard-shell) [data-sidebar="sidebar"] [data-slot="sidebar-menu-button"]:is(:hover, :focus-visible, [data-active="true"], [data-state="open"]) ~ [data-slot="sidebar-menu-badge"] {
+  color: var(--sidebar-accent-foreground);
 }

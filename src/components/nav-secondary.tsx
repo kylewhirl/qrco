@@ -23,7 +23,7 @@ export function NavSecondary({
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
-    <SidebarGroup className="border-t border-sidebar-border px-3 py-2" {...props}>
+    <SidebarGroup className="border-t border-sidebar-border px-3 py-2 group-data-[collapsible=icon]:px-2" {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (

@@ -64,8 +64,8 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
 
-        <Breadcrumb className="min-w-0">
-          <BreadcrumbList>
+        <Breadcrumb className="min-w-0 flex-1">
+          <BreadcrumbList className="flex-nowrap">
             {dashboardSegments.map((segment, index) => {
               const href = `/${dashboardSegments.slice(0, index + 1).join("/")}`
               const isLast = index === dashboardSegments.length - 1
@@ -73,27 +73,27 @@ export function SiteHeader() {
 
               if (isLast) {
                 return (
-                  <BreadcrumbItem key={href}>
-                    <BreadcrumbPage>{label}</BreadcrumbPage>
+                  <BreadcrumbItem key={href} className="min-w-0">
+                    <BreadcrumbPage className="truncate">{label}</BreadcrumbPage>
                   </BreadcrumbItem>
                 )
               }
 
               return (
                 <Fragment key={href}>
-                  <BreadcrumbItem>
+                  <BreadcrumbItem className="hidden shrink-0 sm:inline-flex">
                     <BreadcrumbLink asChild>
                       <Link href={href}>{label}</Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator />
+                  <BreadcrumbSeparator className="hidden sm:block" />
                 </Fragment>
               )
             })}
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
           <Link
             href="/dashboard/notifications"

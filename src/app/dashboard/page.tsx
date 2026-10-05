@@ -52,7 +52,7 @@ export default async function DashboardPage() {
     <div className="relative flex-1 space-y-5 overflow-hidden px-3 py-5 sm:px-5 lg:px-7 lg:py-7">
       <div className="relative z-10 flex items-end justify-between">
         <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-blue)]">Overview</p>
+          <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--dashboard-link,var(--brand-blue))]">Overview</p>
           <h1 className="font-display text-[clamp(2.2rem,5vw,3.25rem)] leading-none tracking-[-0.05em]">Dashboard</h1>
         </div>
       </div>
